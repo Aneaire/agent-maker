@@ -8,9 +8,36 @@ import {
   Trash2,
   Wrench,
   Bot,
+  ToggleLeft,
+  ToggleRight,
+  Upload,
+  Loader2,
+  Image,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
+
+const TOOL_SET_INFO: Record<
+  string,
+  { label: string; description: string }
+> = {
+  memory: {
+    label: "Memory",
+    description: "Store and recall information across conversations",
+  },
+  web_search: {
+    label: "Web Search",
+    description: "Search the internet and fetch web pages",
+  },
+  pages: {
+    label: "Pages",
+    description: "Create and manage task boards, notes, spreadsheets, and markdown pages",
+  },
+  custom_http_tools: {
+    label: "Custom HTTP Tools",
+    description: "Call external APIs configured below",
+  },
+};
 
 export default function SettingsPage() {
   const { agent } = useOutletContext<{ agent: Doc<"agents"> }>();
@@ -23,10 +50,97 @@ export default function SettingsPage() {
           <h1 className="text-lg font-semibold">Settings</h1>
         </div>
 
+        <AgentIconSection agent={agent} />
         <AgentConfigSection agent={agent} />
+        <ToolSetsSection agent={agent} />
         <CustomToolsSection agent={agent} />
       </div>
     </div>
+  );
+}
+
+// ── Agent Icon ────────────────────────────────────────────────────────
+
+function AgentIconSection({ agent }: { agent: Doc<"agents"> }) {
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const setIcon = useMutation(api.agents.setIcon);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be under 2MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      await setIcon({ agentId: agent._id, storageId });
+    } catch (err: any) {
+      alert("Failed to upload icon");
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Image className="h-4 w-4 text-zinc-400" />
+        <h2 className="text-sm font-medium">Agent Icon</h2>
+      </div>
+      <div className="flex items-center gap-4">
+        {agent.iconUrl ? (
+          <img
+            src={agent.iconUrl}
+            alt="Agent icon"
+            className="h-16 w-16 rounded-xl object-cover border border-zinc-700"
+          />
+        ) : (
+          <div className="h-16 w-16 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
+            <Bot className="h-7 w-7 text-zinc-600" />
+          </div>
+        )}
+        <div>
+          <label
+            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
+              uploading
+                ? "bg-zinc-800 text-zinc-500"
+                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            {uploading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Upload className="h-3 w-3" />
+            )}
+            {uploading ? "Uploading..." : "Upload new icon"}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleUpload}
+              disabled={uploading}
+            />
+          </label>
+          <p className="text-[10px] text-zinc-600 mt-1.5">PNG, JPG up to 2MB</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -128,6 +242,61 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
             className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none resize-none"
           />
         </Field>
+      </div>
+    </section>
+  );
+}
+
+// ── Tool Sets Toggle ──────────────────────────────────────────────────
+
+function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
+  const updateAgent = useMutation(api.agents.update);
+  const enabledSets = agent.enabledToolSets ?? [];
+
+  async function handleToggle(toolSet: string) {
+    const newSets = enabledSets.includes(toolSet)
+      ? enabledSets.filter((s) => s !== toolSet)
+      : [...enabledSets, toolSet];
+
+    try {
+      await updateAgent({
+        agentId: agent._id,
+        enabledToolSets: newSets,
+      });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <ToggleRight className="h-4 w-4 text-zinc-400" />
+        <h2 className="text-sm font-medium">Enabled Capabilities</h2>
+      </div>
+      <div className="space-y-3">
+        {Object.entries(TOOL_SET_INFO).map(([key, info]) => {
+          const enabled = enabledSets.includes(key);
+          return (
+            <button
+              key={key}
+              onClick={() => handleToggle(key)}
+              className="w-full flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-800/50 px-4 py-3 hover:bg-zinc-800 transition-colors text-left"
+            >
+              <div>
+                <span className="text-sm font-medium">{info.label}</span>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {info.description}
+                </p>
+              </div>
+              {enabled ? (
+                <ToggleRight className="h-5 w-5 text-emerald-400 shrink-0" />
+              ) : (
+                <ToggleLeft className="h-5 w-5 text-zinc-600 shrink-0" />
+              )}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

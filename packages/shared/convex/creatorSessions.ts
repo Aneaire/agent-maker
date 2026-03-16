@@ -28,10 +28,35 @@ export const start = mutation({
     for (const session of activeSessions) {
       if (session.status === "active") {
         await ctx.db.patch(session._id, { status: "abandoned" });
-        // Clean up the draft agent if it exists
+        // Clean up the draft agent and its associated data
         if (session.agentId) {
           const draftAgent = await ctx.db.get(session.agentId);
           if (draftAgent && draftAgent.status === "draft") {
+            // Delete conversation + messages
+            if (session.conversationId) {
+              const messages = await ctx.db
+                .query("messages")
+                .withIndex("by_conversation", (q) =>
+                  q.eq("conversationId", session.conversationId!)
+                )
+                .collect();
+              for (const msg of messages) {
+                await ctx.db.delete(msg._id);
+              }
+              await ctx.db.delete(session.conversationId);
+            }
+
+            // Delete jobs
+            const jobs = await ctx.db
+              .query("agentJobs")
+              .withIndex("by_agent", (q) =>
+                q.eq("agentId", session.agentId!)
+              )
+              .collect();
+            for (const job of jobs) {
+              await ctx.db.delete(job._id);
+            }
+
             await ctx.db.delete(session.agentId);
           }
         }
@@ -68,6 +93,29 @@ export const start = mutation({
         model: "claude-sonnet-4-6",
         enabledToolSets: ["memory", "web_search", "pages", "custom_http_tools"],
       },
+    });
+
+    // Auto-send a trigger message so the creator agent greets the user
+    const userMessageId = await ctx.db.insert("messages", {
+      conversationId,
+      role: "user",
+      content: "Hi, I'd like to create a new agent.",
+      status: "done",
+    });
+
+    const assistantMessageId = await ctx.db.insert("messages", {
+      conversationId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+    });
+
+    await ctx.db.insert("agentJobs", {
+      agentId,
+      conversationId,
+      messageId: assistantMessageId,
+      userId: user._id,
+      status: "pending",
     });
 
     return { sessionId, agentId, conversationId };

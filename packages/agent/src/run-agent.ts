@@ -139,17 +139,29 @@ export async function runAgent(params: RunAgentParams) {
     // Load conversation history
     const allMessages = await convexClient.listMessages(params.conversationId);
 
-    // Build API-style messages (exclude the placeholder assistant message)
+    // Build conversation messages (exclude the placeholder assistant message)
     const apiMessages = allMessages
-      .filter((m: any) => m._id !== params.assistantMessageId)
+      .filter(
+        (m: any) =>
+          m._id !== params.assistantMessageId && m.content?.trim()
+      )
       .map((m: any) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
 
-    const prompt = apiMessages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n\n");
+    // Extract the latest user message as the prompt
+    const latestUserMsg = [...apiMessages]
+      .reverse()
+      .find((m) => m.role === "user");
+    const prompt = latestUserMsg?.content ?? "";
+
+    // Build conversation history (everything except the latest user message)
+    const historyMessages = apiMessages.slice(0, -1);
+    const conversationHistory =
+      historyMessages.length > 0
+        ? `\n\n## Conversation History\n${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n`
+        : "";
 
     // Load tabs, custom tools, and memories
     const tabs = (await convexClient.listTabs(params.agentId)) ?? [];
@@ -166,7 +178,8 @@ export async function runAgent(params: RunAgentParams) {
       },
       memories ?? [],
       tabs as any,
-      (customTools as any[]).map((t: any) => t.name)
+      (customTools as any[]).map((t: any) => t.name),
+      conversationHistory
     );
 
     // Create MCP server with dynamic tools
@@ -254,13 +267,15 @@ export async function runAgent(params: RunAgentParams) {
           }
         }
         if (fullText && !responseText.endsWith(fullText)) {
-          responseText =
-            flusher.currentText.length >= fullText.length
-              ? flusher.currentText
-              : responseText.substring(
-                  0,
-                  responseText.length - fullText.length
-                ) + fullText;
+          if (flusher.currentText.length >= fullText.length) {
+            responseText = flusher.currentText;
+          } else if (responseText.length >= fullText.length) {
+            responseText =
+              responseText.substring(0, responseText.length - fullText.length) +
+              fullText;
+          } else {
+            responseText = fullText;
+          }
           flusher.setText(responseText);
         }
       } else if (message.type === "user" && message.message?.content) {

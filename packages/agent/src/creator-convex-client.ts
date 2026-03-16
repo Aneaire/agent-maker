@@ -20,6 +20,13 @@ export class CreatorConvexClient {
     });
   }
 
+  async getUserPlan(agentId: string) {
+    return this.client.query(api.creatorApi.getUserPlan, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
   async updateAgentConfig(
     agentId: string,
     updates: {
@@ -41,6 +48,15 @@ export class CreatorConvexClient {
     return this.client.mutation(api.creatorApi.finalizeAgent, {
       serverToken: this.serverToken,
       agentId: agentId as any,
+    });
+  }
+
+  async createPage(agentId: string, label: string, type: string) {
+    return this.client.mutation(api.agentApi.createPage, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      label,
+      type: type as any,
     });
   }
 

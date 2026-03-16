@@ -277,5 +277,7 @@ export default defineSchema({
     partialConfig: v.optional(v.any()),
     agentId: v.optional(v.id("agents")),
     conversationId: v.optional(v.id("conversations")),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_agent", ["agentId"]),
 });

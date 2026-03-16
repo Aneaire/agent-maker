@@ -106,19 +106,32 @@ class StreamFlusher {
 const CREATOR_SYSTEM_PROMPT = `You are the Agent Creator — a friendly assistant that helps users build custom AI agents.
 
 ## Your Role
-Guide the user through creating their perfect AI agent step by step. Be conversational and encouraging.
+Guide the user through creating their perfect AI agent step by step. Be conversational and encouraging. On the very first message, give a warm welcome and offer two paths: pick a starter template OR build from scratch.
 
-## Creation Flow
-Walk through these steps naturally (you don't need to be rigid — adapt to the user):
+## Quick Start Templates
+If the user wants to get started fast, use the \`use_template\` tool. Available templates:
+- **customer_support** — Customer support agent with tickets and knowledge base
+- **research_assistant** — Research agent with notes and source tracking
+- **project_manager** — Project management with tasks, notes, and timeline
+- **writing_assistant** — Writing and editing with drafts and ideas
+- **data_analyst** — Data organization with spreadsheets and reports
+
+After applying a template, show the user what was set up and ask if they want to customize anything.
+
+## Creation Flow (for building from scratch)
+Walk through these steps naturally (adapt to the user):
 
 1. **Name & Purpose** — Ask what they want to name their agent and what it should do
 2. **Personality & Tone** — Help craft the agent's personality (formal, casual, technical, creative, etc.)
 3. **System Prompt** — Based on the conversation, write a comprehensive system prompt
-4. **Model Selection** — Recommend a model based on their use case:
+4. **Tool Sets** — Discuss which capabilities to enable/disable (use \`list_tool_sets\` to show options)
+5. **Model Selection** — Recommend a model based on their use case:
    - \`claude-sonnet-4-6\` — Best balance of speed and capability (recommended for most)
    - \`claude-opus-4-6\` — Most capable, best for complex reasoning
    - \`claude-haiku-4-5-20251001\` — Fastest and cheapest, good for simple tasks
-5. **Review & Finalize** — Show them a summary and confirm
+6. **Starter Pages** — Offer to create initial pages (task boards, notes, spreadsheets) that will be ready when they start using the agent
+7. **Icon** — Let them know they can upload a custom icon from the preview panel on the right
+8. **Review & Finalize** — Show them a summary and confirm
 
 ## Important Guidelines
 - Call \`update_agent_config\` as soon as the user decides on each piece (don't wait until the end)
@@ -126,6 +139,7 @@ Walk through these steps naturally (you don't need to be rigid — adapt to the 
 - If the user gives a vague description, ask clarifying questions
 - Before finalizing, use \`preview_config\` to show the full configuration
 - Only call \`finalize_agent\` after the user explicitly confirms they're happy
+- Use \`create_starter_pages\` to set up initial pages based on the agent's purpose
 - Keep your responses concise — don't overwhelm with options
 
 ## System Prompt Writing Tips
@@ -155,18 +169,34 @@ export async function runCreator(params: RunCreatorParams) {
     const allMessages = await convexClient.listMessages(params.conversationId);
 
     const apiMessages = allMessages
-      .filter((m: any) => m._id !== params.assistantMessageId)
+      .filter(
+        (m: any) =>
+          m._id !== params.assistantMessageId && m.content?.trim()
+      )
       .map((m: any) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
 
-    const prompt = apiMessages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n\n");
+    // Extract the latest user message as the prompt
+    const latestUserMsg = [...apiMessages]
+      .reverse()
+      .find((m) => m.role === "user");
+    const prompt = latestUserMsg?.content ?? "";
+
+    // Build conversation history for system prompt
+    const historyMessages = apiMessages.slice(0, -1);
+    const conversationHistorySection =
+      historyMessages.length > 0
+        ? `\n\n## Conversation So Far\n${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n\nContinue from where you left off. The user's latest message is provided as the prompt.`
+        : "";
+
+    // Get user plan info for plan-aware tool suggestions
+    const planInfo = await convexClient.getUserPlan(params.agentId);
+    const userPlan = planInfo?.plan ?? "free";
 
     // Build MCP server with creator tools
-    const tools = createCreatorTools(convexClient, params.agentId);
+    const tools = createCreatorTools(convexClient, params.agentId, userPlan);
     const mcpServer = createSdkMcpServer({
       name: "creator-tools",
       version: "1.0.0",
@@ -177,6 +207,8 @@ export async function runCreator(params: RunCreatorParams) {
       "mcp__creator-tools__update_agent_config",
       "mcp__creator-tools__preview_config",
       "mcp__creator-tools__list_tool_sets",
+      "mcp__creator-tools__use_template",
+      "mcp__creator-tools__create_starter_pages",
       "mcp__creator-tools__finalize_agent",
     ];
 
@@ -195,7 +227,7 @@ export async function runCreator(params: RunCreatorParams) {
     const agentStream = query({
       prompt,
       options: {
-        systemPrompt: CREATOR_SYSTEM_PROMPT,
+        systemPrompt: CREATOR_SYSTEM_PROMPT + conversationHistorySection,
         cwd: agentCwd,
         mcpServers: { "creator-tools": mcpServer },
         allowedTools,
@@ -246,13 +278,15 @@ export async function runCreator(params: RunCreatorParams) {
           }
         }
         if (fullText && !responseText.endsWith(fullText)) {
-          responseText =
-            flusher.currentText.length >= fullText.length
-              ? flusher.currentText
-              : responseText.substring(
-                  0,
-                  responseText.length - fullText.length
-                ) + fullText;
+          if (flusher.currentText.length >= fullText.length) {
+            responseText = flusher.currentText;
+          } else if (responseText.length >= fullText.length) {
+            responseText =
+              responseText.substring(0, responseText.length - fullText.length) +
+              fullText;
+          } else {
+            responseText = fullText;
+          }
           flusher.setText(responseText);
         }
       } else if (message.type === "user" && message.message?.content) {

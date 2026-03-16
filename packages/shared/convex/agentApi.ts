@@ -410,15 +410,34 @@ export const createPage = mutation({
     const agent = await ctx.db.get(args.agentId);
     if (!agent) throw new Error("Agent not found");
 
-    const slug = args.label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
     const existing = await ctx.db
       .query("sidebarTabs")
       .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
       .collect();
+
+    // Enforce plan limits (same rules as user-facing sidebarTabs.create)
+    const user = await ctx.db.get(agent.userId);
+    if (user) {
+      const plan = (user.plan ?? "free") as "free" | "pro" | "enterprise";
+      const allowedFree = ["tasks", "notes", "markdown", "data_table"];
+      const allowedPro = [...allowedFree, "spreadsheet", "postgres", "api"];
+      const allowed = plan === "free" ? allowedFree : allowedPro;
+      if (!allowed.includes(args.type)) {
+        throw new Error(
+          `Page type "${args.type}" is not available on the ${plan} plan.`
+        );
+      }
+
+      const maxPages = plan === "enterprise" ? 50 : plan === "pro" ? 20 : 5;
+      if (existing.length >= maxPages) {
+        throw new Error(`Page limit reached (${maxPages} for ${plan} plan).`);
+      }
+    }
+
+    const slug = args.label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
 
     const maxOrder = existing.reduce(
       (max, t) => Math.max(max, t.sortOrder),

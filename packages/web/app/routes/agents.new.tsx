@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { useNavigate } from "react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChatMessageList } from "~/components/ChatMessageList";
 import { ChatInput } from "~/components/ChatInput";
 import {
@@ -9,6 +9,9 @@ import {
   ChevronLeft,
   Wand2,
   Loader2,
+  Upload,
+  X,
+  Image,
 } from "lucide-react";
 import { Link } from "react-router";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -175,6 +178,9 @@ function CreatorView({
           </h3>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Icon Upload */}
+          <IconUpload agentId={agentId} currentIconUrl={config.iconUrl} />
+
           <ConfigField label="Name" value={config.name} />
           <ConfigField label="Description" value={config.description} />
           <ConfigField label="Model" value={config.model} />
@@ -197,7 +203,8 @@ function CreatorView({
             <span className="text-xs text-zinc-500 block mb-1">
               System Prompt
             </span>
-            {config.systemPrompt ? (
+            {config.systemPrompt &&
+            config.systemPrompt !== "You are a helpful AI assistant." ? (
               <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-3 max-h-64 overflow-y-auto">
                 {config.systemPrompt}
               </pre>
@@ -205,6 +212,94 @@ function CreatorView({
               <span className="text-xs text-zinc-600 italic">Not set</span>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IconUpload({
+  agentId,
+  currentIconUrl,
+}: {
+  agentId: Id<"agents">;
+  currentIconUrl?: string;
+}) {
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const setIcon = useMutation(api.agents.setIcon);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be under 2MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      await setIcon({ agentId, storageId });
+    } catch (err: any) {
+      console.error("Upload failed:", err);
+      alert("Failed to upload icon. Please try again.");
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  return (
+    <div>
+      <span className="text-xs text-zinc-500 block mb-1.5">Icon</span>
+      <div className="flex items-center gap-3">
+        {currentIconUrl ? (
+          <img
+            src={currentIconUrl}
+            alt="Agent icon"
+            className="h-12 w-12 rounded-xl object-cover border border-zinc-700"
+          />
+        ) : (
+          <div className="h-12 w-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
+            <Image className="h-5 w-5 text-zinc-600" />
+          </div>
+        )}
+        <div>
+          <label
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
+              uploading
+                ? "bg-zinc-800 text-zinc-500"
+                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            {uploading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Upload className="h-3 w-3" />
+            )}
+            {uploading ? "Uploading..." : "Upload"}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+              disabled={uploading}
+            />
+          </label>
+          <p className="text-[10px] text-zinc-600 mt-1">PNG, JPG up to 2MB</p>
         </div>
       </div>
     </div>

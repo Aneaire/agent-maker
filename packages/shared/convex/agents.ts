@@ -64,6 +64,42 @@ export const create = mutation({
   },
 });
 
+export const setIcon = mutation({
+  args: {
+    agentId: v.id("agents"),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.userId !== user._id) {
+      throw new Error("Agent not found");
+    }
+
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) throw new Error("File not found in storage");
+
+    await ctx.db.patch(args.agentId, { iconUrl: url });
+
+    // Also update creator session partialConfig if agent is a draft
+    if (agent.status === "draft") {
+      const sessions = await ctx.db
+        .query("creatorSessions")
+        .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+        .collect();
+      const session = sessions.find((s) => s.status === "active");
+      if (session) {
+        const config = (session.partialConfig as Record<string, unknown>) ?? {};
+        await ctx.db.patch(session._id, {
+          partialConfig: { ...config, iconUrl: url },
+        });
+      }
+    }
+
+    return { iconUrl: url };
+  },
+});
+
 export const update = mutation({
   args: {
     agentId: v.id("agents"),

@@ -30,26 +30,35 @@ interface McpServerDeps {
   customTools: CustomToolConfig[];
 }
 
+function has(enabledToolSets: string[], name: string): boolean {
+  return enabledToolSets.includes(name);
+}
+
 /**
  * Builds an MCP server with tools dynamically loaded based on the agent's
  * enabledToolSets, existing page tabs, and custom HTTP tools.
  */
 export function buildMcpServer(deps: McpServerDeps) {
   const tools: any[] = [];
+  const enabled = deps.enabledToolSets;
 
-  // Memory tools (always included)
-  tools.push(...createMemoryTools(deps.convexClient, deps.agentId));
+  // Memory tools — gated by "memory"
+  if (has(enabled, "memory")) {
+    tools.push(...createMemoryTools(deps.convexClient, deps.agentId));
+  }
 
-  // Page tools (always includes create_page; other tools based on existing tabs)
-  tools.push(
-    ...createPageTools(deps.convexClient, deps.agentId, deps.tabs)
-  );
+  // Page tools — gated by "pages"
+  if (has(enabled, "pages")) {
+    tools.push(
+      ...createPageTools(deps.convexClient, deps.agentId, deps.tabs)
+    );
+  }
 
-  // Suggest replies tool (always included)
+  // Suggest replies & questions (always included — core UX, not a capability)
   tools.push(...createSuggestTools(deps.convexClient, deps.messageId));
 
-  // Custom HTTP tools
-  if (deps.customTools.length > 0) {
+  // Custom HTTP tools — gated by "custom_http_tools"
+  if (has(enabled, "custom_http_tools") && deps.customTools.length > 0) {
     tools.push(...createCustomHttpTools(deps.customTools));
   }
 
@@ -61,7 +70,8 @@ export function buildMcpServer(deps: McpServerDeps) {
 }
 
 /**
- * Returns the list of allowed tool names for the Claude SDK.
+ * Returns the list of allowed tool names for the Claude SDK,
+ * filtered by the agent's enabledToolSets.
  */
 export function buildAllowedTools(
   enabledToolSets: string[],
@@ -70,28 +80,36 @@ export function buildAllowedTools(
 ): string[] {
   const allowed: string[] = [];
 
-  // Built-in SDK tools (always available)
-  allowed.push("WebSearch", "WebFetch");
+  // Web search & fetch — gated by "web_search"
+  if (has(enabledToolSets, "web_search")) {
+    allowed.push("WebSearch", "WebFetch");
+  }
 
-  // Memory tools (always)
-  allowed.push(
-    "mcp__agent-tools__store_memory",
-    "mcp__agent-tools__recall_memory",
-    "mcp__agent-tools__search_memories"
-  );
+  // Memory tools — gated by "memory"
+  if (has(enabledToolSets, "memory")) {
+    allowed.push(
+      "mcp__agent-tools__store_memory",
+      "mcp__agent-tools__recall_memory",
+      "mcp__agent-tools__search_memories"
+    );
+  }
 
-  // Page tools (always includes create_page + dynamic per tab type)
-  allowed.push(...getPageToolNames(tabs));
+  // Page tools — gated by "pages"
+  if (has(enabledToolSets, "pages")) {
+    allowed.push(...getPageToolNames(tabs));
+  }
 
-  // Suggest replies & questions (always)
+  // Suggest replies & questions (always — core UX)
   allowed.push(
     "mcp__agent-tools__suggest_replies",
     "mcp__agent-tools__ask_questions"
   );
 
-  // Custom HTTP tools
-  for (const ct of customTools) {
-    allowed.push(`mcp__agent-tools__custom_${ct.name}`);
+  // Custom HTTP tools — gated by "custom_http_tools"
+  if (has(enabledToolSets, "custom_http_tools")) {
+    for (const ct of customTools) {
+      allowed.push(`mcp__agent-tools__custom_${ct.name}`);
+    }
   }
 
   return allowed;

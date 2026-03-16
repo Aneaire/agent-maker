@@ -19,12 +19,64 @@ export const getAgentConfig = query({
       systemPrompt: agent.systemPrompt,
       model: agent.model,
       enabledToolSets: agent.enabledToolSets,
+      iconUrl: agent.iconUrl,
       status: agent.status,
     };
   },
 });
 
+export const getUserPlan = query({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) return null;
+    const user = await ctx.db.get(agent.userId);
+    if (!user) return null;
+    return {
+      plan: user.plan,
+      maxAgents: user.maxAgents,
+    };
+  },
+});
+
 // ── MUTATIONS ────────────────────────────────────────────────────────
+
+export const setAgentIcon = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) throw new Error("File not found in storage");
+
+    await ctx.db.patch(args.agentId, { iconUrl: url });
+
+    // Update session partialConfig
+    const sessions = await ctx.db
+      .query("creatorSessions")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    const session = sessions.find((s) => s.status === "active");
+    if (session) {
+      const config = (session.partialConfig as Record<string, unknown>) ?? {};
+      await ctx.db.patch(session._id, {
+        partialConfig: { ...config, iconUrl: url },
+      });
+    }
+
+    return { success: true, iconUrl: url };
+  },
+});
 
 export const updateAgentConfig = mutation({
   args: {
@@ -62,10 +114,9 @@ export const updateAgentConfig = mutation({
     // Also update the session's partialConfig
     const sessions = await ctx.db
       .query("creatorSessions")
+      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
       .collect();
-    const session = sessions.find(
-      (s) => s.agentId === agentId && s.status === "active"
-    );
+    const session = sessions.find((s) => s.status === "active");
     if (session) {
       const currentConfig = (session.partialConfig as Record<string, unknown>) ?? {};
       await ctx.db.patch(session._id, {
@@ -94,10 +145,11 @@ export const finalizeAgent = mutation({
     await ctx.db.patch(args.agentId, { status: "active" });
 
     // Complete the creator session
-    const sessions = await ctx.db.query("creatorSessions").collect();
-    const session = sessions.find(
-      (s) => s.agentId === args.agentId && s.status === "active"
-    );
+    const sessions = await ctx.db
+      .query("creatorSessions")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    const session = sessions.find((s) => s.status === "active");
     if (session) {
       await ctx.db.patch(session._id, { status: "completed" });
     }
