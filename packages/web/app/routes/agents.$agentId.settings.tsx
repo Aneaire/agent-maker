@@ -588,7 +588,7 @@ function SystemPromptDialog({
             <button
               onClick={handleSave}
               disabled={hasSuggestion}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-zinc-100 text-zinc-900 rounded-lg hover:bg-white disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-neon-400 text-zinc-950 rounded-lg hover:bg-neon-300 disabled:opacity-50 transition-colors"
             >
               <Save className="h-3 w-3" />
               Save Changes
@@ -643,7 +643,7 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
                 </p>
               </div>
               {enabled ? (
-                <ToggleRight className="h-5 w-5 text-emerald-400 shrink-0" />
+                <ToggleRight className="h-5 w-5 text-neon-400 shrink-0" />
               ) : (
                 <ToggleLeft className="h-5 w-5 text-zinc-600 shrink-0" />
               )}
@@ -1054,7 +1054,7 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
   const statusColors: Record<string, string> = {
     uploading: "text-yellow-400",
     processing: "text-blue-400",
-    ready: "text-emerald-400",
+    ready: "text-neon-400",
     error: "text-red-400",
   };
 

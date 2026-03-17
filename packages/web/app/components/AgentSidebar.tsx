@@ -75,9 +75,9 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <aside className="w-64 border-r border-zinc-800/60 flex flex-col bg-zinc-950 shrink-0">
+    <aside className="w-64 border-r border-zinc-800/50 flex flex-col bg-zinc-950 shrink-0">
       {/* Header */}
-      <div className="p-4 border-b border-zinc-800/60">
+      <div className="p-4 border-b border-zinc-800/50">
         <Link
           to="/"
           className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-300 transition-colors mb-3 group"
@@ -89,8 +89,8 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           {agent.iconUrl ? (
             <img src={agent.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
           ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 ring-1 ring-zinc-700/50">
-              <Bot className="h-5 w-5 text-zinc-300" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
+              <Bot className="h-5 w-5 text-zinc-400" />
             </div>
           )}
           <div className="min-w-0">
@@ -99,7 +99,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   agent.status === "active"
-                    ? "bg-emerald-400 animate-pulse"
+                    ? "bg-neon-400 animate-pulse"
                     : agent.status === "paused"
                       ? "bg-amber-400"
                       : "bg-zinc-600"
@@ -126,7 +126,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           to={`/agents/${agent._id}/memories`}
           className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
             location.pathname.endsWith("/memories")
-              ? "bg-zinc-800 text-zinc-100 shadow-sm"
+              ? "bg-neon-400/10 text-neon-400 shadow-sm"
               : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
           }`}
         >
@@ -148,7 +148,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                 to={`/agents/${agent._id}/tab/${tab._id}`}
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-all ${
                   location.pathname.includes(`/tab/${tab._id}`)
-                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    ? "bg-neon-400/10 text-neon-400 shadow-sm"
                     : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
                 }`}
               >
@@ -265,7 +265,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                       <button
                         type="submit"
                         onMouseDown={(e) => e.preventDefault()}
-                        className="p-0.5 text-zinc-500 hover:text-emerald-400"
+                        className="p-0.5 text-zinc-500 hover:text-neon-400"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>
@@ -312,12 +312,12 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
       </div>
 
       {/* Footer */}
-      <div className="p-2 border-t border-zinc-800/60">
+      <div className="p-2 border-t border-zinc-800/50">
         <Link
           to={`/agents/${agent._id}/settings`}
           className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
             location.pathname === `/agents/${agent._id}/settings`
-              ? "bg-zinc-800 text-zinc-100 shadow-sm"
+              ? "bg-neon-400/10 text-neon-400 shadow-sm"
               : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300"
           }`}
         >

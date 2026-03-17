@@ -87,7 +87,7 @@ export function ChatInput({
         <div
           className={`relative rounded-2xl border bg-zinc-900/80 backdrop-blur-sm transition-all duration-200 ${
             hasContent
-              ? "border-zinc-600 shadow-lg shadow-black/20"
+              ? "border-neon-400/30 shadow-lg shadow-neon-400/5"
               : "border-zinc-800 hover:border-zinc-700"
           }`}
         >
@@ -139,7 +139,7 @@ export function ChatInput({
             {isProcessing ? (
               <button
                 onClick={onStop}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 hover:bg-white transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon-400 text-zinc-950 hover:bg-neon-300 transition-all"
                 title="Stop generating"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
@@ -150,7 +150,7 @@ export function ChatInput({
                 disabled={!hasContent}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${
                   hasContent
-                    ? "bg-zinc-100 text-zinc-900 hover:bg-white shadow-sm"
+                    ? "bg-neon-400 text-zinc-950 hover:bg-neon-300 glow-neon-sm"
                     : "bg-zinc-800 text-zinc-600 cursor-default"
                 }`}
               >

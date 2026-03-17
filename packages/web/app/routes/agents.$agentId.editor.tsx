@@ -387,7 +387,7 @@ function EditHistorySidebar({
                 >
                   <div className="flex items-center gap-2 mb-1">
                     {s.status === "completed" ? (
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                      <CheckCircle2 className="h-3 w-3 text-neon-400 shrink-0" />
                     ) : s.status === "abandoned" ? (
                       <XCircle className="h-3 w-3 text-zinc-600 shrink-0" />
                     ) : (
@@ -407,7 +407,7 @@ function EditHistorySidebar({
                     <span
                       className={`text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded ${
                         s.status === "completed"
-                          ? "bg-emerald-500/10 text-emerald-500"
+                          ? "bg-neon-400/10 text-neon-400"
                           : s.status === "abandoned"
                             ? "bg-zinc-800 text-zinc-600"
                             : "bg-amber-500/10 text-amber-500"

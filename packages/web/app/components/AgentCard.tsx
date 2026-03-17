@@ -15,10 +15,10 @@ import { CSS } from "@dnd-kit/utilities";
 
 const statusConfig = {
   active: {
-    dot: "bg-emerald-400",
-    bg: "bg-emerald-950/50",
-    text: "text-emerald-400",
-    glow: "shadow-emerald-500/10",
+    dot: "bg-neon-400",
+    bg: "bg-neon-950/50",
+    text: "text-neon-400",
+    glow: "shadow-neon-500/10",
     label: "Active",
   },
   paused: {
@@ -62,7 +62,7 @@ export function AgentCard({
     <div
       ref={sortable?.setNodeRef}
       style={style}
-      className={`group relative rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900 to-zinc-900/50 hover:border-zinc-700 hover:shadow-lg hover:shadow-zinc-900/50 transition-all duration-200 overflow-hidden ${
+      className={`group relative rounded-2xl border border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700/80 hover:shadow-lg hover:shadow-black/30 transition-all duration-200 overflow-hidden ${
         sortable?.isDragging ? "opacity-50 scale-[1.02]" : ""
       }`}
     >
@@ -70,7 +70,7 @@ export function AgentCard({
       <div
         className={`h-[2px] w-full ${
           agent.status === "active"
-            ? "bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent"
+            ? "bg-gradient-to-r from-transparent via-neon-400/40 to-transparent"
             : agent.status === "paused"
               ? "bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"
               : "bg-gradient-to-r from-transparent via-zinc-700/40 to-transparent"
@@ -109,7 +109,7 @@ export function AgentCard({
               <img src={agent.iconUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
             ) : (
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
-                <Bot className="h-5 w-5 text-zinc-300" />
+                <Bot className="h-5 w-5 text-zinc-400" />
               </div>
             )}
             <div className="min-w-0 flex-1">
@@ -125,7 +125,7 @@ export function AgentCard({
           </div>
 
           {/* Footer meta */}
-          <div className="mt-4 flex items-center gap-3 pt-3 border-t border-zinc-800/60">
+          <div className="mt-4 flex items-center gap-3 pt-3 border-t border-zinc-800/50">
             {/* Status badge */}
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status.bg} ${status.text}`}

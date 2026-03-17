@@ -256,7 +256,7 @@ function DocsIndex() {
           icon={<Network className="h-5 w-5" />}
           title="Event Bus"
           description="How all tools interconnect via events"
-          color="from-green-500/20 to-green-600/10"
+          color="from-neon-500/20 to-neon-600/10"
         />
       </div>
 
@@ -365,7 +365,7 @@ function AppLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 underline underline-offset-2 decoration-blue-400/40 hover:decoration-blue-300/60 transition-colors"
+      className="inline-flex items-center gap-1 text-neon-400 hover:text-neon-300 underline underline-offset-2 decoration-neon-400/40 hover:decoration-neon-300/60 transition-colors"
     >
       {children}
     </Link>

@@ -276,7 +276,7 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             <div className="flex items-center gap-3">
               <div className="w-32 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  className="h-full bg-neon-400 rounded-full transition-all duration-500"
                   style={{
                     width: `${(doneTasks / totalTasks) * 100}%`,
                   }}
@@ -959,7 +959,7 @@ function WebhooksDialog({
                               className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors shrink-0"
                             >
                               {copiedId === wh._id ? (
-                                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                <Check className="h-3.5 w-3.5 text-neon-400" />
                               ) : (
                                 <Copy className="h-3.5 w-3.5" />
                               )}
@@ -991,7 +991,7 @@ function WebhooksDialog({
                           title={wh.isActive ? "Disable" : "Enable"}
                         >
                           {wh.isActive ? (
-                            <ToggleRight className="h-4 w-4 text-emerald-400" />
+                            <ToggleRight className="h-4 w-4 text-neon-400" />
                           ) : (
                             <ToggleLeft className="h-4 w-4 text-zinc-600" />
                           )}

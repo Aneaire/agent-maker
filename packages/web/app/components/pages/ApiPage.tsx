@@ -18,7 +18,7 @@ import { useState } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 
 const METHOD_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
-  GET: { bg: "bg-emerald-950/50", text: "text-emerald-400", ring: "ring-emerald-500/20" },
+  GET: { bg: "bg-neon-950/50", text: "text-neon-400", ring: "ring-neon-500/20" },
   POST: { bg: "bg-blue-950/50", text: "text-blue-400", ring: "ring-blue-500/20" },
   PUT: { bg: "bg-amber-950/50", text: "text-amber-400", ring: "ring-amber-500/20" },
   DELETE: { bg: "bg-red-950/50", text: "text-red-400", ring: "ring-red-500/20" },
@@ -278,7 +278,7 @@ function EndpointCard({
               onClick={onToggle}
               className={`p-1.5 rounded-lg transition-all ${
                 endpoint.isActive
-                  ? "text-emerald-400 hover:bg-emerald-950/30"
+                  ? "text-neon-400 hover:bg-neon-950/30"
                   : "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
               }`}
               title={endpoint.isActive ? "Disable" : "Enable"}
@@ -530,7 +530,7 @@ function CopyButton({ text }: { text: string }) {
       className="absolute top-2 right-2 p-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-all opacity-0 group-hover:opacity-100"
     >
       {copied ? (
-        <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
+        <CheckCheck className="h-3.5 w-3.5 text-neon-400" />
       ) : (
         <Copy className="h-3.5 w-3.5" />
       )}

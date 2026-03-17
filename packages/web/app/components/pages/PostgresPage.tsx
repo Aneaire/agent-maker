@@ -44,10 +44,10 @@ export function PostgresPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
 
   const statusConfig = {
     connected: {
-      dot: "bg-emerald-400 animate-pulse",
-      text: "text-emerald-400",
+      dot: "bg-neon-400 animate-pulse",
+      text: "text-neon-400",
       label: "Connected",
-      iconBg: "bg-emerald-950",
+      iconBg: "bg-neon-950",
     },
     error: {
       dot: "bg-red-400",
@@ -90,7 +90,7 @@ export function PostgresPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                         statusConfig[dbConnection.status]?.iconBg ?? statusConfig.disconnected.iconBg
                       }`}
                     >
-                      <Database className="h-5 w-5 text-emerald-400" />
+                      <Database className="h-5 w-5 text-neon-400" />
                     </div>
                     <div>
                       <div className="font-semibold text-sm">

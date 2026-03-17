@@ -151,8 +151,8 @@ function ToolCallRow({
               <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
             </div>
           ) : hasOutput ? (
-            <div className="h-6 w-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Icon className="h-3.5 w-3.5 text-emerald-400" />
+            <div className="h-6 w-6 rounded-lg bg-neon-400/10 flex items-center justify-center">
+              <Icon className="h-3.5 w-3.5 text-neon-400" />
             </div>
           ) : (
             <div className="h-6 w-6 rounded-lg bg-zinc-800/60 flex items-center justify-center">
@@ -189,7 +189,7 @@ function ToolCallRow({
           </span>
         )}
         {hasOutput && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded-full px-2 py-0.5">
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-neon-400/80 bg-neon-400/10 rounded-full px-2 py-0.5">
             <Check className="h-2.5 w-2.5" />
             Done
           </span>
@@ -288,7 +288,7 @@ function ToolCallsPanel({
 
         <span className="text-[10px] text-zinc-500 tabular-nums">
           {allDone ? (
-            <span className="inline-flex items-center gap-1 text-emerald-500/70">
+            <span className="inline-flex items-center gap-1 text-neon-400/70">
               <Check className="h-2.5 w-2.5" />
               {totalCount} completed
             </span>
@@ -374,7 +374,7 @@ function QuestionCards({
                 <div
                   className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                     selected
-                      ? "bg-blue-500/20 text-blue-400"
+                      ? "bg-neon-400/20 text-neon-400"
                       : "bg-zinc-800 text-zinc-500"
                   }`}
                 >
@@ -402,16 +402,16 @@ function QuestionCards({
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all duration-150 ${
                       submitted
                         ? isSelected
-                          ? "bg-blue-500/15 border border-blue-500/30 text-blue-300"
+                          ? "bg-neon-400/15 border border-neon-400/30 text-neon-300"
                           : "bg-zinc-900/40 border border-zinc-800/50 text-zinc-600"
                         : isSelected
-                          ? "bg-blue-500/15 border border-blue-500/40 text-blue-300 shadow-sm shadow-blue-500/10"
+                          ? "bg-neon-400/15 border border-neon-400/40 text-neon-300 shadow-sm shadow-neon-400/10"
                           : "bg-zinc-800/40 border border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-100"
                     }`}
                   >
                     <CircleDot
                       className={`h-3 w-3 shrink-0 ${
-                        isSelected ? "text-blue-400" : "text-zinc-600"
+                        isSelected ? "text-neon-400" : "text-zinc-600"
                       }`}
                     />
                     {option}
@@ -430,7 +430,7 @@ function QuestionCards({
           disabled={!allAnswered}
           className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium transition-all duration-150 ${
             allAnswered
-              ? "bg-blue-600 text-white hover:bg-blue-500 shadow-sm shadow-blue-500/20"
+              ? "bg-neon-400 text-zinc-950 hover:bg-neon-300 glow-neon-sm"
               : "bg-zinc-800/50 text-zinc-500 cursor-not-allowed"
           }`}
         >
@@ -464,7 +464,7 @@ export function ChatMessage({
   if (isUser) {
     return (
       <div className="flex gap-3 justify-end">
-        <div className="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm bg-zinc-100 text-zinc-900">
+        <div className="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm bg-zinc-800 text-zinc-100">
           <div className="whitespace-pre-wrap break-words">
             {message.content}
           </div>
@@ -495,8 +495,8 @@ export function ChatMessage({
 
   return (
     <div className="flex gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800 mt-0.5">
-        <Bot className="h-4 w-4 text-zinc-400" />
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neon-400/10 mt-0.5">
+        <Bot className="h-4 w-4 text-neon-400" />
       </div>
 
       <div className="flex-1 min-w-0 space-y-3">
@@ -520,19 +520,19 @@ export function ChatMessage({
             className={`text-sm leading-relaxed prose prose-invert prose-zinc max-w-none
               prose-p:my-1.5 prose-headings:my-3 prose-li:my-0.5
               prose-pre:bg-zinc-950/60 prose-pre:border prose-pre:border-zinc-800 prose-pre:rounded-xl
-              prose-code:text-emerald-400 prose-code:font-medium
+              prose-code:text-neon-400 prose-code:font-medium
               prose-code:before:content-none prose-code:after:content-none
-              prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
+              prose-a:text-neon-400 prose-a:no-underline hover:prose-a:underline
               prose-table:border-collapse
               prose-th:border prose-th:border-zinc-700 prose-th:px-3 prose-th:py-1.5 prose-th:bg-zinc-800/60
               prose-td:border prose-td:border-zinc-800 prose-td:px-3 prose-td:py-1.5
               prose-strong:text-zinc-100 prose-strong:font-semibold
-              prose-blockquote:border-zinc-700 prose-blockquote:text-zinc-400
+              prose-blockquote:border-neon-400/30 prose-blockquote:text-zinc-400
               ${isError ? "text-red-200" : "text-zinc-200"}`}
           >
             <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 bg-zinc-400 ml-0.5 animate-pulse rounded-sm align-middle" />
+              <span className="inline-block w-1.5 h-4 bg-neon-400 ml-0.5 animate-pulse rounded-sm align-middle" />
             )}
           </div>
         ) : null}
@@ -560,9 +560,9 @@ export function ChatMessage({
               <button
                 key={i}
                 onClick={() => onSendSuggestion?.(suggestion)}
-                className="group inline-flex items-center gap-1.5 rounded-xl border border-zinc-700/80 bg-zinc-900/60 px-3.5 py-2 text-xs text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-100 transition-all duration-150"
+                className="group inline-flex items-center gap-1.5 rounded-xl border border-zinc-700/80 bg-zinc-900/60 px-3.5 py-2 text-xs text-zinc-300 hover:border-neon-400/30 hover:bg-neon-400/5 hover:text-zinc-100 transition-all duration-150"
               >
-                <ArrowRight className="h-3 w-3 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0" />
+                <ArrowRight className="h-3 w-3 text-zinc-600 group-hover:text-neon-400 transition-colors shrink-0" />
                 {suggestion}
               </button>
             ))}

@@ -8,7 +8,7 @@ import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   preference: { bg: "bg-blue-950/50 ring-1 ring-blue-500/20", text: "text-blue-400" },
-  fact: { bg: "bg-emerald-950/50 ring-1 ring-emerald-500/20", text: "text-emerald-400" },
+  fact: { bg: "bg-neon-950/50 ring-1 ring-neon-500/20", text: "text-neon-400" },
   instruction: { bg: "bg-amber-950/50 ring-1 ring-amber-500/20", text: "text-amber-400" },
   context: { bg: "bg-purple-950/50 ring-1 ring-purple-500/20", text: "text-purple-400" },
 };

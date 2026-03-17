@@ -77,7 +77,7 @@ Help users with their questions, troubleshoot issues, and provide clear solution
     description:
       "Thorough researcher that finds, analyzes, and organizes information",
     icon: Search,
-    color: "from-emerald-500/20 to-emerald-600/5 ring-emerald-500/20",
+    color: "from-neon-500/20 to-neon-600/5 ring-neon-500/20",
     systemPrompt: `You are a meticulous research assistant.
 
 ## Your Role

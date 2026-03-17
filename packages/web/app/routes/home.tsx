@@ -56,11 +56,11 @@ function LandingView() {
     <div className="flex flex-col items-center justify-center py-20 text-center">
       {/* Hero icon */}
       <div className="relative mb-8">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 ring-1 ring-zinc-700/50 shadow-2xl shadow-zinc-900">
-          <Bot className="h-10 w-10 text-zinc-200" />
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-neon-400/10 ring-1 ring-neon-400/20 shadow-2xl shadow-neon-400/10">
+          <Bot className="h-10 w-10 text-neon-400" />
         </div>
-        <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-zinc-950">
-          <Sparkles className="h-3 w-3 text-white" />
+        <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-neon-400 ring-4 ring-zinc-950">
+          <Sparkles className="h-3 w-3 text-zinc-950" />
         </div>
       </div>
 
@@ -90,7 +90,7 @@ function LandingView() {
       </div>
 
       <SignInButton mode="modal">
-        <button className="mt-10 rounded-xl bg-zinc-100 px-8 py-3.5 text-sm font-semibold text-zinc-900 hover:bg-white transition-all shadow-lg shadow-zinc-100/5 hover:shadow-zinc-100/10">
+        <button className="mt-10 rounded-xl bg-neon-400 px-8 py-3.5 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon hover:shadow-neon-400/30">
           Get Started
         </button>
       </SignInButton>
@@ -196,7 +196,7 @@ function DashboardView() {
         </div>
         <Link
           to="/agents/new"
-          className="flex items-center gap-2 rounded-xl bg-zinc-100 px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-white transition-all shadow-sm hover:shadow-md"
+          className="flex items-center gap-2 rounded-xl bg-neon-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon-sm"
         >
           <Plus className="h-4 w-4" />
           New Agent
@@ -214,7 +214,7 @@ function DashboardView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search agents..."
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-neon-400/30 focus:ring-1 focus:ring-neon-400/20 transition-all"
             />
           </div>
 
