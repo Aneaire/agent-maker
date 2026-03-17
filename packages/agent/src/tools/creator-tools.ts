@@ -207,6 +207,13 @@ function createListToolSetsTool(ctx: CreatorContext) {
           canDisable: true,
         },
         {
+          name: "email",
+          description:
+            "Send emails via Resend. Requires the user to configure a Resend API key and from address in Settings.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
+        {
           name: "rest_api",
           description:
             "Expose the agent as a REST API. Users can create API endpoints that external systems call, with the agent processing requests.",
@@ -219,6 +226,48 @@ function createListToolSetsTool(ctx: CreatorContext) {
             "Connect to external PostgreSQL databases. The agent can run read-only queries.",
           requiresPlan: "pro",
           available: isPro,
+        },
+        {
+          name: "schedules",
+          description:
+            "Create recurring or one-time scheduled actions (cron jobs, intervals). Agents can autonomously check APIs, send reports, create tasks on a schedule.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
+        {
+          name: "automations",
+          description:
+            "Create event-driven automation rules. When X happens → do Y automatically. E.g., 'when task completed → send email summary'.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
+        {
+          name: "timers",
+          description:
+            "Set delayed actions: 'follow up in 30 minutes', 'remind me tomorrow'. Useful for drip sequences and follow-ups.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
+        {
+          name: "webhooks",
+          description:
+            "Fire outgoing webhooks to external services (Slack, Discord, Zapier, n8n). View event history.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
+        {
+          name: "agent_messages",
+          description:
+            "Communicate with other agents owned by the same user. Enables multi-agent workflows, delegation, and coordination.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
+        {
+          name: "rag",
+          description:
+            "Search uploaded documents (PDF, DOCX, etc.) using vector search. Agents can find relevant information from a knowledge base.",
+          enabledByDefault: false,
+          canDisable: true,
         },
       ];
       return {

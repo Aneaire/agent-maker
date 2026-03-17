@@ -278,6 +278,33 @@ export default defineSchema({
       filterFields: ["agentId"],
     }),
 
+  webhooks: defineTable({
+    agentId: v.id("agents"),
+    tabId: v.id("sidebarTabs"),
+    type: v.union(v.literal("incoming"), v.literal("outgoing")),
+    secret: v.string(),
+    url: v.optional(v.string()),
+    events: v.array(v.string()),
+    isActive: v.boolean(),
+    label: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_tab", ["tabId"])
+    .index("by_secret", ["secret"]),
+
+  emailLogs: defineTable({
+    agentId: v.id("agents"),
+    to: v.array(v.string()),
+    subject: v.string(),
+    status: v.union(v.literal("sent"), v.literal("failed")),
+    resendId: v.optional(v.string()),
+    error: v.optional(v.string()),
+    sentAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_agent_status", ["agentId", "status"]),
+
   agentJobs: defineTable({
     agentId: v.id("agents"),
     conversationId: v.id("conversations"),
@@ -297,6 +324,151 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_agent", ["agentId"])
     .index("by_user_status", ["userId", "status"]),
+
+  // ── Scheduled Actions (Cron) ──────────────────────────────────────
+
+  scheduledActions: defineTable({
+    agentId: v.id("agents"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    // Cron expression (e.g. "0 9 * * 1" = every Monday 9am) or interval ("every 5m", "every 1h")
+    schedule: v.string(),
+    scheduleType: v.union(v.literal("cron"), v.literal("interval"), v.literal("once")),
+    // What the agent should do when triggered
+    action: v.object({
+      type: v.union(
+        v.literal("send_message"),    // Send a message to a conversation
+        v.literal("run_prompt"),      // Run a prompt (creates new conversation)
+        v.literal("fire_webhook"),    // Fire an outgoing webhook
+        v.literal("send_email"),      // Send an email
+        v.literal("create_task"),     // Create a task
+        v.literal("run_automation"),  // Trigger an automation chain
+      ),
+      config: v.any(), // Action-specific config (prompt, webhook URL, email params, etc.)
+    }),
+    status: v.union(
+      v.literal("active"),
+      v.literal("paused"),
+      v.literal("completed"),  // For one-time schedules
+      v.literal("error")
+    ),
+    timezone: v.optional(v.string()),  // e.g. "America/New_York"
+    nextRunAt: v.optional(v.number()), // Unix timestamp of next execution
+    lastRunAt: v.optional(v.number()),
+    runCount: v.number(),
+    maxRuns: v.optional(v.number()),   // Stop after N runs (null = unlimited)
+    createdAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_status", ["status"])
+    .index("by_next_run", ["status", "nextRunAt"]),
+
+  scheduledActionRuns: defineTable({
+    actionId: v.id("scheduledActions"),
+    agentId: v.id("agents"),
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    result: v.optional(v.string()),
+    error: v.optional(v.string()),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    duration: v.optional(v.number()),
+  })
+    .index("by_action", ["actionId"])
+    .index("by_agent", ["agentId"]),
+
+  // ── Event Bus ───────────────────────────────────────────────────────
+
+  agentEvents: defineTable({
+    agentId: v.id("agents"),
+    event: v.string(),  // e.g. "task.created", "email.sent", "schedule.fired", "webhook.received"
+    source: v.string(),  // e.g. "page_tools", "email_tools", "webhook", "schedule", "automation"
+    payload: v.any(),
+    createdAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_agent_event", ["agentId", "event"])
+    .index("by_created", ["createdAt"]),
+
+  // ── Automations (Event → Action rules) ──────────────────────────────
+
+  automations: defineTable({
+    agentId: v.id("agents"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    // Trigger: which event activates this
+    trigger: v.object({
+      event: v.string(),  // e.g. "task.created", "email.sent", "webhook.received", "schedule.fired"
+      filter: v.optional(v.any()),  // Optional conditions (e.g. { status: "done" })
+    }),
+    // Actions to perform (executed in order)
+    actions: v.array(v.object({
+      type: v.union(
+        v.literal("send_email"),
+        v.literal("create_task"),
+        v.literal("update_task"),
+        v.literal("create_note"),
+        v.literal("fire_webhook"),
+        v.literal("store_memory"),
+        v.literal("run_prompt"),       // Have the agent process something
+        v.literal("trigger_agent"),    // Trigger another agent
+        v.literal("delay"),            // Wait before next action
+      ),
+      config: v.any(),  // Action-specific configuration with template variables
+    })),
+    isActive: v.boolean(),
+    runCount: v.number(),
+    lastRunAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_agent", ["agentId"]),
+
+  // ── Inter-Agent Messages ────────────────────────────────────────────
+
+  agentMessages: defineTable({
+    fromAgentId: v.id("agents"),
+    toAgentId: v.id("agents"),
+    content: v.string(),
+    context: v.optional(v.any()),  // Structured data passed between agents
+    status: v.union(
+      v.literal("pending"),
+      v.literal("delivered"),
+      v.literal("processed"),
+      v.literal("failed")
+    ),
+    response: v.optional(v.string()),
+    createdAt: v.number(),
+    processedAt: v.optional(v.number()),
+  })
+    .index("by_to_agent", ["toAgentId", "status"])
+    .index("by_from_agent", ["fromAgentId"]),
+
+  // ── Timers / Delayed Actions ────────────────────────────────────────
+
+  agentTimers: defineTable({
+    agentId: v.id("agents"),
+    conversationId: v.optional(v.id("conversations")),
+    label: v.string(),
+    fireAt: v.number(),  // Unix timestamp
+    action: v.object({
+      type: v.union(
+        v.literal("send_message"),
+        v.literal("send_email"),
+        v.literal("create_task"),
+        v.literal("fire_webhook"),
+        v.literal("run_prompt"),
+      ),
+      config: v.any(),
+    }),
+    status: v.union(v.literal("waiting"), v.literal("fired"), v.literal("cancelled")),
+    createdAt: v.number(),
+    firedAt: v.optional(v.number()),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_status_fire", ["status", "fireAt"]),
 
   creatorSessions: defineTable({
     userId: v.id("users"),

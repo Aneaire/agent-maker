@@ -333,6 +333,129 @@ export const remove = mutation({
       await ctx.db.delete(doc._id);
     }
 
+    // Delete scheduled actions and runs
+    const schedules = await ctx.db
+      .query("scheduledActions")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const schedule of schedules) {
+      const runs = await ctx.db
+        .query("scheduledActionRuns")
+        .withIndex("by_action", (q) => q.eq("actionId", schedule._id))
+        .collect();
+      for (const run of runs) {
+        await ctx.db.delete(run._id);
+      }
+      await ctx.db.delete(schedule._id);
+    }
+
+    // Delete automations
+    const automationsToDelete = await ctx.db
+      .query("automations")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const automation of automationsToDelete) {
+      await ctx.db.delete(automation._id);
+    }
+
+    // Delete events
+    const events = await ctx.db
+      .query("agentEvents")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const event of events) {
+      await ctx.db.delete(event._id);
+    }
+
+    // Delete timers
+    const timers = await ctx.db
+      .query("agentTimers")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const timer of timers) {
+      await ctx.db.delete(timer._id);
+    }
+
+    // Delete inter-agent messages (sent)
+    const sentMsgs = await ctx.db
+      .query("agentMessages")
+      .withIndex("by_from_agent", (q) => q.eq("fromAgentId", args.agentId))
+      .collect();
+    for (const msg of sentMsgs) {
+      await ctx.db.delete(msg._id);
+    }
+
+    // Delete webhooks
+    const webhooksToDelete = await ctx.db
+      .query("webhooks")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const wh of webhooksToDelete) {
+      await ctx.db.delete(wh._id);
+    }
+
+    // Delete email logs
+    const emailLogs = await ctx.db
+      .query("emailLogs")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const log of emailLogs) {
+      await ctx.db.delete(log._id);
+    }
+
     await ctx.db.delete(args.agentId);
+  },
+});
+
+// ── Tool Config ───────────────────────────────────────────────────────
+
+export const getToolConfig = query({
+  args: {
+    agentId: v.id("agents"),
+    toolSetName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthUser(ctx);
+    if (!user) return null;
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.userId !== user._id) return null;
+
+    const configs = await ctx.db
+      .query("agentToolConfigs")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    const match = configs.find((c) => c.toolSetName === args.toolSetName);
+    return match?.config ?? null;
+  },
+});
+
+export const saveToolConfig = mutation({
+  args: {
+    agentId: v.id("agents"),
+    toolSetName: v.string(),
+    config: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.userId !== user._id) {
+      throw new Error("Agent not found");
+    }
+
+    const existing = await ctx.db
+      .query("agentToolConfigs")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    const match = existing.find((c) => c.toolSetName === args.toolSetName);
+
+    if (match) {
+      await ctx.db.patch(match._id, { config: args.config });
+    } else {
+      await ctx.db.insert("agentToolConfigs", {
+        agentId: args.agentId,
+        toolSetName: args.toolSetName,
+        config: args.config,
+      });
+    }
   },
 });

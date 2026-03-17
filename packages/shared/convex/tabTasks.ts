@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "./auth";
+import { internal } from "./_generated/api";
 
 async function requireTabAccess(
   ctx: any,
@@ -66,7 +67,7 @@ export const create = mutation({
       -1
     );
 
-    return await ctx.db.insert("tabTasks", {
+    const taskId = await ctx.db.insert("tabTasks", {
       tabId: args.tabId,
       agentId: tab.agentId,
       title: args.title,
@@ -75,6 +76,21 @@ export const create = mutation({
       priority: args.priority,
       sortOrder: maxOrder + 1,
     });
+
+    // Fire outgoing webhooks
+    await ctx.scheduler.runAfter(0, internal.webhookFire.fire, {
+      tabId: args.tabId,
+      event: "task.created",
+      payload: {
+        taskId,
+        title: args.title,
+        description: args.description,
+        status: args.status ?? "todo",
+        priority: args.priority,
+      },
+    });
+
+    return taskId;
   },
 });
 
@@ -100,6 +116,16 @@ export const update = mutation({
     );
 
     await ctx.db.patch(taskId, filtered);
+
+    // Fire outgoing webhooks
+    await ctx.scheduler.runAfter(0, internal.webhookFire.fire, {
+      tabId: task.tabId,
+      event: "task.updated",
+      payload: {
+        taskId: args.taskId,
+        ...filtered,
+      },
+    });
   },
 });
 
@@ -110,5 +136,15 @@ export const remove = mutation({
     if (!task) throw new Error("Task not found");
     await requireTabAccess(ctx, task.tabId);
     await ctx.db.delete(args.taskId);
+
+    // Fire outgoing webhooks
+    await ctx.scheduler.runAfter(0, internal.webhookFire.fire, {
+      tabId: task.tabId,
+      event: "task.deleted",
+      payload: {
+        taskId: args.taskId,
+        title: task.title,
+      },
+    });
   },
 });

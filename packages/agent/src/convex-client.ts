@@ -233,6 +233,67 @@ export class AgentConvexClient {
     });
   }
 
+  // ── Webhooks ──────────────────────────────────────────────────────
+
+  async createTaskViaWebhook(tabId: string, agentId: string, data: {
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: "low" | "medium" | "high";
+  }) {
+    return this.client.mutation(api.agentApi.createTaskViaWebhook, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+      agentId: agentId as any,
+      ...data,
+    });
+  }
+
+  async updateTaskViaWebhook(taskId: string, data: {
+    title?: string;
+    description?: string;
+    status?: string;
+    priority?: "low" | "medium" | "high";
+  }) {
+    return this.client.mutation(api.agentApi.updateTaskViaWebhook, {
+      serverToken: this.serverToken,
+      taskId: taskId as any,
+      ...data,
+    });
+  }
+
+  async listOutgoingWebhooks(tabId: string, event: string) {
+    return this.client.query(api.agentApi.listOutgoingWebhooks, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+      event,
+    });
+  }
+
+  // ── Email ─────────────────────────────────────────────────────────
+
+  async logEmail(agentId: string, data: {
+    to: string[];
+    subject: string;
+    status: "sent" | "failed";
+    resendId?: string;
+    error?: string;
+  }) {
+    return this.client.mutation(api.agentApi.logEmail, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      ...data,
+    });
+  }
+
+  async getToolConfig(agentId: string, toolSetName: string) {
+    return this.client.query(api.agentApi.getToolConfig, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      toolSetName,
+    });
+  }
+
   // ── Document / RAG ──────────────────────────────────────────────────
 
   async searchDocumentChunks(agentId: string, embedding: number[]) {
@@ -275,6 +336,175 @@ export class AgentConvexClient {
       status,
       chunkCount,
       error,
+    });
+  }
+
+  // ── Scheduled Actions ─────────────────────────────────────────────
+
+  async createSchedule(agentId: string, data: {
+    name: string;
+    description?: string;
+    schedule: string;
+    scheduleType: "cron" | "interval" | "once";
+    action: { type: string; config: any };
+    maxRuns?: number;
+  }) {
+    return this.client.mutation(api.scheduledActions.createFromAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      name: data.name,
+      description: data.description,
+      schedule: data.schedule,
+      scheduleType: data.scheduleType,
+      action: data.action as any,
+      maxRuns: data.maxRuns,
+    });
+  }
+
+  async listSchedules(agentId: string) {
+    return this.client.query(api.scheduledActions.listForAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async pauseSchedule(actionId: string) {
+    return this.client.mutation(api.scheduledActions.pauseFromAgent, {
+      serverToken: this.serverToken,
+      actionId: actionId as any,
+    });
+  }
+
+  async resumeSchedule(actionId: string) {
+    return this.client.mutation(api.scheduledActions.resumeFromAgent, {
+      serverToken: this.serverToken,
+      actionId: actionId as any,
+    });
+  }
+
+  async deleteSchedule(actionId: string) {
+    return this.client.mutation(api.scheduledActions.deleteFromAgent, {
+      serverToken: this.serverToken,
+      actionId: actionId as any,
+    });
+  }
+
+  // ── Automations ───────────────────────────────────────────────────
+
+  async createAutomation(agentId: string, data: {
+    name: string;
+    description?: string;
+    trigger: { event: string; filter?: any };
+    actions: Array<{ type: string; config: any }>;
+  }) {
+    return this.client.mutation(api.automations.createFromAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      name: data.name,
+      description: data.description,
+      trigger: data.trigger,
+      actions: data.actions as any,
+    });
+  }
+
+  async listAutomations(agentId: string) {
+    return this.client.query(api.automations.listForAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async deleteAutomation(automationId: string) {
+    return this.client.mutation(api.automations.deleteFromAgent, {
+      serverToken: this.serverToken,
+      automationId: automationId as any,
+    });
+  }
+
+  // ── Timers ────────────────────────────────────────────────────────
+
+  async createTimer(agentId: string, data: {
+    conversationId?: string;
+    label: string;
+    delayMs: number;
+    action: { type: string; config: any };
+  }) {
+    return this.client.mutation(api.agentTimers.create, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      conversationId: data.conversationId as any,
+      label: data.label,
+      delayMs: data.delayMs,
+      action: data.action as any,
+    });
+  }
+
+  async listTimers(agentId: string) {
+    return this.client.query(api.agentTimers.listForAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async cancelTimer(timerId: string) {
+    return this.client.mutation(api.agentTimers.cancel, {
+      serverToken: this.serverToken,
+      timerId: timerId as any,
+    });
+  }
+
+  // ── Events ────────────────────────────────────────────────────────
+
+  async emitEvent(agentId: string, event: string, source: string, payload: any) {
+    return this.client.mutation(api.agentEvents.emit, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      event,
+      source,
+      payload,
+    });
+  }
+
+  async listEvents(agentId: string, event?: string, limit?: number) {
+    return this.client.query(api.agentEvents.listForAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      event,
+      limit,
+    });
+  }
+
+  // ── Inter-Agent Messaging ─────────────────────────────────────────
+
+  async listSiblingAgents(agentId: string) {
+    return this.client.query(api.agentMessages.listSiblingAgents, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async sendAgentMessage(fromAgentId: string, toAgentId: string, content: string, context?: any) {
+    return this.client.mutation(api.agentMessages.send, {
+      serverToken: this.serverToken,
+      fromAgentId: fromAgentId as any,
+      toAgentId: toAgentId as any,
+      content,
+      context,
+    });
+  }
+
+  async listPendingAgentMessages(agentId: string) {
+    return this.client.query(api.agentMessages.listPending, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async respondToAgentMessage(messageId: string, response: string) {
+    return this.client.mutation(api.agentMessages.markProcessed, {
+      serverToken: this.serverToken,
+      messageId: messageId as any,
+      response,
     });
   }
 }

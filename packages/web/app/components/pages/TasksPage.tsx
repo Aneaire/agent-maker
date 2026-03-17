@@ -13,6 +13,11 @@ import {
   Palette,
   MoreHorizontal,
   Pencil,
+  Webhook,
+  Copy,
+  Check,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -29,7 +34,9 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
   useSortable,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -109,12 +116,21 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const [newTaskColumn, setNewTaskColumn] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [activeTask, setActiveTask] = useState<Doc<"tabTasks"> | null>(null);
+  const [activeColumn, setActiveColumn] = useState<ColumnConfig | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
+  const [showWebhooks, setShowWebhooks] = useState(false);
 
-  // Load columns from tab config or use defaults
-  const columns: ColumnConfig[] = (tab.config as any)?.columns ?? DEFAULT_COLUMNS;
+  // Local columns state for instant UI updates (optimistic)
+  const serverColumns: ColumnConfig[] = (tab.config as any)?.columns ?? DEFAULT_COLUMNS;
+  const [columns, setColumns] = useState<ColumnConfig[]>(serverColumns);
+
+  // Sync from server when tab config changes (e.g. from another tab/agent edit)
+  useEffect(() => {
+    setColumns((tab.config as any)?.columns ?? DEFAULT_COLUMNS);
+  }, [tab.config]);
 
   function saveColumns(newColumns: ColumnConfig[]) {
+    setColumns(newColumns); // instant local update
     updateTab({
       tabId: tab._id,
       config: { ...(tab.config as any), columns: newColumns },
@@ -137,13 +153,40 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   }
 
   function handleDragStart(event: DragStartEvent) {
-    const task = tasks?.find((t) => t._id === event.active.id);
-    if (task) setActiveTask(task);
+    const id = event.active.id as string;
+    // Check if dragging a column (prefixed with "col_")
+    if (id.startsWith("col_")) {
+      const colKey = id.replace("col_", "");
+      const col = columns.find((c) => c.key === colKey);
+      if (col) setActiveColumn(col);
+    } else {
+      const task = tasks?.find((t) => t._id === id);
+      if (task) setActiveTask(task);
+    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    setActiveTask(null);
     const { active, over } = event;
+
+    // Handle column reorder
+    if (activeColumn) {
+      setActiveColumn(null);
+      if (!over) return;
+
+      const activeKey = (active.id as string).replace("col_", "");
+      const overKey = (over.id as string).replace("col_", "");
+      if (activeKey !== overKey) {
+        const oldIndex = columns.findIndex((c) => c.key === activeKey);
+        const newIndex = columns.findIndex((c) => c.key === overKey);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          saveColumns(arrayMove(columns, oldIndex, newIndex));
+        }
+      }
+      return;
+    }
+
+    // Handle task drag
+    setActiveTask(null);
     if (!over) return;
 
     const taskId = active.id as string;
@@ -152,10 +195,11 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
     // Determine target column
     let targetStatus: string | null = null;
 
-    // Check if dropped on a column droppable
-    const isColumn = columns.some((c) => c.key === overId);
+    // Check if dropped on a column droppable (could be col_ prefixed or raw key)
+    const overKey = overId.startsWith("col_") ? overId.replace("col_", "") : overId;
+    const isColumn = columns.some((c) => c.key === overKey);
     if (isColumn) {
-      targetStatus = overId;
+      targetStatus = overKey;
     } else {
       // Dropped on another task — use that task's column
       const overTask = tasks?.find((t) => t._id === overId);
@@ -244,6 +288,15 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             </div>
           )}
 
+          {/* Webhooks */}
+          <button
+            onClick={() => setShowWebhooks(true)}
+            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+          >
+            <Webhook className="h-3.5 w-3.5" />
+            Webhooks
+          </button>
+
           {/* Add Column */}
           <button
             onClick={() => setShowAddColumn(true)}
@@ -263,6 +316,11 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
         />
       )}
 
+      {/* Webhooks Dialog */}
+      {showWebhooks && (
+        <WebhooksDialog tab={tab} onClose={() => setShowWebhooks(false)} />
+      )}
+
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto p-4">
         <DndContext
@@ -270,34 +328,39 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 min-h-full">
-            {columns.map((col) => {
-              const columnTasks =
-                tasks?.filter((t) => t.status === col.key) ?? [];
+          <SortableContext
+            items={columns.map((c) => `col_${c.key}`)}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className="flex gap-4 min-h-full">
+              {columns.map((col) => {
+                const columnTasks =
+                  tasks?.filter((t) => t.status === col.key) ?? [];
 
-              return (
-                <KanbanColumn
-                  key={col.key}
-                  col={col}
-                  tasks={columnTasks}
-                  isAddingTask={newTaskColumn === col.key}
-                  newTitle={newTitle}
-                  canDelete={columns.length > 1}
-                  onStartAdd={() => setNewTaskColumn(col.key)}
-                  onTitleChange={setNewTitle}
-                  onConfirmAdd={() => handleCreate(col.key)}
-                  onCancelAdd={() => {
-                    setNewTaskColumn(null);
-                    setNewTitle("");
-                  }}
-                  onDelete={(taskId) => removeTask({ taskId })}
-                  onRemoveColumn={() => handleRemoveColumn(col.key)}
-                  onRenameColumn={(name) => handleRenameColumn(col.key, name)}
-                  onRecolorColumn={(color) => handleRecolorColumn(col.key, color)}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <SortableColumn
+                    key={col.key}
+                    col={col}
+                    tasks={columnTasks}
+                    isAddingTask={newTaskColumn === col.key}
+                    newTitle={newTitle}
+                    canDelete={columns.length > 1}
+                    onStartAdd={() => setNewTaskColumn(col.key)}
+                    onTitleChange={setNewTitle}
+                    onConfirmAdd={() => handleCreate(col.key)}
+                    onCancelAdd={() => {
+                      setNewTaskColumn(null);
+                      setNewTitle("");
+                    }}
+                    onDelete={(taskId) => removeTask({ taskId })}
+                    onRemoveColumn={() => handleRemoveColumn(col.key)}
+                    onRenameColumn={(name) => handleRenameColumn(col.key, name)}
+                    onRecolorColumn={(color) => handleRecolorColumn(col.key, color)}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
 
           {/* Drag overlay */}
           <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
@@ -309,6 +372,15 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 {activeTask.priority && (
                   <PriorityBadge priority={activeTask.priority} />
                 )}
+              </div>
+            ) : activeColumn ? (
+              <div className="w-76 rounded-2xl border border-zinc-600 bg-zinc-900/90 shadow-2xl shadow-black/50 rotate-1 opacity-90 p-4">
+                <div className="flex items-center gap-2.5">
+                  <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${getColorClasses(activeColumn.color).dot}`} />
+                  <span className={`text-sm font-semibold ${getColorClasses(activeColumn.color).text}`}>
+                    {activeColumn.label}
+                  </span>
+                </div>
               </div>
             ) : null}
           </DragOverlay>
@@ -384,6 +456,51 @@ function AddColumnDialog({
   );
 }
 
+// ── Sortable Column Wrapper ──────────────────────────────────────────
+
+function SortableColumn(props: {
+  col: ColumnConfig;
+  tasks: Doc<"tabTasks">[];
+  isAddingTask: boolean;
+  newTitle: string;
+  canDelete: boolean;
+  onStartAdd: () => void;
+  onTitleChange: (v: string) => void;
+  onConfirmAdd: () => void;
+  onCancelAdd: () => void;
+  onDelete: (taskId: any) => void;
+  onRemoveColumn: () => void;
+  onRenameColumn: (name: string) => void;
+  onRecolorColumn: (color: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `col_${props.col.key}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? "opacity-40 scale-95" : ""}
+    >
+      <KanbanColumn
+        {...props}
+        columnDragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+}
+
 // ── Kanban Column ──────────────────────────────────────────────────
 
 function KanbanColumn({
@@ -400,6 +517,7 @@ function KanbanColumn({
   onRemoveColumn,
   onRenameColumn,
   onRecolorColumn,
+  columnDragHandleProps,
 }: {
   col: ColumnConfig;
   tasks: Doc<"tabTasks">[];
@@ -414,6 +532,7 @@ function KanbanColumn({
   onRemoveColumn: () => void;
   onRenameColumn: (name: string) => void;
   onRecolorColumn: (color: string) => void;
+  columnDragHandleProps?: Record<string, any>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   const colorClasses = getColorClasses(col.color);
@@ -444,7 +563,14 @@ function KanbanColumn({
       <div
         className={`px-4 py-3.5 rounded-t-2xl flex items-center justify-between ${colorClasses.headerBg}`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Column drag handle */}
+          <button
+            {...columnDragHandleProps}
+            className="p-0.5 rounded text-zinc-600 hover:text-zinc-400 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
           <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${colorClasses.dot}`} />
           {isRenaming ? (
             <input
@@ -678,6 +804,318 @@ function SortableTaskCard({
         >
           <Trash2 className="h-3 w-3" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Webhooks Dialog ─────────────────────────────────────────────────
+
+const AGENT_SERVER_URL =
+  typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:3001`
+    : "http://localhost:3001";
+
+const TASK_EVENTS = [
+  { value: "task.created", label: "Task Created" },
+  { value: "task.updated", label: "Task Updated" },
+  { value: "task.deleted", label: "Task Deleted" },
+];
+
+function WebhooksDialog({
+  tab,
+  onClose,
+}: {
+  tab: Doc<"sidebarTabs">;
+  onClose: () => void;
+}) {
+  const webhooks = useQuery(api.webhooks.list, { tabId: tab._id });
+  const createWebhook = useMutation(api.webhooks.create);
+  const toggleWebhook = useMutation(api.webhooks.toggle);
+  const removeWebhook = useMutation(api.webhooks.remove);
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [newType, setNewType] = useState<"incoming" | "outgoing">("incoming");
+  const [newUrl, setNewUrl] = useState("");
+  const [newEvents, setNewEvents] = useState<string[]>(["task.created"]);
+  const [newLabel, setNewLabel] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function handleCreate() {
+    try {
+      await createWebhook({
+        tabId: tab._id,
+        type: newType,
+        url: newType === "outgoing" ? newUrl.trim() : undefined,
+        events: newEvents,
+        label: newLabel.trim() || undefined,
+      });
+      setShowAdd(false);
+      setNewUrl("");
+      setNewEvents(["task.created"]);
+      setNewLabel("");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  function toggleEvent(event: string) {
+    setNewEvents((prev) =>
+      prev.includes(event)
+        ? prev.filter((e) => e !== event)
+        : [...prev, event]
+    );
+  }
+
+  function copyToClipboard(text: string, id: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+      <div className="w-full max-w-lg max-h-[80vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-600/20 ring-1 ring-blue-500/20">
+              <Webhook className="h-4 w-4 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-100">Webhooks</h2>
+              <p className="text-[11px] text-zinc-500">
+                Connect external services to this task board
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Existing webhooks */}
+          {webhooks === undefined ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 rounded-lg bg-zinc-800 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : webhooks.length === 0 && !showAdd ? (
+            <div className="text-center py-8">
+              <Webhook className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
+              <p className="text-sm text-zinc-500 mb-1">No webhooks configured</p>
+              <p className="text-xs text-zinc-600">
+                Add incoming webhooks to create tasks from external services, or
+                outgoing webhooks to notify services when tasks change.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {webhooks?.map((wh) => {
+                const webhookUrl = `${AGENT_SERVER_URL}/webhook/${wh.secret}`;
+                return (
+                  <div
+                    key={wh._id}
+                    className="group rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span
+                            className={`text-[10px] font-medium uppercase px-2 py-0.5 rounded-full ${
+                              wh.type === "incoming"
+                                ? "bg-blue-950/50 text-blue-400 ring-1 ring-blue-900/30"
+                                : "bg-purple-950/50 text-purple-400 ring-1 ring-purple-900/30"
+                            }`}
+                          >
+                            {wh.type}
+                          </span>
+                          {wh.label && (
+                            <span className="text-sm font-medium text-zinc-300 truncate">
+                              {wh.label}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* URL display */}
+                        {wh.type === "incoming" ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <code className="text-[11px] font-mono text-zinc-500 bg-zinc-800 px-2 py-1 rounded-lg truncate flex-1">
+                              {webhookUrl}
+                            </code>
+                            <button
+                              onClick={() =>
+                                copyToClipboard(webhookUrl, wh._id)
+                              }
+                              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors shrink-0"
+                            >
+                              {copiedId === wh._id ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <code className="text-[11px] font-mono text-zinc-500 block mt-1 truncate">
+                            {wh.url}
+                          </code>
+                        )}
+
+                        {/* Events */}
+                        <div className="flex gap-1 mt-2">
+                          {wh.events.map((e) => (
+                            <span
+                              key={e}
+                              className="text-[10px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded"
+                            >
+                              {e}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => toggleWebhook({ webhookId: wh._id })}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-800 transition-colors"
+                          title={wh.isActive ? "Disable" : "Enable"}
+                        >
+                          {wh.isActive ? (
+                            <ToggleRight className="h-4 w-4 text-emerald-400" />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4 text-zinc-600" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>
+                            removeWebhook({ webhookId: wh._id })
+                          }
+                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-all"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Add webhook form */}
+          {showAdd ? (
+            <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 space-y-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setNewType("incoming")}
+                  className={`flex-1 text-xs py-2 rounded-lg font-medium transition-colors ${
+                    newType === "incoming"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  }`}
+                >
+                  Incoming
+                </button>
+                <button
+                  onClick={() => setNewType("outgoing")}
+                  className={`flex-1 text-xs py-2 rounded-lg font-medium transition-colors ${
+                    newType === "outgoing"
+                      ? "bg-purple-600 text-white"
+                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  }`}
+                >
+                  Outgoing
+                </button>
+              </div>
+
+              <input
+                type="text"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Label (optional)"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+              />
+
+              {newType === "outgoing" && (
+                <input
+                  type="url"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  placeholder="https://your-service.com/webhook"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+                />
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-2">
+                  Events
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {TASK_EVENTS.map((ev) => (
+                    <button
+                      key={ev.value}
+                      onClick={() => toggleEvent(ev.value)}
+                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                        newEvents.includes(ev.value)
+                          ? "border-zinc-500 bg-zinc-700 text-zinc-200"
+                          : "border-zinc-800 text-zinc-500 hover:border-zinc-600"
+                      }`}
+                    >
+                      {ev.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {newType === "incoming" && (
+                <p className="text-[11px] text-zinc-600 leading-relaxed">
+                  A unique URL will be generated. POST JSON with{" "}
+                  <code className="text-zinc-500">
+                    {`{ "title": "...", "status": "todo" }`}
+                  </code>{" "}
+                  to create tasks.
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCreate}
+                  disabled={
+                    newEvents.length === 0 ||
+                    (newType === "outgoing" && !newUrl.trim())
+                  }
+                  className="text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-30 transition-colors"
+                >
+                  Create Webhook
+                </button>
+                <button
+                  onClick={() => setShowAdd(false)}
+                  className="text-xs text-zinc-500 px-2 py-1.5 hover:text-zinc-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAdd(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-zinc-800 text-xs text-zinc-500 hover:text-zinc-300 hover:border-zinc-600 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Webhook
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

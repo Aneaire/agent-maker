@@ -20,6 +20,7 @@ import {
   FileText,
   RotateCcw,
   Check,
+  Mail,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
@@ -45,9 +46,33 @@ const TOOL_SET_INFO: Record<
     label: "Knowledge Base",
     description: "Upload documents and let your agent search them",
   },
+  email: {
+    label: "Email",
+    description: "Send emails via Resend to users and contacts",
+  },
   custom_http_tools: {
     label: "Custom HTTP Tools",
     description: "Call external APIs configured below",
+  },
+  schedules: {
+    label: "Scheduled Actions",
+    description: "Create recurring or one-time scheduled tasks (cron jobs, intervals)",
+  },
+  automations: {
+    label: "Automations",
+    description: "Event-driven rules: when X happens → do Y automatically",
+  },
+  timers: {
+    label: "Timers & Delays",
+    description: "Set delayed actions for follow-ups, reminders, and drip sequences",
+  },
+  webhooks: {
+    label: "Webhooks",
+    description: "Fire outgoing webhooks to external services and view event history",
+  },
+  agent_messages: {
+    label: "Inter-Agent Messaging",
+    description: "Communicate with other agents for delegation and coordination",
   },
 };
 
@@ -81,6 +106,9 @@ export default function SettingsPage() {
         <ToolSetsSection agent={agent} />
         {(agent.enabledToolSets ?? []).includes("rag") && (
           <DocumentsSection agent={agent} />
+        )}
+        {(agent.enabledToolSets ?? []).includes("email") && (
+          <EmailConfigSection agent={agent} />
         )}
         <CustomToolsSection agent={agent} />
       </div>
@@ -622,6 +650,121 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
             </button>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+// ── Email Config ──────────────────────────────────────────────────────
+
+function EmailConfigSection({ agent }: { agent: Doc<"agents"> }) {
+  const existingConfig = useQuery(api.agents.getToolConfig, {
+    agentId: agent._id,
+    toolSetName: "email",
+  });
+  const saveConfig = useMutation(api.agents.saveToolConfig);
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [fromEmail, setFromEmail] = useState("");
+  const [fromName, setFromName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (existingConfig && !loaded) {
+      setResendApiKey(existingConfig.resendApiKey ?? "");
+      setFromEmail(existingConfig.fromEmail ?? "");
+      setFromName(existingConfig.fromName ?? "");
+      setLoaded(true);
+    }
+  }, [existingConfig, loaded]);
+
+  const hasChanges =
+    loaded &&
+    (resendApiKey !== (existingConfig?.resendApiKey ?? "") ||
+      fromEmail !== (existingConfig?.fromEmail ?? "") ||
+      fromName !== (existingConfig?.fromName ?? ""));
+
+  async function handleSave() {
+    if (!resendApiKey.trim() || !fromEmail.trim()) return;
+    setSaving(true);
+    try {
+      await saveConfig({
+        agentId: agent._id,
+        toolSetName: "email",
+        config: {
+          resendApiKey: resendApiKey.trim(),
+          fromEmail: fromEmail.trim(),
+          fromName: fromName.trim() || undefined,
+        },
+      });
+    } catch (err: any) {
+      alert(err.message);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <Mail className="h-4 w-4 text-zinc-400" />
+          <h2 className="text-sm font-medium">Email Configuration</h2>
+        </div>
+        {hasChanges && (
+          <button
+            onClick={handleSave}
+            disabled={saving || !resendApiKey.trim() || !fromEmail.trim()}
+            className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-3 w-3" />
+            {saving ? "Saving..." : "Save"}
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <Field label="Resend API Key">
+          <input
+            type="password"
+            value={resendApiKey}
+            onChange={(e) => setResendApiKey(e.target.value)}
+            placeholder="re_..."
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          />
+        </Field>
+
+        <Field label="From Email">
+          <input
+            type="email"
+            value={fromEmail}
+            onChange={(e) => setFromEmail(e.target.value)}
+            placeholder="agent@yourdomain.com"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          />
+        </Field>
+
+        <Field label="From Name (optional)">
+          <input
+            type="text"
+            value={fromName}
+            onChange={(e) => setFromName(e.target.value)}
+            placeholder="My Agent"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          />
+        </Field>
+
+        <p className="text-[11px] text-zinc-600 leading-relaxed">
+          Get your API key from{" "}
+          <a
+            href="https://resend.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-400 underline hover:text-zinc-300"
+          >
+            resend.com
+          </a>
+          . You'll need to verify a sending domain to use a custom from address.
+        </p>
       </div>
     </section>
   );

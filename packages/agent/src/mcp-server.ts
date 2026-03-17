@@ -5,6 +5,12 @@ import { createPageTools, getPageToolNames } from "./tools/page-tools.js";
 import { createCustomHttpTools } from "./tools/custom-http-tools.js";
 import { createSuggestTools } from "./tools/suggest-tools.js";
 import { createRagTools } from "./tools/rag-tools.js";
+import { createEmailTools } from "./tools/email-tools.js";
+import { createScheduleTools } from "./tools/schedule-tools.js";
+import { createAutomationTools } from "./tools/automation-tools.js";
+import { createTimerTools } from "./tools/timer-tools.js";
+import { createWebhookManagementTools } from "./tools/webhook-management-tools.js";
+import { createAgentMessageTools } from "./tools/agent-message-tools.js";
 
 interface Tab {
   _id: string;
@@ -22,13 +28,21 @@ interface CustomToolConfig {
   headers?: Record<string, string>;
 }
 
+interface EmailConfig {
+  resendApiKey: string;
+  fromEmail: string;
+  fromName?: string;
+}
+
 interface McpServerDeps {
   convexClient: AgentConvexClient;
   agentId: string;
   messageId: string;
+  conversationId?: string;
   enabledToolSets: string[];
   tabs: Tab[];
   customTools: CustomToolConfig[];
+  emailConfig?: EmailConfig | null;
 }
 
 function has(enabledToolSets: string[], name: string): boolean {
@@ -63,9 +77,47 @@ export function buildMcpServer(deps: McpServerDeps) {
     tools.push(...createRagTools(deps.convexClient, deps.agentId));
   }
 
+  // Email tools — gated by "email"
+  if (has(enabled, "email") && deps.emailConfig) {
+    tools.push(
+      ...createEmailTools(deps.convexClient, deps.agentId, deps.emailConfig)
+    );
+  }
+
   // Custom HTTP tools — gated by "custom_http_tools"
   if (has(enabled, "custom_http_tools") && deps.customTools.length > 0) {
     tools.push(...createCustomHttpTools(deps.customTools));
+  }
+
+  // Scheduled Actions — gated by "schedules"
+  if (has(enabled, "schedules")) {
+    tools.push(...createScheduleTools(deps.convexClient, deps.agentId));
+  }
+
+  // Automations — gated by "automations"
+  if (has(enabled, "automations")) {
+    tools.push(...createAutomationTools(deps.convexClient, deps.agentId));
+  }
+
+  // Timers / Delayed Actions — gated by "timers"
+  if (has(enabled, "timers")) {
+    tools.push(
+      ...createTimerTools(deps.convexClient, deps.agentId, deps.conversationId)
+    );
+  }
+
+  // Webhooks (outgoing + event bus) — gated by "webhooks"
+  if (has(enabled, "webhooks")) {
+    tools.push(
+      ...createWebhookManagementTools(deps.convexClient, deps.agentId)
+    );
+  }
+
+  // Inter-Agent Messaging — gated by "agent_messages"
+  if (has(enabled, "agent_messages")) {
+    tools.push(
+      ...createAgentMessageTools(deps.convexClient, deps.agentId)
+    );
   }
 
   return createSdkMcpServer({
@@ -116,11 +168,63 @@ export function buildAllowedTools(
     allowed.push("mcp__agent-tools__search_documents");
   }
 
+  // Email tools — gated by "email"
+  if (has(enabledToolSets, "email")) {
+    allowed.push("mcp__agent-tools__send_email");
+  }
+
   // Custom HTTP tools — gated by "custom_http_tools"
   if (has(enabledToolSets, "custom_http_tools")) {
     for (const ct of customTools) {
       allowed.push(`mcp__agent-tools__custom_${ct.name}`);
     }
+  }
+
+  // Scheduled Actions — gated by "schedules"
+  if (has(enabledToolSets, "schedules")) {
+    allowed.push(
+      "mcp__agent-tools__create_schedule",
+      "mcp__agent-tools__list_schedules",
+      "mcp__agent-tools__pause_schedule",
+      "mcp__agent-tools__resume_schedule",
+      "mcp__agent-tools__delete_schedule"
+    );
+  }
+
+  // Automations — gated by "automations"
+  if (has(enabledToolSets, "automations")) {
+    allowed.push(
+      "mcp__agent-tools__create_automation",
+      "mcp__agent-tools__list_automations",
+      "mcp__agent-tools__delete_automation"
+    );
+  }
+
+  // Timers — gated by "timers"
+  if (has(enabledToolSets, "timers")) {
+    allowed.push(
+      "mcp__agent-tools__set_timer",
+      "mcp__agent-tools__list_timers",
+      "mcp__agent-tools__cancel_timer"
+    );
+  }
+
+  // Webhooks — gated by "webhooks"
+  if (has(enabledToolSets, "webhooks")) {
+    allowed.push(
+      "mcp__agent-tools__fire_webhook",
+      "mcp__agent-tools__list_events"
+    );
+  }
+
+  // Inter-Agent Messaging — gated by "agent_messages"
+  if (has(enabledToolSets, "agent_messages")) {
+    allowed.push(
+      "mcp__agent-tools__list_sibling_agents",
+      "mcp__agent-tools__send_to_agent",
+      "mcp__agent-tools__check_agent_messages",
+      "mcp__agent-tools__respond_to_agent"
+    );
   }
 
   return allowed;

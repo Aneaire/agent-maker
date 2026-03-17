@@ -24,13 +24,27 @@ interface DocumentInfo {
   fileName: string;
 }
 
+interface ScheduleInfo {
+  name: string;
+  schedule: string;
+  status: string;
+}
+
+interface AutomationInfo {
+  name: string;
+  trigger: { event: string };
+  isActive: boolean;
+}
+
 export function buildSystemPrompt(
   agentConfig: AgentConfig,
   memories: Memory[],
   tabs: Tab[] = [],
   customToolNames: string[] = [],
   conversationHistory: string = "",
-  documents: DocumentInfo[] = []
+  documents: DocumentInfo[] = [],
+  schedules: ScheduleInfo[] = [],
+  automations: AutomationInfo[] = []
 ): string {
   const enabled = agentConfig.enabledToolSets ?? [];
 
@@ -61,6 +75,18 @@ export function buildSystemPrompt(
       ? `\n\n## Custom Tools\nYou have these custom HTTP tools: ${customToolNames.join(", ")}\n`
       : "";
 
+  // ── Schedules section (only if schedules is enabled) ────────────────
+  const schedulesSection =
+    has(enabled, "schedules") && schedules.length > 0
+      ? `\n\n## Active Schedules\nYou have these scheduled actions running:\n${schedules.map((s) => `- "${s.name}" — ${s.schedule} [${s.status}]`).join("\n")}\nManage them with create_schedule, list_schedules, pause_schedule, resume_schedule, delete_schedule.\n`
+      : "";
+
+  // ── Automations section (only if automations is enabled) ────────────
+  const automationsSection =
+    has(enabled, "automations") && automations.length > 0
+      ? `\n\n## Active Automations\nYou have these automation rules:\n${automations.filter(a => a.isActive).map((a) => `- "${a.name}" — triggers on: ${a.trigger.event}`).join("\n")}\nManage them with create_automation, list_automations, delete_automation.\n`
+      : "";
+
   // ── Capabilities list (only advertise what's enabled) ───────────────
   const capabilities: string[] = [];
   if (has(enabled, "web_search")) {
@@ -83,9 +109,39 @@ export function buildSystemPrompt(
       "- **Knowledge Base** — search uploaded documents for relevant information"
     );
   }
+  if (has(enabled, "email")) {
+    capabilities.push(
+      "- **Email** — send emails to users and contacts"
+    );
+  }
   if (has(enabled, "custom_http_tools")) {
     capabilities.push(
       `- **Custom HTTP Tools** — call external APIs configured by your owner${customToolNames.length > 0 ? ` (${customToolNames.length} configured)` : ""}`
+    );
+  }
+  if (has(enabled, "schedules")) {
+    capabilities.push(
+      "- **Scheduled Actions** — create recurring or one-time scheduled tasks (cron jobs, intervals)"
+    );
+  }
+  if (has(enabled, "automations")) {
+    capabilities.push(
+      "- **Automations** — create event-driven rules (when X happens → do Y automatically)"
+    );
+  }
+  if (has(enabled, "timers")) {
+    capabilities.push(
+      "- **Timers** — set delayed actions (follow-ups, reminders, drip sequences)"
+    );
+  }
+  if (has(enabled, "webhooks")) {
+    capabilities.push(
+      "- **Webhooks** — fire outgoing webhooks to external services, view event history"
+    );
+  }
+  if (has(enabled, "agent_messages")) {
+    capabilities.push(
+      "- **Inter-Agent Messaging** — communicate with other agents for delegation and coordination"
     );
   }
 
@@ -101,6 +157,38 @@ export function buildSystemPrompt(
 - **Be proactive**: When the user needs to track something, create a Tasks page. When they share data, create a Spreadsheet. When they need documentation, create a Notes or Markdown page.
 - **Set up everything**: When creating a spreadsheet, define the columns first (using add_spreadsheet_column) before adding rows. Design the schema based on what makes sense for the data.
 - **Manage fully**: Don't just create pages — populate them. If the user asks to track expenses, create the spreadsheet, add the columns (Date, Description, Amount, Category), and add the rows they mention.
+`
+    : "";
+
+  // ── Scheduling guidelines ───────────────────────────────────────────
+  const scheduleGuidance = has(enabled, "schedules") || has(enabled, "timers")
+    ? `
+## Scheduling & Timers
+- When the user says "remind me", "every day", "check daily", "follow up in", etc., use the appropriate scheduling tool
+- **Recurring tasks**: Use \`create_schedule\` with interval or cron
+- **One-time delays**: Use \`set_timer\` with delay_minutes
+- **Proactive setup**: If the user describes a workflow that needs recurring checks, suggest setting up a schedule
+`
+    : "";
+
+  // ── Automation guidelines ───────────────────────────────────────────
+  const automationGuidance = has(enabled, "automations")
+    ? `
+## Automations
+- When the user says "when X happens, do Y" or "automatically do Z whenever...", create an automation
+- Automations can chain multiple actions: e.g., "when a task is done → send email + create note"
+- Use template variables in action configs: {{event.title}}, {{event.status}}, etc.
+`
+    : "";
+
+  // ── Inter-agent guidelines ──────────────────────────────────────────
+  const agentMessageGuidance = has(enabled, "agent_messages")
+    ? `
+## Inter-Agent Communication
+- You can delegate work to other agents owned by the same user
+- Use \`list_sibling_agents\` to see available agents, then \`send_to_agent\` to communicate
+- Check for incoming messages with \`check_agent_messages\` and respond with \`respond_to_agent\`
+- This is useful for specialized workflows: e.g., routing support tickets, triggering data analysis
 `
     : "";
 
@@ -124,7 +212,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${capabilitiesSection}${autonomySection}${customToolGuidance}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${customToolGuidance}
 ## Interactive Questions
 When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
 

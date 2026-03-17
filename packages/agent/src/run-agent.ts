@@ -183,6 +183,21 @@ export async function runAgent(params: RunAgentParams) {
       ? await convexClient.listAgentDocuments(params.agentId)
       : [];
 
+    // Load email config if email tool is enabled
+    const emailConfig = enabled.includes("email")
+      ? await convexClient.getToolConfig(params.agentId, "email")
+      : null;
+
+    // Load schedules context if schedules tool is enabled
+    const schedules = enabled.includes("schedules")
+      ? await convexClient.listSchedules(params.agentId)
+      : [];
+
+    // Load automations context if automations tool is enabled
+    const automations = enabled.includes("automations")
+      ? await convexClient.listAutomations(params.agentId)
+      : [];
+
     // Build system prompt with full context
     const systemPrompt = buildSystemPrompt(
       {
@@ -195,7 +210,9 @@ export async function runAgent(params: RunAgentParams) {
       tabs as any,
       (customTools as any[]).map((t: any) => t.name),
       conversationHistory,
-      (documents ?? []) as any
+      (documents ?? []) as any,
+      (schedules ?? []) as any,
+      (automations ?? []) as any
     );
 
     // Create MCP server with dynamic tools
@@ -203,9 +220,11 @@ export async function runAgent(params: RunAgentParams) {
       convexClient,
       agentId: params.agentId,
       messageId: params.assistantMessageId,
+      conversationId: params.conversationId,
       enabledToolSets: agent.enabledToolSets,
       tabs: tabs as any,
       customTools: customTools as any,
+      emailConfig: emailConfig as any,
     });
 
     const allowedTools = buildAllowedTools(

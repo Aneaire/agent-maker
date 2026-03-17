@@ -10,9 +10,13 @@
 
 import type * as agentApi from "../agentApi.js";
 import type * as agentDatabases from "../agentDatabases.js";
+import type * as agentEvents from "../agentEvents.js";
 import type * as agentJobs from "../agentJobs.js";
+import type * as agentMessages from "../agentMessages.js";
+import type * as agentTimers from "../agentTimers.js";
 import type * as agents from "../agents.js";
 import type * as auth from "../auth.js";
+import type * as automations from "../automations.js";
 import type * as conversations from "../conversations.js";
 import type * as creatorApi from "../creatorApi.js";
 import type * as creatorSessions from "../creatorSessions.js";
@@ -21,6 +25,7 @@ import type * as documentChunksInternal from "../documentChunksInternal.js";
 import type * as documents from "../documents.js";
 import type * as memories from "../memories.js";
 import type * as messages from "../messages.js";
+import type * as scheduledActions from "../scheduledActions.js";
 import type * as serverAuth from "../serverAuth.js";
 import type * as sidebarTabs from "../sidebarTabs.js";
 import type * as storage from "../storage.js";
@@ -29,6 +34,8 @@ import type * as tabNotes from "../tabNotes.js";
 import type * as tabSpreadsheet from "../tabSpreadsheet.js";
 import type * as tabTasks from "../tabTasks.js";
 import type * as users from "../users.js";
+import type * as webhookFire from "../webhookFire.js";
+import type * as webhooks from "../webhooks.js";
 
 import type {
   ApiFromModules,
@@ -39,9 +46,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   agentApi: typeof agentApi;
   agentDatabases: typeof agentDatabases;
+  agentEvents: typeof agentEvents;
   agentJobs: typeof agentJobs;
+  agentMessages: typeof agentMessages;
+  agentTimers: typeof agentTimers;
   agents: typeof agents;
   auth: typeof auth;
+  automations: typeof automations;
   conversations: typeof conversations;
   creatorApi: typeof creatorApi;
   creatorSessions: typeof creatorSessions;
@@ -50,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   memories: typeof memories;
   messages: typeof messages;
+  scheduledActions: typeof scheduledActions;
   serverAuth: typeof serverAuth;
   sidebarTabs: typeof sidebarTabs;
   storage: typeof storage;
@@ -58,6 +70,8 @@ declare const fullApi: ApiFromModules<{
   tabSpreadsheet: typeof tabSpreadsheet;
   tabTasks: typeof tabTasks;
   users: typeof users;
+  webhookFire: typeof webhookFire;
+  webhooks: typeof webhooks;
 }>;
 
 /**

@@ -772,6 +772,162 @@ export const listAgentDocuments = query({
   },
 });
 
+// ── EMAIL ENDPOINTS ──────────────────────────────────────────────────
+
+export const logEmail = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    to: v.array(v.string()),
+    subject: v.string(),
+    status: v.union(v.literal("sent"), v.literal("failed")),
+    resendId: v.optional(v.string()),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    return await ctx.db.insert("emailLogs", {
+      agentId: args.agentId,
+      to: args.to,
+      subject: args.subject,
+      status: args.status,
+      resendId: args.resendId,
+      error: args.error,
+      sentAt: Date.now(),
+    });
+  },
+});
+
+export const getToolConfig = query({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    toolSetName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const configs = await ctx.db
+      .query("agentToolConfigs")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    const match = configs.find((c) => c.toolSetName === args.toolSetName);
+    return match?.config ?? null;
+  },
+});
+
+// ── WEBHOOK ENDPOINTS ────────────────────────────────────────────────
+
+export const validateWebhookSecret = query({
+  args: {
+    serverToken: v.string(),
+    secret: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const webhook = await ctx.db
+      .query("webhooks")
+      .withIndex("by_secret", (q) => q.eq("secret", args.secret))
+      .first();
+    if (!webhook || !webhook.isActive || webhook.type !== "incoming") {
+      return null;
+    }
+    return {
+      webhookId: webhook._id,
+      agentId: webhook.agentId,
+      tabId: webhook.tabId,
+      events: webhook.events,
+    };
+  },
+});
+
+export const listOutgoingWebhooks = query({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+    event: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const webhooks = await ctx.db
+      .query("webhooks")
+      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
+      .collect();
+    return webhooks.filter(
+      (w) => w.type === "outgoing" && w.isActive && w.events.includes(args.event)
+    );
+  },
+});
+
+export const createTaskViaWebhook = mutation({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+    agentId: v.id("agents"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.optional(v.string()),
+    priority: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const tab = await ctx.db.get(args.tabId);
+    if (!tab || tab.agentId !== args.agentId) {
+      throw new Error("Tab not found or does not belong to this agent");
+    }
+
+    const existing = await ctx.db
+      .query("tabTasks")
+      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
+      .collect();
+    if (existing.length >= 500) {
+      throw new Error("Task limit reached (500)");
+    }
+
+    const maxOrder = existing.reduce((max, t) => Math.max(max, t.sortOrder), -1);
+
+    return await ctx.db.insert("tabTasks", {
+      tabId: args.tabId,
+      agentId: args.agentId,
+      title: args.title.substring(0, 500),
+      description: args.description?.substring(0, 5000),
+      status: args.status ?? "todo",
+      priority: args.priority,
+      sortOrder: maxOrder + 1,
+    });
+  },
+});
+
+export const updateTaskViaWebhook = mutation({
+  args: {
+    serverToken: v.string(),
+    taskId: v.id("tabTasks"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.optional(v.string()),
+    priority: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Task not found");
+
+    const filtered: Record<string, any> = {};
+    if (args.title !== undefined) filtered.title = args.title.substring(0, 500);
+    if (args.description !== undefined)
+      filtered.description = args.description.substring(0, 5000);
+    if (args.status !== undefined) filtered.status = args.status;
+    if (args.priority !== undefined) filtered.priority = args.priority;
+
+    await ctx.db.patch(args.taskId, filtered);
+  },
+});
+
 export const updateConversationTitle = mutation({
   args: {
     serverToken: v.string(),
