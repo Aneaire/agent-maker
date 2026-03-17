@@ -105,9 +105,13 @@ export function AgentCard({
         <Link to={`/agents/${agent._id}`} className="block">
           {/* Icon + Name */}
           <div className="flex items-start gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
-              <Bot className="h-5 w-5 text-zinc-300" />
-            </div>
+            {agent.iconUrl ? (
+              <img src={agent.iconUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
+                <Bot className="h-5 w-5 text-zinc-300" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-zinc-100 truncate leading-tight">
                 {agent.name}

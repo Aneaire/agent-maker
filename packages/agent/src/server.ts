@@ -1,10 +1,13 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
+import { cors } from "hono/cors";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { ProcessManager } from "./process-manager.js";
 import { runCreator } from "./run-creator.js";
 import { runApiEndpoint } from "./run-api-endpoint.js";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import { existsSync, mkdirSync } from "fs";
 
 const CONVEX_URL = process.env.CONVEX_URL!;
 const SERVER_TOKEN = process.env.AGENT_SERVER_TOKEN!;
@@ -34,6 +37,7 @@ const processManager = new ProcessManager({
 });
 
 const app = new Hono();
+app.use("/*", cors());
 
 // ── Health check ─────────────────────────────────────────────────────
 
@@ -155,6 +159,87 @@ Respond with ${endpoint.responseFormat === "json" ? "valid JSON only, no markdow
     return c.text(result);
   } catch (err: any) {
     console.error("[api] Endpoint error:", err.message);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ── System prompt AI assistant ────────────────────────────────────────
+
+app.post("/assist-prompt", async (c) => {
+  try {
+    const { currentPrompt, instruction, agentName, agentDescription } =
+      await c.req.json<{
+        currentPrompt: string;
+        instruction: string;
+        agentName?: string;
+        agentDescription?: string;
+      }>();
+
+    const systemPrompt = `You are an expert AI prompt engineer. Your job is to help users write effective system prompts for AI agents.
+
+Rules:
+- Return ONLY the improved system prompt text, nothing else
+- No markdown code fences, no explanations, no preamble
+- Keep the prompt clear, specific, and well-structured
+- Preserve the user's intent and any domain-specific instructions
+- Use a professional tone appropriate for system prompts`;
+
+    const userMessage = currentPrompt
+      ? `Here is the current system prompt for an agent${agentName ? ` called "${agentName}"` : ""}${agentDescription ? ` (${agentDescription})` : ""}:
+
+---
+${currentPrompt}
+---
+
+User's request: ${instruction}
+
+Return the improved system prompt.`
+      : `Create a system prompt for an AI agent${agentName ? ` called "${agentName}"` : ""}${agentDescription ? ` described as: ${agentDescription}` : ""}.
+
+User's request: ${instruction}
+
+Return the system prompt.`;
+
+    const cwd = "/tmp/assist-prompt-workspace";
+    if (!existsSync(cwd)) mkdirSync(cwd, { recursive: true });
+
+    let result = "";
+    const stream = query({
+      prompt: userMessage,
+      options: {
+        systemPrompt,
+        cwd,
+        maxTurns: 1,
+        model: "claude-sonnet-4-6",
+        permissionMode: "bypassPermissions",
+        allowDangerouslySkipPermissions: true,
+        includePartialMessages: true,
+      },
+    });
+
+    for await (const message of stream) {
+      if (message.type === "stream_event") {
+        const ev = (message as any).event;
+        if (ev?.type === "content_block_delta" && ev.delta?.type === "text_delta" && ev.delta.text) {
+          result += ev.delta.text;
+        }
+      } else if (message.type === "assistant" && message.message?.content) {
+        // Final assistant message — extract full text
+        let fullText = "";
+        for (const block of message.message.content) {
+          if ("text" in block && block.text) {
+            fullText += block.text;
+          }
+        }
+        if (fullText) {
+          result = fullText;
+        }
+      }
+    }
+
+    return c.json({ prompt: result.trim() });
+  } catch (err: any) {
+    console.error("[assist-prompt] Error:", err.message);
     return c.json({ error: err.message }, 500);
   }
 });

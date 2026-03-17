@@ -3,6 +3,11 @@ import { existsSync, mkdirSync } from "fs";
 import { AgentConvexClient } from "./convex-client.js";
 import { buildMcpServer, buildAllowedTools } from "./mcp-server.js";
 import { buildSystemPrompt } from "./system-prompt.js";
+import { runGeminiAgent } from "./run-gemini-agent.js";
+
+export function isGeminiModel(model: string): boolean {
+  return model.startsWith("gemini-");
+}
 
 export interface RunAgentParams {
   agentId: string;
@@ -117,10 +122,16 @@ class StreamFlusher {
 }
 
 export async function runAgent(params: RunAgentParams) {
+  // Route to Gemini runner if model is a Gemini model
   const convexClient = new AgentConvexClient(
     params.convexUrl,
     params.serverToken
   );
+
+  const agent = await convexClient.getAgent(params.agentId);
+  if (agent && isGeminiModel(agent.model || "")) {
+    return runGeminiAgent(params);
+  }
 
   const flusher = new StreamFlusher(convexClient, params.assistantMessageId);
 
@@ -132,8 +143,7 @@ export async function runAgent(params: RunAgentParams) {
       "processing"
     );
 
-    // Load agent config
-    const agent = await convexClient.getAgent(params.agentId);
+    // Load agent config (already loaded above)
     if (!agent) throw new Error("Agent not found");
 
     // Load conversation history

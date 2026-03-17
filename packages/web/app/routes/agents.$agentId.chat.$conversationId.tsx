@@ -18,6 +18,7 @@ export default function ChatPage() {
   });
   const sendMessage = useMutation(api.messages.send);
   const stopMessage = useMutation(api.messages.stop);
+  const updateAgent = useMutation(api.agents.update);
 
   // Loading state
   if (conversation === undefined || messages === undefined) {
@@ -93,6 +94,8 @@ export default function ChatPage() {
         onSend={handleSend}
         onStop={handleStop}
         isProcessing={hasActiveRun}
+        model={agent.model}
+        onModelChange={(model) => updateAgent({ agentId: agent._id, model })}
       />
     </div>
   );

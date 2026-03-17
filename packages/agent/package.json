@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.50",
+    "@google/generative-ai": "^0.24.0",
     "@agent-maker/shared": "workspace:*",
     "convex": "^1.21.0",
     "hono": "^4.7.0",

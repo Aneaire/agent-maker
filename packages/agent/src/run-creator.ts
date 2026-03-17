@@ -128,8 +128,12 @@ Walk through these steps naturally (adapt to the user):
 4. **Tool Sets** — Discuss which capabilities to enable/disable (use \`list_tool_sets\` to show options)
 5. **Model Selection** — Recommend a model based on their use case:
    - \`claude-sonnet-4-6\` — Best balance of speed and capability (recommended for most)
-   - \`claude-opus-4-6\` — Most capable, best for complex reasoning
-   - \`claude-haiku-4-5-20251001\` — Fastest and cheapest, good for simple tasks
+   - \`claude-opus-4-6\` — Most capable Claude, best for complex reasoning
+   - \`claude-haiku-4-5-20251001\` — Fastest and cheapest Claude, good for simple tasks
+   - \`gemini-3.1-pro\` — Most capable Gemini, advanced reasoning with 1M context
+   - \`gemini-3-flash\` — Fast Gemini, great for agentic and multimodal tasks
+   - \`gemini-3.1-flash-lite\` — Cheapest Gemini, optimized for low-latency
+   - \`gemini-2.5-flash\` — Balanced Gemini, good all-rounder
 6. **Starter Pages** — Offer to create initial pages (task boards, notes, spreadsheets, API pages) that will be ready when they start using the agent
 6b. **API Endpoints** (if applicable) — If the user wants to expose their agent as an API or integrate with external systems, create the necessary data pages FIRST (spreadsheets, tasks, notes), then create an API page, then set up endpoints using \`create_api_endpoints\`.
 7. **Icon** — Let them know they can upload a custom icon from the preview panel on the right

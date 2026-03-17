@@ -3,6 +3,8 @@ import { existsSync, mkdirSync } from "fs";
 import { AgentConvexClient } from "./convex-client.js";
 import { buildMcpServer, buildAllowedTools } from "./mcp-server.js";
 import { buildSystemPrompt } from "./system-prompt.js";
+import { isGeminiModel } from "./run-agent.js";
+import { runGeminiApiEndpoint } from "./run-gemini-agent.js";
 
 export interface RunApiEndpointParams {
   agentId: string;
@@ -19,6 +21,12 @@ export interface RunApiEndpointParams {
 export async function runApiEndpoint(
   params: RunApiEndpointParams
 ): Promise<string> {
+  // Route to Gemini if the model is a Gemini model
+  const effectiveModel = params.model || "";
+  if (isGeminiModel(effectiveModel)) {
+    return runGeminiApiEndpoint(params);
+  }
+
   const convexClient = new AgentConvexClient(
     params.convexUrl,
     params.serverToken
@@ -27,6 +35,11 @@ export async function runApiEndpoint(
   // Load agent config
   const agent = await convexClient.getAgent(params.agentId);
   if (!agent) throw new Error("Agent not found");
+
+  // Check if agent's default model is Gemini
+  if (isGeminiModel(agent.model || "")) {
+    return runGeminiApiEndpoint(params);
+  }
 
   // Load context
   const tabs = (await convexClient.listTabs(params.agentId)) ?? [];

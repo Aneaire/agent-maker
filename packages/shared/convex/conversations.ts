@@ -11,6 +11,7 @@ export const list = query({
       .withIndex("by_agent_and_user", (q) =>
         q.eq("agentId", args.agentId).eq("userId", user._id)
       )
+      .order("desc")
       .collect();
   },
 });
@@ -57,5 +58,27 @@ export const updateTitle = mutation({
       throw new Error("Conversation not found");
     }
     await ctx.db.patch(args.conversationId, { title: args.title });
+  },
+});
+
+export const remove = mutation({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const conv = await ctx.db.get(args.conversationId);
+    if (!conv || conv.userId !== user._id) {
+      throw new Error("Conversation not found");
+    }
+    // Delete all messages in the conversation
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId)
+      )
+      .collect();
+    for (const msg of messages) {
+      await ctx.db.delete(msg._id);
+    }
+    await ctx.db.delete(args.conversationId);
   },
 });
