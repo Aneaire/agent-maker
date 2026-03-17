@@ -244,6 +244,40 @@ export default defineSchema({
       filterFields: ["agentId"],
     }),
 
+  documents: defineTable({
+    agentId: v.id("agents"),
+    fileName: v.string(),
+    fileType: v.string(),
+    storageId: v.id("_storage"),
+    fileSize: v.number(),
+    status: v.union(
+      v.literal("uploading"),
+      v.literal("processing"),
+      v.literal("ready"),
+      v.literal("error")
+    ),
+    chunkCount: v.optional(v.number()),
+    error: v.optional(v.string()),
+    uploadedAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_agent_status", ["agentId", "status"]),
+
+  documentChunks: defineTable({
+    documentId: v.id("documents"),
+    agentId: v.id("agents"),
+    chunkIndex: v.number(),
+    content: v.string(),
+    embedding: v.array(v.float64()),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_agent", ["agentId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 3072,
+      filterFields: ["agentId"],
+    }),
+
   agentJobs: defineTable({
     agentId: v.id("agents"),
     conversationId: v.id("conversations"),

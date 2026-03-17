@@ -1,6 +1,7 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { requireServerAuth } from "./serverAuth";
+import { internal } from "./_generated/api";
 
 // ── QUERIES ──────────────────────────────────────────────────────────
 
@@ -664,6 +665,110 @@ export const createApiEndpoint = mutation({
       responseFormat: args.responseFormat ?? "json",
       isActive: true,
     });
+  },
+});
+
+// ── DOCUMENT / RAG ENDPOINTS ──────────────────────────────────────────
+
+export const storeDocumentChunks = mutation({
+  args: {
+    serverToken: v.string(),
+    documentId: v.id("documents"),
+    agentId: v.id("agents"),
+    chunks: v.array(
+      v.object({
+        chunkIndex: v.number(),
+        content: v.string(),
+        embedding: v.array(v.float64()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    for (const chunk of args.chunks) {
+      await ctx.db.insert("documentChunks", {
+        documentId: args.documentId,
+        agentId: args.agentId,
+        chunkIndex: chunk.chunkIndex,
+        content: chunk.content,
+        embedding: chunk.embedding,
+      });
+    }
+  },
+});
+
+export const updateDocumentStatus = mutation({
+  args: {
+    serverToken: v.string(),
+    documentId: v.id("documents"),
+    status: v.union(
+      v.literal("uploading"),
+      v.literal("processing"),
+      v.literal("ready"),
+      v.literal("error")
+    ),
+    chunkCount: v.optional(v.number()),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const patch: Record<string, any> = { status: args.status };
+    if (args.chunkCount !== undefined) patch.chunkCount = args.chunkCount;
+    if (args.error !== undefined) patch.error = args.error;
+    await ctx.db.patch(args.documentId, patch);
+  },
+});
+
+export const searchDocumentChunks = action({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    embedding: v.array(v.float64()),
+  },
+  handler: async (ctx, args) => {
+    const expected = process.env.AGENT_SERVER_TOKEN;
+    if (!expected || args.serverToken !== expected) {
+      throw new Error("Invalid server token");
+    }
+
+    const searchResults = await ctx.vectorSearch("documentChunks", "by_embedding", {
+      vector: args.embedding,
+      limit: 8,
+      filter: (q) => q.eq("agentId", args.agentId),
+    });
+
+    // Join with document names by reading each from the DB
+    const enriched: Array<{ content: string; fileName: string; score: number }> = [];
+    for (const result of searchResults) {
+      const chunk = await ctx.runQuery(internal.documentChunksInternal.getChunkWithDoc, {
+        chunkId: result._id,
+      });
+      if (chunk) {
+        enriched.push({
+          content: chunk.content,
+          fileName: chunk.fileName,
+          score: result._score,
+        });
+      }
+    }
+
+    return enriched;
+  },
+});
+
+export const listAgentDocuments = query({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_agent_status", (q) =>
+        q.eq("agentId", args.agentId).eq("status", "ready")
+      )
+      .collect();
   },
 });
 

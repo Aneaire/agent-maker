@@ -157,6 +157,11 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
       (await convexClient.listCustomTools(params.agentId)) ?? [];
     const memories = await convexClient.listMemories(params.agentId);
 
+    const geminiEnabled = agent.enabledToolSets ?? [];
+    const documents = geminiEnabled.includes("rag")
+      ? await convexClient.listAgentDocuments(params.agentId)
+      : [];
+
     const systemPrompt = buildSystemPrompt(
       {
         name: agent.name,
@@ -167,7 +172,8 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
       memories ?? [],
       tabs as any,
       (customTools as any[]).map((t: any) => t.name),
-      conversationHistory
+      conversationHistory,
+      (documents ?? []) as any
     );
 
     // Build Gemini tools
@@ -358,6 +364,11 @@ export async function runGeminiApiEndpoint(params: {
     (await convexClient.listCustomTools(params.agentId)) ?? [];
   const memories = (await convexClient.listMemories(params.agentId)) ?? [];
 
+  const apiEnabled = agent.enabledToolSets ?? [];
+  const apiDocuments = apiEnabled.includes("rag")
+    ? await convexClient.listAgentDocuments(params.agentId)
+    : [];
+
   const systemPrompt = buildSystemPrompt(
     {
       name: agent.name,
@@ -367,7 +378,9 @@ export async function runGeminiApiEndpoint(params: {
     },
     memories,
     tabs as any,
-    (customTools as any[]).map((t: any) => t.name)
+    (customTools as any[]).map((t: any) => t.name),
+    "",
+    (apiDocuments ?? []) as any
   );
 
   // Build tools (no messageId for API — skip suggest tools)

@@ -6,6 +6,8 @@ import { api } from "@agent-maker/shared/convex/_generated/api";
 import { ProcessManager } from "./process-manager.js";
 import { runCreator } from "./run-creator.js";
 import { runApiEndpoint } from "./run-api-endpoint.js";
+import { processDocument } from "./document-processor.js";
+import { AgentConvexClient } from "./convex-client.js";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync } from "fs";
 
@@ -240,6 +242,39 @@ Return the system prompt.`;
     return c.json({ prompt: result.trim() });
   } catch (err: any) {
     console.error("[assist-prompt] Error:", err.message);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ── Document processing endpoint ─────────────────────────────────────
+
+app.post("/process-document", async (c) => {
+  try {
+    const body = await c.req.json<{
+      documentId: string;
+      storageUrl: string;
+      fileName: string;
+      fileType: string;
+      agentId: string;
+    }>();
+
+    const convexClient = new AgentConvexClient(CONVEX_URL, SERVER_TOKEN);
+
+    // Fire and forget — process asynchronously
+    processDocument({
+      documentId: body.documentId,
+      storageUrl: body.storageUrl,
+      fileName: body.fileName,
+      fileType: body.fileType,
+      agentId: body.agentId,
+      convexClient,
+    }).catch((err) => {
+      console.error("[server] Document processing failed:", err.message);
+    });
+
+    return c.json({ ok: true });
+  } catch (err: any) {
+    console.error("[server] /process-document error:", err.message);
     return c.json({ error: err.message }, 500);
   }
 });

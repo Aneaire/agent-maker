@@ -20,12 +20,17 @@ function has(sets: string[], name: string): boolean {
   return sets.includes(name);
 }
 
+interface DocumentInfo {
+  fileName: string;
+}
+
 export function buildSystemPrompt(
   agentConfig: AgentConfig,
   memories: Memory[],
   tabs: Tab[] = [],
   customToolNames: string[] = [],
-  conversationHistory: string = ""
+  conversationHistory: string = "",
+  documents: DocumentInfo[] = []
 ): string {
   const enabled = agentConfig.enabledToolSets ?? [];
 
@@ -43,6 +48,12 @@ export function buildSystemPrompt(
         ? `\n\n## Your Pages\nYou have these pages available (visible in the user's sidebar):\n${tabs.map((t) => `- "${t.label}" (type: ${t.type}, ID: ${t._id})`).join("\n")}\nYou can interact with these pages using your tools. You can also create new pages with create_page.\n`
         : "\n\n## Pages\nYou currently have no extra pages. Use create_page to create task boards, notes, spreadsheets, or markdown pages when useful.\n";
   }
+
+  // ── Knowledge Base section (only if rag is enabled + docs exist) ────
+  const knowledgeBaseSection =
+    has(enabled, "rag") && documents.length > 0
+      ? `\n\n## Knowledge Base\nYou have access to ${documents.length} uploaded document${documents.length > 1 ? "s" : ""}:\n${documents.map((d) => `- ${d.fileName}`).join("\n")}\nUse the \`search_documents\` tool to find information from these documents before answering questions about their content.\n`
+      : "";
 
   // ── Custom tools section (only if custom_http_tools is enabled) ─────
   const customToolSection =
@@ -65,6 +76,11 @@ export function buildSystemPrompt(
   if (has(enabled, "pages")) {
     capabilities.push(
       "- **Pages** — create and manage task boards, notes, spreadsheets, and markdown pages"
+    );
+  }
+  if (has(enabled, "rag")) {
+    capabilities.push(
+      "- **Knowledge Base** — search uploaded documents for relevant information"
     );
   }
   if (has(enabled, "custom_http_tools")) {
@@ -108,7 +124,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${customToolSection}${capabilitiesSection}${autonomySection}${customToolGuidance}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${capabilitiesSection}${autonomySection}${customToolGuidance}
 ## Interactive Questions
 When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
 

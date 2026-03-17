@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { useOutletContext } from "react-router";
 import {
@@ -41,6 +41,10 @@ const TOOL_SET_INFO: Record<
     label: "Pages",
     description: "Create and manage task boards, notes, spreadsheets, and markdown pages",
   },
+  rag: {
+    label: "Knowledge Base",
+    description: "Upload documents and let your agent search them",
+  },
   custom_http_tools: {
     label: "Custom HTTP Tools",
     description: "Call external APIs configured below",
@@ -75,6 +79,9 @@ export default function SettingsPage() {
         <AgentIconSection agent={agent} />
         <AgentConfigSection agent={agent} />
         <ToolSetsSection agent={agent} />
+        {(agent.enabledToolSets ?? []).includes("rag") && (
+          <DocumentsSection agent={agent} />
+        )}
         <CustomToolsSection agent={agent} />
       </div>
     </div>
@@ -778,6 +785,247 @@ function CustomToolsSection({ agent }: { agent: Doc<"agents"> }) {
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Documents / Knowledge Base ────────────────────────────────────────
+
+const FILE_TYPES: Record<string, string> = {
+  pdf: "PDF",
+  txt: "TXT",
+  md: "MD",
+  docx: "DOCX",
+  csv: "CSV",
+  png: "PNG",
+  jpg: "JPG",
+  jpeg: "JPG",
+  webp: "WEBP",
+  gif: "GIF",
+};
+
+const ACCEPT = ".pdf,.txt,.md,.docx,.csv,.png,.jpg,.jpeg,.webp,.gif";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
+  const documents = useQuery(api.documents.list, { agentId: agent._id });
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const getStorageUrl = useConvex();
+  const uploadDoc = useMutation(api.documents.upload);
+  const removeDoc = useMutation(api.documents.remove);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function getFileType(fileName: string): string {
+    const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+    return FILE_TYPES[ext] ? ext : "";
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileType = getFileType(file.name);
+    if (!fileType) {
+      alert("Unsupported file type. Accepted: PDF, TXT, MD, DOCX, CSV, PNG, JPG, WEBP, GIF");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File must be under 10MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Upload to Convex storage
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      const { storageId } = await result.json();
+
+      // Create document record
+      const documentId = await uploadDoc({
+        agentId: agent._id,
+        fileName: file.name,
+        fileType,
+        storageId,
+        fileSize: file.size,
+      });
+
+      // Get the actual storage URL
+      const storageUrl = await getStorageUrl.query(api.storage.getUrl, {
+        storageId,
+      });
+
+      // Trigger processing
+      await fetch(`${AGENT_SERVER_URL}/process-document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId,
+          storageUrl,
+          fileName: file.name,
+          fileType,
+          agentId: agent._id,
+        }),
+      });
+    } catch (err: any) {
+      alert(`Upload failed: ${err.message}`);
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleRetry(doc: any) {
+    try {
+      const storageUrl = await getStorageUrl.query(api.storage.getUrl, {
+        storageId: doc.storageId,
+      });
+      if (!storageUrl) {
+        alert("Storage file not found — please re-upload the document.");
+        return;
+      }
+      await fetch(`${AGENT_SERVER_URL}/process-document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: doc._id,
+          storageUrl,
+          fileName: doc.fileName,
+          fileType: doc.fileType,
+          agentId: agent._id,
+        }),
+      });
+    } catch (err: any) {
+      alert(`Retry failed: ${err.message}`);
+    }
+  }
+
+  const statusColors: Record<string, string> = {
+    uploading: "text-yellow-400",
+    processing: "text-blue-400",
+    ready: "text-emerald-400",
+    error: "text-red-400",
+  };
+
+  const statusLabels: Record<string, string> = {
+    uploading: "Uploading...",
+    processing: "Processing...",
+    ready: "Ready",
+    error: "Error",
+  };
+
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-zinc-400" />
+          <h2 className="text-sm font-medium">Knowledge Base</h2>
+          {documents && (
+            <span className="text-xs text-zinc-500">
+              ({documents.length} document{documents.length !== 1 ? "s" : ""})
+            </span>
+          )}
+        </div>
+        <label
+          className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md cursor-pointer transition-colors ${
+            uploading
+              ? "text-zinc-500"
+              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+          }`}
+        >
+          {uploading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Upload className="h-3 w-3" />
+          )}
+          {uploading ? "Uploading..." : "Upload Document"}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={ACCEPT}
+            className="hidden"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+
+      {documents === undefined ? (
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-14 rounded-lg bg-zinc-800 animate-pulse"
+            />
+          ))}
+        </div>
+      ) : documents.length === 0 ? (
+        <p className="text-xs text-zinc-500">
+          No documents uploaded. Upload PDF, TXT, MD, DOCX, CSV, or image files for
+          your agent to search during conversations.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {documents.map((doc) => (
+            <div
+              key={doc._id}
+              className="group flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-800/50 px-4 py-3"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-[10px] font-mono uppercase bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded shrink-0">
+                  {doc.fileType}
+                </span>
+                <div className="min-w-0">
+                  <span className="text-sm font-medium truncate block">
+                    {doc.fileName}
+                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className={`text-[10px] ${statusColors[doc.status] ?? "text-zinc-500"}`}
+                    >
+                      {doc.status === "processing" && (
+                        <Loader2 className="h-2.5 w-2.5 animate-spin inline mr-1" />
+                      )}
+                      {statusLabels[doc.status] ?? doc.status}
+                    </span>
+                    {doc.chunkCount && (
+                      <span className="text-[10px] text-zinc-600">
+                        {doc.chunkCount} chunks
+                      </span>
+                    )}
+                    {doc.error && (
+                      <span className="text-[10px] text-red-400 truncate max-w-48">
+                        {doc.error}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {doc.status === "error" && (
+                  <button
+                    onClick={() => handleRetry(doc)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-zinc-800 transition-all"
+                    title="Retry processing"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => removeDoc({ documentId: doc._id })}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-all"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

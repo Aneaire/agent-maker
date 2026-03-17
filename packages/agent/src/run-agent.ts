@@ -173,10 +173,15 @@ export async function runAgent(params: RunAgentParams) {
         ? `\n\n## Conversation History\n${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n`
         : "";
 
-    // Load tabs, custom tools, and memories
+    // Load tabs, custom tools, memories, and documents
     const tabs = (await convexClient.listTabs(params.agentId)) ?? [];
     const customTools = (await convexClient.listCustomTools(params.agentId)) ?? [];
     const memories = await convexClient.listMemories(params.agentId);
+
+    const enabled = agent.enabledToolSets ?? [];
+    const documents = enabled.includes("rag")
+      ? await convexClient.listAgentDocuments(params.agentId)
+      : [];
 
     // Build system prompt with full context
     const systemPrompt = buildSystemPrompt(
@@ -189,7 +194,8 @@ export async function runAgent(params: RunAgentParams) {
       memories ?? [],
       tabs as any,
       (customTools as any[]).map((t: any) => t.name),
-      conversationHistory
+      conversationHistory,
+      (documents ?? []) as any
     );
 
     // Create MCP server with dynamic tools

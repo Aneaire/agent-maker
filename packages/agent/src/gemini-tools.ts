@@ -514,6 +514,43 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
     return `Presented ${questions.length} question(s). Wait for user selections.`;
   };
 
+  // ── RAG / Knowledge Base tools ──────────────────────────────────────
+  if (has(enabled, "rag")) {
+    declarations.push({
+      name: "search_documents",
+      description:
+        "Search uploaded documents in the knowledge base for relevant information. Use this when the user asks about content from uploaded files.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          query: {
+            type: SchemaType.STRING,
+            description: "The search query to find relevant document content",
+          },
+        },
+        required: ["query"],
+      },
+    });
+    handlers.search_documents = async (args) => {
+      try {
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return "Error: GEMINI_API_KEY is not configured";
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+        const result = await model.embedContent(args.query);
+        const embedding = result.embedding.values;
+        const results = await deps.convexClient.searchDocumentChunks(deps.agentId, embedding);
+        if (!results || results.length === 0) return "No relevant content found in uploaded documents.";
+        return results
+          .map((r: any) => `[Source: ${r.fileName}]\n${r.content}`)
+          .join("\n\n---\n\n");
+      } catch (err: any) {
+        return `Error searching documents: ${err.message}`;
+      }
+    };
+  }
+
   // ── Custom HTTP tools ─────────────────────────────────────────────
   if (has(enabled, "custom_http_tools") && deps.customTools.length > 0) {
     for (const config of deps.customTools) {

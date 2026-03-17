@@ -15,7 +15,9 @@
     "convex": "^1.21.0",
     "hono": "^4.7.0",
     "@hono/node-server": "^1.14.0",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "pdf-parse": "^2.4.5",
+    "mammoth": "^1.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

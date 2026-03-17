@@ -4,6 +4,7 @@ import { createMemoryTools } from "./tools/memory-tools.js";
 import { createPageTools, getPageToolNames } from "./tools/page-tools.js";
 import { createCustomHttpTools } from "./tools/custom-http-tools.js";
 import { createSuggestTools } from "./tools/suggest-tools.js";
+import { createRagTools } from "./tools/rag-tools.js";
 
 interface Tab {
   _id: string;
@@ -57,6 +58,11 @@ export function buildMcpServer(deps: McpServerDeps) {
   // Suggest replies & questions (always included — core UX, not a capability)
   tools.push(...createSuggestTools(deps.convexClient, deps.messageId));
 
+  // RAG / Knowledge Base tools — gated by "rag"
+  if (has(enabled, "rag")) {
+    tools.push(...createRagTools(deps.convexClient, deps.agentId));
+  }
+
   // Custom HTTP tools — gated by "custom_http_tools"
   if (has(enabled, "custom_http_tools") && deps.customTools.length > 0) {
     tools.push(...createCustomHttpTools(deps.customTools));
@@ -104,6 +110,11 @@ export function buildAllowedTools(
     "mcp__agent-tools__suggest_replies",
     "mcp__agent-tools__ask_questions"
   );
+
+  // RAG / Knowledge Base tools — gated by "rag"
+  if (has(enabledToolSets, "rag")) {
+    allowed.push("mcp__agent-tools__search_documents");
+  }
 
   // Custom HTTP tools — gated by "custom_http_tools"
   if (has(enabledToolSets, "custom_http_tools")) {

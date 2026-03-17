@@ -316,6 +316,23 @@ export const remove = mutation({
       await ctx.db.delete(job._id);
     }
 
+    // Delete documents and their chunks
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const doc of documents) {
+      const chunks = await ctx.db
+        .query("documentChunks")
+        .withIndex("by_document", (q) => q.eq("documentId", doc._id))
+        .collect();
+      for (const chunk of chunks) {
+        await ctx.db.delete(chunk._id);
+      }
+      await ctx.storage.delete(doc.storageId);
+      await ctx.db.delete(doc._id);
+    }
+
     await ctx.db.delete(args.agentId);
   },
 });

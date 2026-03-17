@@ -232,4 +232,49 @@ export class AgentConvexClient {
       config,
     });
   }
+
+  // ── Document / RAG ──────────────────────────────────────────────────
+
+  async searchDocumentChunks(agentId: string, embedding: number[]) {
+    return this.client.action(api.agentApi.searchDocumentChunks, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      embedding,
+    });
+  }
+
+  async listAgentDocuments(agentId: string) {
+    return this.client.query(api.agentApi.listAgentDocuments, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async storeDocumentChunks(
+    documentId: string,
+    agentId: string,
+    chunks: Array<{ chunkIndex: number; content: string; embedding: number[] }>
+  ) {
+    return this.client.mutation(api.agentApi.storeDocumentChunks, {
+      serverToken: this.serverToken,
+      documentId: documentId as any,
+      agentId: agentId as any,
+      chunks,
+    });
+  }
+
+  async updateDocumentStatus(
+    documentId: string,
+    status: "uploading" | "processing" | "ready" | "error",
+    chunkCount?: number,
+    error?: string
+  ) {
+    return this.client.mutation(api.agentApi.updateDocumentStatus, {
+      serverToken: this.serverToken,
+      documentId: documentId as any,
+      status,
+      chunkCount,
+      error,
+    });
+  }
 }
