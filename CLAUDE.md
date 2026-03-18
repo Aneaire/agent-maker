@@ -7,17 +7,14 @@ Monorepo with 3 packages:
 - `packages/shared/` — Convex backend (schema, queries, mutations, actions). Shared between agent server and web UI.
 - `packages/web/` — React Router web UI (agent management, chat, settings, pages).
 
-## Architecture
+## Architecture (Summary)
 
 - **Job System**: Polling-based. Server polls `agentJobs.listPending` every 2s, claims jobs atomically, runs agent via Claude SDK.
 - **Tool System**: MCP servers with dynamic tool registration. Tools gated by `enabledToolSets` array on agent config.
 - **Event Bus**: All tool actions emit events to `agentEvents` table. Automations subscribe to events.
 - **Scheduling**: Server polls `scheduledActions` every 10s and `agentTimers` every 5s for due items.
 - **Auth**: Clerk for users, `serverToken` for server-to-Convex auth.
-
-## Tool Sets (enabledToolSets)
-
-`memory`, `web_search`, `pages`, `custom_http_tools`, `email`, `rag`, `schedules`, `automations`, `timers`, `webhooks`, `agent_messages`, `notion`, `slack`, `google_calendar`, `google_drive`, `google_sheets`, `image_generation`
+- **Models**: Claude (Anthropic) and Gemini (Google) supported. Routed via `isGeminiModel()`.
 
 ## Key Patterns
 
@@ -26,6 +23,10 @@ Monorepo with 3 packages:
 - All new Convex modules need both user-facing (UI) and server-facing (agent tools) endpoints
 - Tool files export a `create*Tools()` function returning an array of MCP tools
 - System prompt is dynamically built based on enabled tool sets and context
+
+## Tool Sets (enabledToolSets)
+
+`memory`, `web_search`, `pages`, `custom_http_tools`, `email`, `rag`, `schedules`, `automations`, `timers`, `webhooks`, `agent_messages`, `notion`, `slack`, `google_calendar`, `google_drive`, `google_sheets`, `image_generation`
 
 ## Adding a New Tool Set (Checklist)
 
@@ -46,19 +47,6 @@ When adding a new feature or tool set, **all 5 steps are required** or the agent
 3. Update system prompt guidance if the tool introduces new behavior the agent should know about
 4. Add any new Convex endpoints needed
 
-## Adding a New Automation Action Type
-
-1. Add the `case` in `processAutomations()` in `server.ts`
-2. Add the `case` in `executeScheduledActions()` if it should be schedulable
-3. Add the `case` in `executeTimers()` if it should be timer-triggerable
-4. Update automation creation UI if user-facing
-
-## Adding a New Event Type
-
-1. Add `convexClient.emitEvent()` call where the event originates
-2. Document the event name and payload shape (for automation template variables)
-3. Events automatically become available as automation triggers — no extra wiring needed
-
 ## Dev Commands
 
 ```bash
@@ -67,91 +55,15 @@ cd packages/agent && bun run dev         # Run agent server
 cd packages/web && bun run dev           # Run web UI
 ```
 
----
+## Documentation
 
-## Architecture Deep Dive
+Detailed documentation lives in `docs/`. Refer to these when you need deeper context:
 
-### Execution Flow
-
-1. **User sends message** → Web UI creates a job in `agentJobs` table
-2. **Server polls** (`server.ts`) every 2s, claims job atomically
-3. **Router** decides: draft agent → `runCreator()`, live agent → `runAgent()`, Gemini model → `runGeminiAgent()`
-4. **`runAgent()`** loads agent config, conversation history, memories, tabs, documents, schedules, automations
-5. **System prompt built** dynamically via `buildSystemPrompt()` based on `enabledToolSets`
-6. **MCP tools registered** dynamically via `buildMcpServer()` based on `enabledToolSets`
-7. **Claude SDK streams** response → `StreamFlusher` debounces updates to Convex (50-100ms)
-8. **Tool calls** are executed via MCP, results streamed back, events emitted to event bus
-9. **Final flush** marks message as `done` or `error`
-
-### System Prompt Construction (`system-prompt.ts`)
-
-The system prompt is **dynamically assembled** — each section only appears if its tool set is enabled:
-
-| Section | Gate | Purpose |
-|---|---|---|
-| Memories | `memory` | Injects stored memories so agent has context |
-| Pages | `pages` | Lists existing pages (tasks, notes, spreadsheets) |
-| Knowledge Base | `rag` | Lists uploaded documents, tells agent to use `search_documents` |
-| Custom Tools | `custom_http_tools` | Lists configured HTTP tool names |
-| Schedules | `schedules` | Shows active cron jobs and intervals |
-| Automations | `automations` | Shows active event→action rules |
-| Capabilities list | (all enabled) | Bullet list of what the agent can do |
-| Autonomy Guidelines | `pages` | Tells agent to proactively create pages |
-| Scheduling Guidelines | `schedules` or `timers` | When/how to use scheduling tools |
-| Automation Guidelines | `automations` | When/how to create automations |
-| Inter-Agent Guidelines | `agent_messages` | How to delegate to other agents |
-| Custom Tool Guidance | `custom_http_tools` | Tells agent to suggest tool configs when it can't do something |
-
-### Tool Registration (`mcp-server.ts`)
-
-Tools are registered via MCP using `create*Tools()` functions, gated by `enabledToolSets`:
-
-| Tool Set | File | Tools |
-|---|---|---|
-| `memory` | `memory-tools.ts` | `store_memory`, `recall_memory`, `search_memories` |
-| `pages` | `page-tools.ts` | `create_page`, `add_task`, `update_task`, + dynamic per-tab tools |
-| `web_search` | (native SDK) | `WebSearch`, `WebFetch` — not MCP, uses Claude SDK built-in |
-| `rag` | `rag-tools.ts` | `search_documents` |
-| `email` | `email-tools.ts` | `send_email` |
-| `custom_http_tools` | `custom-http-tools.ts` | `custom_<name>` per user-defined tool |
-| `schedules` | `schedule-tools.ts` | `create_schedule`, `list_schedules`, `pause_schedule`, `resume_schedule`, `delete_schedule` |
-| `automations` | `automation-tools.ts` | `create_automation`, `list_automations`, `delete_automation` |
-| `timers` | `timer-tools.ts` | `set_timer`, `list_timers`, `cancel_timer` |
-| `webhooks` | `webhook-management-tools.ts` | `fire_webhook`, `list_events` |
-| `agent_messages` | `agent-message-tools.ts` | `list_sibling_agents`, `send_to_agent`, `check_agent_messages`, `respond_to_agent` |
-| `notion` | `notion-tools.ts` | `notion_search`, `notion_query_database`, `notion_create_page`, `notion_update_page`, `notion_get_page`, `notion_append_blocks` |
-| `slack` | `slack-tools.ts` | `slack_send_message`, `slack_list_channels`, `slack_read_messages`, `slack_add_reaction`, `slack_set_topic`, `slack_search_messages` |
-| `google_calendar` | `gcal-tools.ts` | `gcal_list_calendars`, `gcal_list_events`, `gcal_create_event`, `gcal_update_event`, `gcal_delete_event`, `gcal_find_free_time` |
-| `google_drive` | `gdrive-tools.ts` | `gdrive_search`, `gdrive_list_files`, `gdrive_read_file`, `gdrive_create_file`, `gdrive_move_file`, `gdrive_delete_file` |
-| `google_sheets` | `gsheets-tools.ts` | `gsheets_create`, `gsheets_get_info`, `gsheets_read`, `gsheets_write`, `gsheets_append`, `gsheets_clear` |
-| `image_generation` | `image-gen-tools.ts` | `generate_image`, `list_assets` |
-| (always on) | `suggest-tools.ts` | `suggest_replies`, `ask_questions` — core UX, not gated |
-
-### Allowed Tools (`buildAllowedTools`)
-
-Claude SDK requires an explicit allowlist. `buildAllowedTools()` mirrors the MCP registration — every tool registered in `buildMcpServer()` must also be listed in `buildAllowedTools()` with its `mcp__agent-tools__<name>` prefix.
-
-### Event Bus
-
-All tool actions emit events to `agentEvents` table via `convexClient.emitEvent()`. Events drive:
-- **Automations**: matched by `trigger.event` field, filtered by `trigger.filter`
-- **Outgoing webhooks**: fired for matching event types
-- Template variables: `{{event.title}}`, `{{event.status}}`, etc. replaced in action configs
-
-### Server-Side Executors (`server.ts`)
-
-Three polling loops run independently:
-- **Jobs**: every 2s — agent conversation runs
-- **Schedules**: every 10s — cron/interval scheduled actions
-- **Timers**: every 5s — delayed one-time actions
-
-Both schedules and timers can execute: `send_email`, `create_task`, `fire_webhook`, `run_prompt`, `send_message`.
-
-### General Rules
-
-- **Every Convex module** needs both server-facing (`requireServerAuth`) and user-facing (`requireAuthUser`) endpoints
-- **Tool names** in `buildAllowedTools()` must match exactly: `mcp__agent-tools__<tool_name>`
-- **`web_search`** is special — it uses native Claude SDK tools (`WebSearch`, `WebFetch`), not MCP
-- **`suggest_replies` and `ask_questions`** are always registered (core UX), never gated by `enabledToolSets`
-- **Custom HTTP tools** are dynamic — one MCP tool per user-configured endpoint, named `custom_<name>`
-- **Page tools** are partially dynamic — base tools always registered, per-tab tools added based on existing tabs
+- **`docs/advanced/architecture.md`** — Full execution flow, data flow diagrams, database tables, auth model, polling intervals
+- **`docs/advanced/event-bus.md`** — Event system, automation triggers, template variables
+- **`docs/reference/tool-sets.md`** — Every tool set with all MCP tool names, descriptions, and configs
+- **`docs/reference/events.md`** — All event types and payload shapes
+- **`docs/reference/env-vars.md`** — Environment variable reference
+- **`docs/tools/`** — Per-tool-set detailed docs (one file per integration)
+- **`docs/advanced/rest-api.md`** — REST API endpoint system
+- **`docs/advanced/adding-features.md`** — Checklists for adding automation actions, event types, etc.

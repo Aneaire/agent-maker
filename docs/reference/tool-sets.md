@@ -17,6 +17,12 @@ Complete list of all tool sets, their tools, and configuration.
 | Timers & Delays | `timers` | Disabled | All |
 | Webhooks | `webhooks` | Disabled | All |
 | Inter-Agent Messaging | `agent_messages` | Disabled | All |
+| Notion | `notion` | Disabled | All |
+| Slack | `slack` | Disabled | All |
+| Google Calendar | `google_calendar` | Disabled | All |
+| Google Drive | `google_drive` | Disabled | All |
+| Google Sheets | `google_sheets` | Disabled | All |
+| Image Generation | `image_generation` | Disabled | All |
 | REST API | `rest_api` | Disabled | Pro+ |
 | PostgreSQL | `postgres` | Disabled | Pro+ |
 
@@ -106,6 +112,74 @@ Complete list of all tool sets, their tools, and configuration.
 | `send_to_agent` | Send message to another agent |
 | `check_agent_messages` | Check for pending messages |
 | `respond_to_agent` | Reply to an agent message |
+
+### notion
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `notion_search` | Search pages and databases by keyword |
+| `notion_query_database` | List and filter database entries |
+| `notion_create_page` | Create a new page or database entry |
+| `notion_update_page` | Update page properties |
+| `notion_get_page` | Read page properties and content |
+| `notion_append_blocks` | Add content blocks to a page |
+
+**Requires configuration**: Notion API key
+
+### slack
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `slack_send_message` | Post to channels or reply to threads |
+| `slack_list_channels` | List available channels |
+| `slack_read_messages` | Read recent channel or thread messages |
+| `slack_add_reaction` | React to messages with emoji |
+| `slack_set_topic` | Update channel topic |
+| `slack_search_messages` | Search messages across channels |
+
+**Requires configuration**: Slack bot token, optional default channel
+
+### google_calendar
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `gcal_list_calendars` | List available calendars |
+| `gcal_list_events` | List events (defaults to next 7 days) |
+| `gcal_create_event` | Create event with attendees, location, Meet |
+| `gcal_update_event` | Modify event details |
+| `gcal_delete_event` | Cancel an event |
+| `gcal_find_free_time` | Check availability across calendars |
+
+**Requires configuration**: Google OAuth (clientId, clientSecret, refreshToken)
+
+### google_drive
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `gdrive_search` | Search files by name or content |
+| `gdrive_list_files` | Browse folder contents |
+| `gdrive_read_file` | Read file content (Docs as text, Sheets as CSV) |
+| `gdrive_create_file` | Create Docs, Sheets, folders, or text files |
+| `gdrive_move_file` | Rename or reorganize files |
+| `gdrive_delete_file` | Trash a file (recoverable) |
+
+**Requires configuration**: Google OAuth (clientId, clientSecret, refreshToken)
+
+### google_sheets
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `gsheets_create` | Create new spreadsheet with headers |
+| `gsheets_get_info` | Get sheet names and dimensions |
+| `gsheets_read` | Read data from a range (A1 notation) |
+| `gsheets_write` | Overwrite a specific range |
+| `gsheets_append` | Append rows at the bottom |
+| `gsheets_clear` | Erase data from a range |
+
+**Requires configuration**: Google OAuth (clientId, clientSecret, refreshToken)
+
+### image_generation
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `generate_image` | Generate image from text prompt (Gemini Imagen or Nano Banana) |
+| `list_assets` | List all generated images and files in asset library |
+
+**Requires configuration**: Provider selection, Gemini API key and/or Nano Banana API key
 
 ### Always-On Tools (not gated)
 | MCP Tool Name | Description |

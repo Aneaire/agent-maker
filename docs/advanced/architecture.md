@@ -92,8 +92,16 @@ buildMcpServer()
   ├── Automation tools (if enabled)
   ├── Timer tools (if enabled)
   ├── Webhook tools (if enabled)
-  └── Agent message tools (if enabled)
+  ├── Agent message tools (if enabled)
+  ├── Notion tools (if enabled + configured)
+  ├── Slack tools (if enabled + configured)
+  ├── Google Calendar tools (if enabled + configured)
+  ├── Google Drive tools (if enabled + configured)
+  ├── Google Sheets tools (if enabled + configured)
+  └── Image Generation tools (if enabled + configured)
 ```
+
+For Gemini models, tools are registered separately via `buildGeminiTools()` in `gemini-tools.ts` using native function declarations instead of MCP.
 
 Tools are also gated at the SDK level via `buildAllowedTools()`, which returns the exact list of tool names the Claude SDK should accept.
 
@@ -132,6 +140,10 @@ Tools are also gated at the SDK level via `buildAllowedTools()`, which returns t
 - `webhooks` — Incoming/outgoing webhook configs
 - `emailLogs` — Sent/failed email records
 - `agentMessages` — Inter-agent message queue
+
+### Assets
+- `assetFolders` — Folder hierarchy for organizing assets
+- `assets` — Generated images and uploaded files with metadata
 
 ### Creator
 - `creatorSessions` — Agent creation/editing sessions
