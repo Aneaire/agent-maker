@@ -5,7 +5,7 @@ import {
   type CredentialTypeDef,
 } from "@agent-maker/shared/src/credential-types";
 import { DashboardLayout } from "~/components/DashboardLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   KeyRound,
   Plus,
@@ -17,9 +17,125 @@ import {
   Save,
   ExternalLink,
   ChevronDown,
+  Image,
 } from "lucide-react";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Route } from "./+types/credentials";
+
+// ── Service brand icons ──────────────────────────────────────────────
+
+function ServiceIcon({ type, className = "h-4 w-4" }: { type: string; className?: string }) {
+  switch (type) {
+    case "resend":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className={className}>
+          <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6Z" fill="#000" />
+          <path d="m2 6 10 7L22 6" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+      );
+    case "slack":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52ZM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313Z" fill="#E01E5A" />
+          <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834ZM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312Z" fill="#36C5F0" />
+          <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834ZM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312Z" fill="#2EB67D" />
+          <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52ZM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313Z" fill="#ECB22E" />
+        </svg>
+      );
+    case "notion":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.49 2.45c-.42-.326-.98-.7-2.055-.607L3.62 2.917c-.466.046-.56.28-.374.466l1.213.825Zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.934-.56.934-1.166V6.382c0-.606-.233-.933-.747-.886l-15.177.887c-.56.046-.747.326-.747.886v.02Zm14.337.42c.094.42 0 .84-.42.887l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.747 0-.934-.234-1.495-.933l-4.577-7.186v6.952l1.448.327s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.513.28-.886.747-.932l3.222-.187Z" fill="currentColor" />
+        </svg>
+      );
+    case "google_oauth2":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z" fill="#4285F4" />
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853" />
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84Z" fill="#FBBC05" />
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z" fill="#EA4335" />
+        </svg>
+      );
+    case "image_gen_gemini":
+      return (
+        <svg viewBox="0 0 24 24" className={className}>
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0Z" fill="#8E75B2" />
+          <path d="m12 4.8-1.4 3.8-3.8 1.4 3.8 1.4L12 15.2l1.4-3.8 3.8-1.4-3.8-1.4L12 4.8Z" fill="#fff" />
+          <path d="m17.6 13.6-.8 2-2 .8 2 .8.8 2 .8-2 2-.8-2-.8-.8-2Z" fill="#fff" opacity=".7" />
+        </svg>
+      );
+    case "image_gen_nano_banana":
+      return <Image className={className} />;
+    default:
+      return <KeyRound className={className} />;
+  }
+}
+
+// ── Custom type selector dropdown ────────────────────────────────────
+
+function CredentialTypeSelector({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (type: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = CREDENTIAL_TYPE_REGISTRY[value];
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-left hover:border-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+      >
+        <ServiceIcon type={value} className="h-5 w-5 shrink-0" />
+        <span className="flex-1 truncate">
+          {selected?.label} <span className="text-zinc-500">— {selected?.description}</span>
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 text-zinc-500 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 shadow-xl overflow-hidden">
+          {Object.values(CREDENTIAL_TYPE_REGISTRY).map((t) => (
+            <button
+              key={t.type}
+              type="button"
+              onClick={() => {
+                onChange(t.type);
+                setOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left hover:bg-zinc-700 transition-colors ${
+                t.type === value ? "bg-zinc-700/50" : ""
+              }`}
+            >
+              <ServiceIcon type={t.type} className="h-5 w-5 shrink-0" />
+              <div className="min-w-0">
+                <div className="font-medium truncate">{t.label}</div>
+                <div className="text-xs text-zinc-500 truncate">{t.description}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function meta(_args: Route.MetaArgs) {
   return [{ title: "Credentials — Agent Maker" }];
@@ -98,20 +214,7 @@ export default function CredentialsPage() {
             <h2 className="text-sm font-medium">Create Credential</h2>
             <div>
               <label className="block text-xs text-zinc-500 mb-1.5">Type</label>
-              <div className="relative">
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none pr-8"
-                >
-                  {Object.values(CREDENTIAL_TYPE_REGISTRY).map((t) => (
-                    <option key={t.type} value={t.type}>
-                      {t.label} — {t.description}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500 pointer-events-none" />
-              </div>
+              <CredentialTypeSelector value={selectedType} onChange={setSelectedType} />
             </div>
             <StandaloneCredentialForm
               typeDef={CREDENTIAL_TYPE_REGISTRY[selectedType]!}
@@ -138,6 +241,9 @@ export default function CredentialsPage() {
                 className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-zinc-800 border border-zinc-700/50 shrink-0">
+                    <ServiceIcon type={cred.type} className="h-4.5 w-4.5" />
+                  </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{cred.name}</span>
