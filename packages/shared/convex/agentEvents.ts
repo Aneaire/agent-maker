@@ -86,7 +86,7 @@ export const listForAgent = query({
       return await ctx.db
         .query("agentEvents")
         .withIndex("by_agent_event", (q) =>
-          q.eq("agentId", args.agentId).eq("event", args.event)
+          q.eq("agentId", args.agentId).eq("event", args.event!)
         )
         .order("desc")
         .take(args.limit ?? 20);

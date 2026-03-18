@@ -294,6 +294,23 @@ export class AgentConvexClient {
     });
   }
 
+  /**
+   * Try the new credential system first, fall back to legacy agentToolConfigs.
+   */
+  async getCredentialForToolSet(agentId: string, toolSetName: string) {
+    try {
+      const linked = await this.client.action(api.credentialActions.getDecryptedForAgent, {
+        serverToken: this.serverToken,
+        agentId: agentId as any,
+        toolSetName,
+      });
+      if (linked) return linked;
+    } catch {
+      // New credential system not available — fall through to legacy
+    }
+    return this.getToolConfig(agentId, toolSetName);
+  }
+
   // ── Document / RAG ──────────────────────────────────────────────────
 
   async searchDocumentChunks(agentId: string, embedding: number[]) {

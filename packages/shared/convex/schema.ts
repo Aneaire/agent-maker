@@ -511,6 +511,41 @@ export default defineSchema({
       filterFields: ["agentId"],
     }),
 
+  // ── Credential Management ────────────────────────────────────────────
+
+  credentials: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    type: v.string(),
+    encryptedData: v.string(),
+    iv: v.string(),
+    status: v.union(v.literal("valid"), v.literal("untested"), v.literal("invalid")),
+    lastTestedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_type", ["userId", "type"]),
+
+  agentCredentialLinks: defineTable({
+    agentId: v.id("agents"),
+    toolSetName: v.string(),
+    credentialId: v.id("credentials"),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_credential", ["credentialId"])
+    .index("by_agent_toolset", ["agentId", "toolSetName"]),
+
+  oauthStates: defineTable({
+    userId: v.id("users"),
+    state: v.string(),
+    provider: v.string(),
+    scopes: v.array(v.string()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_state", ["state"]),
+
   creatorSessions: defineTable({
     userId: v.id("users"),
     status: v.union(

@@ -22,6 +22,8 @@ import type * as automations from "../automations.js";
 import type * as conversations from "../conversations.js";
 import type * as creatorApi from "../creatorApi.js";
 import type * as creatorSessions from "../creatorSessions.js";
+import type * as credentialActions from "../credentialActions.js";
+import type * as credentials from "../credentials.js";
 import type * as customTools from "../customTools.js";
 import type * as dispatch from "../dispatch.js";
 import type * as documentChunksInternal from "../documentChunksInternal.js";
@@ -61,6 +63,8 @@ declare const fullApi: ApiFromModules<{
   conversations: typeof conversations;
   creatorApi: typeof creatorApi;
   creatorSessions: typeof creatorSessions;
+  credentialActions: typeof credentialActions;
+  credentials: typeof credentials;
   customTools: typeof customTools;
   dispatch: typeof dispatch;
   documentChunksInternal: typeof documentChunksInternal;

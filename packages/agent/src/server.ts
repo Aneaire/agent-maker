@@ -188,6 +188,98 @@ app.post("/dispatch/schedule", async (c) => {
   }
 });
 
+// ── OAuth2 callback ──────────────────────────────────────────────────
+
+app.get("/oauth/callback", async (c) => {
+  const code = c.req.query("code");
+  const state = c.req.query("state");
+  const error = c.req.query("error");
+  const webUiUrl = process.env.WEB_UI_URL ?? "http://localhost:5173";
+
+  if (error) {
+    return c.redirect(`${webUiUrl}/credentials?oauth=error&message=${encodeURIComponent(error)}`);
+  }
+  if (!code || !state) {
+    return c.redirect(`${webUiUrl}/credentials?oauth=error&message=missing_params`);
+  }
+
+  try {
+    // Validate state nonce
+    const oauthState = await convex.query(api.credentials.getOAuthState, {
+      serverToken: SERVER_TOKEN,
+      state,
+    });
+    if (!oauthState) {
+      return c.redirect(`${webUiUrl}/credentials?oauth=error&message=invalid_state`);
+    }
+    if (Date.now() > oauthState.expiresAt) {
+      await convex.mutation(api.credentials.deleteOAuthState, {
+        serverToken: SERVER_TOKEN,
+        id: oauthState._id,
+      });
+      return c.redirect(`${webUiUrl}/credentials?oauth=error&message=expired`);
+    }
+
+    // Exchange code for tokens
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    const serverUrl = process.env.AGENT_SERVER_PUBLIC_URL ?? `http://localhost:${PORT}`;
+    const redirectUri = `${serverUrl}/oauth/callback`;
+
+    const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId!,
+        client_secret: clientSecret!,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!tokenResp.ok) {
+      const errBody = await tokenResp.text();
+      console.error("[oauth] Token exchange failed:", errBody);
+      return c.redirect(`${webUiUrl}/credentials?oauth=error&message=token_exchange_failed`);
+    }
+
+    const tokens = await tokenResp.json();
+
+    // Encrypt the token data
+    const { encrypt } = await import("@agent-maker/shared/src/crypto");
+    const tokenData = {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000,
+      clientId,
+      clientSecret,
+    };
+    const { encrypted, iv } = encrypt(JSON.stringify(tokenData));
+
+    // Store as a new credential
+    await convex.mutation(api.credentials.insertCredentialFromOAuth, {
+      serverToken: SERVER_TOKEN,
+      userId: oauthState.userId,
+      name: `Google (${new Date().toLocaleDateString()})`,
+      type: oauthState.provider,
+      encryptedData: encrypted,
+      iv,
+    });
+
+    // Clean up state
+    await convex.mutation(api.credentials.deleteOAuthState, {
+      serverToken: SERVER_TOKEN,
+      id: oauthState._id,
+    });
+
+    return c.redirect(`${webUiUrl}/credentials?oauth=success`);
+  } catch (err: any) {
+    console.error("[oauth] Callback error:", err.message);
+    return c.redirect(`${webUiUrl}/credentials?oauth=error&message=${encodeURIComponent(err.message)}`);
+  }
+});
+
 // ── REST API endpoints (user-defined agent APIs) ─────────────────────
 
 app.all("/api/:agentId/:endpointSlug", async (c) => {

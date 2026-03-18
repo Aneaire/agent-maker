@@ -183,40 +183,27 @@ export async function runAgent(params: RunAgentParams) {
       ? await convexClient.listAgentDocuments(params.agentId)
       : [];
 
-    // Load email config if email tool is enabled
-    const emailConfig = enabled.includes("email")
-      ? await convexClient.getToolConfig(params.agentId, "email")
-      : null;
+    // Load credentials for tool sets (new credential system with legacy fallback)
+    const toolSetsNeedingCreds = [
+      "email", "notion", "slack", "google_calendar",
+      "google_drive", "google_sheets", "image_generation",
+    ];
+    const configs: Record<string, any> = {};
+    await Promise.all(
+      toolSetsNeedingCreds
+        .filter((ts) => enabled.includes(ts))
+        .map(async (ts) => {
+          configs[ts] = await convexClient.getCredentialForToolSet(params.agentId, ts);
+        })
+    );
 
-    // Load Notion config if notion tool is enabled
-    const notionConfig = enabled.includes("notion")
-      ? await convexClient.getToolConfig(params.agentId, "notion")
-      : null;
-
-    // Load Slack config if slack tool is enabled
-    const slackConfig = enabled.includes("slack")
-      ? await convexClient.getToolConfig(params.agentId, "slack")
-      : null;
-
-    // Load Google Calendar config if google_calendar tool is enabled
-    const gcalConfig = enabled.includes("google_calendar")
-      ? await convexClient.getToolConfig(params.agentId, "google_calendar")
-      : null;
-
-    // Load Google Drive config if google_drive tool is enabled
-    const gdriveConfig = enabled.includes("google_drive")
-      ? await convexClient.getToolConfig(params.agentId, "google_drive")
-      : null;
-
-    // Load Google Sheets config if google_sheets tool is enabled
-    const gsheetsConfig = enabled.includes("google_sheets")
-      ? await convexClient.getToolConfig(params.agentId, "google_sheets")
-      : null;
-
-    // Load Image Generation config if image_generation tool is enabled
-    const imageGenConfig = enabled.includes("image_generation")
-      ? await convexClient.getToolConfig(params.agentId, "image_generation")
-      : null;
+    const emailConfig = configs.email ?? null;
+    const notionConfig = configs.notion ?? null;
+    const slackConfig = configs.slack ?? null;
+    const gcalConfig = configs.google_calendar ?? null;
+    const gdriveConfig = configs.google_drive ?? null;
+    const gsheetsConfig = configs.google_sheets ?? null;
+    const imageGenConfig = configs.image_generation ?? null;
 
     // Load schedules context if schedules tool is enabled
     const schedules = enabled.includes("schedules")

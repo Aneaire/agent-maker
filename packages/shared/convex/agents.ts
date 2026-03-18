@@ -403,6 +403,15 @@ export const remove = mutation({
       await ctx.db.delete(log._id);
     }
 
+    // Delete credential links (credentials themselves are user-scoped, not deleted)
+    const credLinks = await ctx.db
+      .query("agentCredentialLinks")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    for (const link of credLinks) {
+      await ctx.db.delete(link._id);
+    }
+
     await ctx.db.delete(args.agentId);
   },
 });

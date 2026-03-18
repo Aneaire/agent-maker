@@ -14,6 +14,7 @@ Monorepo with 3 packages:
 - **Event Bus**: All tool actions emit events to `agentEvents` table. Automations subscribe to events.
 - **Scheduling**: Server polls `scheduledActions` every 10s and `agentTimers` every 5s for due items.
 - **Auth**: Clerk for users, `serverToken` for server-to-Convex auth.
+- **Credentials**: Centralized credential store (`credentials` table) with AES-256-GCM encryption. Linked to agents via `agentCredentialLinks`. Runtime falls back to legacy `agentToolConfigs` if no linked credential exists. Registry in `packages/shared/src/credential-types.ts`.
 - **Models**: Claude (Anthropic) and Gemini (Google) supported. Routed via `isGeminiModel()`.
 
 ## Key Patterns

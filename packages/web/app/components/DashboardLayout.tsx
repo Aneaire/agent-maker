@@ -1,6 +1,6 @@
 import { Show, SignInButton, UserButton } from "@clerk/react";
 import { Link } from "react-router";
-import { Bot, BookOpen } from "lucide-react";
+import { Bot, BookOpen, KeyRound } from "lucide-react";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +16,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           Agent Maker
         </Link>
         <div className="flex items-center gap-4">
+          <Show when="signed-in">
+            <Link
+              to="/credentials"
+              className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors"
+            >
+              <KeyRound className="h-4 w-4" />
+              Credentials
+            </Link>
+          </Show>
           <Link
             to="/docs"
             className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors"
