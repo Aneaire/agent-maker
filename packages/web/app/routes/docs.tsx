@@ -90,6 +90,11 @@ const SECTIONS: DocSection[] = [
     title: "Advanced",
     icon: <Layers className="h-4 w-4" />,
     pages: [
+      {
+        id: "event-bus",
+        title: "Event Bus",
+        content: <EventBusContent />,
+      },
       { id: "rest-api", title: "REST API Endpoints", content: <RestApiContent /> },
     ],
   },
@@ -242,10 +247,10 @@ function DocsIndex() {
           color="from-purple-500/20 to-purple-600/10"
         />
         <DocCard
-          to="/docs/advanced/rest-api"
-          icon={<Globe className="h-5 w-5" />}
-          title="REST API"
-          description="Expose your agent as an API endpoint"
+          to="/docs/advanced/event-bus"
+          icon={<Zap className="h-5 w-5" />}
+          title="Event Bus"
+          description="Chain actions: when X happens, do Y"
           color="from-neon-500/20 to-neon-600/10"
         />
       </div>
@@ -890,6 +895,43 @@ function AgentMessagesContent() {
         ["Pending messages per agent", "50"],
         ["Message content", "10,000 chars"],
       ]} />
+    </div>
+  );
+}
+
+function EventBusContent() {
+  return (
+    <div>
+      <DocH1>Event Bus</DocH1>
+      <DocP>
+        Every action your agent takes emits an event. You can use these events to trigger automations — for example, send an email when a task is completed, or fire a webhook when new data is added.
+      </DocP>
+
+      <DocH2>How It Works</DocH2>
+      <DocP>
+        When a tool runs (e.g. creating a task, sending an email), an event is emitted. If you have automations set up, they listen for these events and execute follow-up actions automatically.
+      </DocP>
+
+      <DocH2>Available Events</DocH2>
+      <DocTable headers={["Event", "When It Fires"]} rows={[
+        ["task.created", "A new task is created"],
+        ["task.updated", "A task is updated (status, title, etc.)"],
+        ["task.deleted", "A task is deleted"],
+        ["email.sent", "An email is successfully sent"],
+        ["webhook.received", "An incoming webhook is received"],
+        ["webhook.fired", "An outgoing webhook is sent"],
+        ["schedule.fired", "A scheduled action runs"],
+        ["timer.fired", "A timer completes"],
+        ["memory.stored", "A new memory is saved"],
+        ["document.ready", "An uploaded document finishes processing"],
+        ["agent_message.sent", "A message is sent to another agent"],
+        ["agent_message.received", "A message is received from another agent"],
+      ]} />
+
+      <DocH2>Example: Chain Actions Together</DocH2>
+      <DocP>
+        A single action can trigger a chain of follow-ups. For example: a task is marked done → automation sends a summary email → automation fires a webhook to Slack. Set these up in <AppLink to="/docs/tools/automations">Automations</AppLink>.
+      </DocP>
     </div>
   );
 }
