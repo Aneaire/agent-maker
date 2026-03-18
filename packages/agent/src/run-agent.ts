@@ -278,8 +278,13 @@ export async function runAgent(params: RunAgentParams) {
         if (event.type === "content_block_delta" && event.delta) {
           if (event.delta.type === "text_delta" && event.delta.text) {
             if (lastTurnHadToolUse && responseText.length > 0) {
-              responseText += "\n\n";
-              flusher.appendText("\n\n");
+              // Only add paragraph break if previous text ends at a sentence boundary;
+              // otherwise use a space to avoid splitting mid-sentence (e.g. "Let\n\nme...")
+              const trimmed = responseText.trimEnd();
+              const endsAtBoundary = /[.!?:;\n\r\]})>`"']$/.test(trimmed);
+              const separator = endsAtBoundary ? "\n\n" : " ";
+              responseText += separator;
+              flusher.appendText(separator);
               lastTurnHadToolUse = false;
             }
             responseText += event.delta.text;
