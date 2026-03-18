@@ -144,6 +144,11 @@ export function buildSystemPrompt(
       "- **Inter-Agent Messaging** — communicate with other agents for delegation and coordination"
     );
   }
+  if (has(enabled, "notion")) {
+    capabilities.push(
+      "- **Notion** — search, read, create, and update pages and databases in the user's Notion workspace"
+    );
+  }
 
   const capabilitiesSection =
     capabilities.length > 0
@@ -192,6 +197,21 @@ export function buildSystemPrompt(
 `
     : "";
 
+  // ── Notion guidelines ──────────────────────────────────────────────
+  const notionGuidance = has(enabled, "notion")
+    ? `
+## Notion Integration
+- Use \`notion_search\` to find pages and databases by keyword
+- Use \`notion_query_database\` to list and filter entries in a Notion database — you can filter by status, date, tags, etc.
+- Use \`notion_create_page\` to add new pages or database entries
+- Use \`notion_update_page\` to change properties on existing pages (status, assignee, dates, etc.)
+- Use \`notion_get_page\` to read a page's properties and content
+- Use \`notion_append_blocks\` to add paragraphs, headings, lists, todos, or quotes to a page
+- When the user mentions Notion content, search for it first rather than asking for IDs
+- Property values in create/update must match Notion's property format (e.g. \`{ "Status": { "status": { "name": "Done" } } }\`)
+`
+    : "";
+
   // ── Custom tools guidance (only if enabled) ─────────────────────────
   const customToolGuidance = has(enabled, "custom_http_tools")
     ? `
@@ -212,7 +232,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${customToolGuidance}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${customToolGuidance}
 ## Interactive Questions
 When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
 

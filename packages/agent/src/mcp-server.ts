@@ -11,6 +11,7 @@ import { createAutomationTools } from "./tools/automation-tools.js";
 import { createTimerTools } from "./tools/timer-tools.js";
 import { createWebhookManagementTools } from "./tools/webhook-management-tools.js";
 import { createAgentMessageTools } from "./tools/agent-message-tools.js";
+import { createNotionTools } from "./tools/notion-tools.js";
 
 interface Tab {
   _id: string;
@@ -34,6 +35,10 @@ interface EmailConfig {
   fromName?: string;
 }
 
+interface NotionConfig {
+  apiKey: string;
+}
+
 interface McpServerDeps {
   convexClient: AgentConvexClient;
   agentId: string;
@@ -43,6 +48,7 @@ interface McpServerDeps {
   tabs: Tab[];
   customTools: CustomToolConfig[];
   emailConfig?: EmailConfig | null;
+  notionConfig?: NotionConfig | null;
 }
 
 function has(enabledToolSets: string[], name: string): boolean {
@@ -117,6 +123,13 @@ export function buildMcpServer(deps: McpServerDeps) {
   if (has(enabled, "agent_messages")) {
     tools.push(
       ...createAgentMessageTools(deps.convexClient, deps.agentId)
+    );
+  }
+
+  // Notion — gated by "notion"
+  if (has(enabled, "notion") && deps.notionConfig) {
+    tools.push(
+      ...createNotionTools(deps.convexClient, deps.agentId, deps.notionConfig)
     );
   }
 
@@ -224,6 +237,18 @@ export function buildAllowedTools(
       "mcp__agent-tools__send_to_agent",
       "mcp__agent-tools__check_agent_messages",
       "mcp__agent-tools__respond_to_agent"
+    );
+  }
+
+  // Notion — gated by "notion"
+  if (has(enabledToolSets, "notion")) {
+    allowed.push(
+      "mcp__agent-tools__notion_search",
+      "mcp__agent-tools__notion_query_database",
+      "mcp__agent-tools__notion_create_page",
+      "mcp__agent-tools__notion_update_page",
+      "mcp__agent-tools__notion_get_page",
+      "mcp__agent-tools__notion_append_blocks"
     );
   }
 

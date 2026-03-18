@@ -188,6 +188,11 @@ export async function runAgent(params: RunAgentParams) {
       ? await convexClient.getToolConfig(params.agentId, "email")
       : null;
 
+    // Load Notion config if notion tool is enabled
+    const notionConfig = enabled.includes("notion")
+      ? await convexClient.getToolConfig(params.agentId, "notion")
+      : null;
+
     // Load schedules context if schedules tool is enabled
     const schedules = enabled.includes("schedules")
       ? await convexClient.listSchedules(params.agentId)
@@ -225,6 +230,7 @@ export async function runAgent(params: RunAgentParams) {
       tabs: tabs as any,
       customTools: customTools as any,
       emailConfig: emailConfig as any,
+      notionConfig: notionConfig as any,
     });
 
     const allowedTools = buildAllowedTools(

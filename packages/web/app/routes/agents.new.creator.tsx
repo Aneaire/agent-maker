@@ -23,6 +23,7 @@ const TOOL_LABELS: Record<string, string> = {
   custom_http_tools: "Custom HTTP Tools",
   rest_api: "REST API",
   postgres: "PostgreSQL",
+  notion: "Notion",
 };
 
 export default function AgentCreatorPage() {

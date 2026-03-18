@@ -83,6 +83,11 @@ const SECTIONS: DocSection[] = [
         title: "Inter-Agent Messaging",
         content: <AgentMessagesContent />,
       },
+      {
+        id: "notion",
+        title: "Notion",
+        content: <NotionContent />,
+      },
     ],
   },
   {
@@ -436,6 +441,7 @@ function QuickStartContent() {
           ["Timers", "Delayed actions and reminders"],
           ["Webhooks", "Send/receive webhooks"],
           ["Inter-Agent Messaging", "Agents talk to each other"],
+          ["Notion", "Search, read, create & update Notion pages/databases"],
         ]}
       />
 
@@ -460,6 +466,10 @@ function QuickStartContent() {
       <DocH3>Automations</DocH3>
       <DocP>
         Enable "Automations" and tell your agent: "When a task is completed, send me an email." The agent creates the automation rule.
+      </DocP>
+      <DocH3>Notion</DocH3>
+      <DocP>
+        Enable "Notion", then add your Notion integration token in <strong className="text-zinc-200">Settings</strong>. Share the pages and databases you want accessed with the integration in Notion. Your agent can then search, read, create, and update Notion content.
       </DocP>
     </div>
   );
@@ -741,6 +751,8 @@ function AutomationsContent() {
         ["schedule.fired", "A scheduled action executes"],
         ["timer.fired", "A timer fires"],
         ["agent_message.received", "A message from another agent arrives"],
+        ["notion.page_created", "A Notion page is created"],
+        ["notion.page_updated", "A Notion page is updated"],
       ]} />
 
       <DocH2>Actions</DocH2>
@@ -899,6 +911,94 @@ function AgentMessagesContent() {
   );
 }
 
+function NotionContent() {
+  return (
+    <div>
+      <DocH1>Notion</DocH1>
+      <div className="flex gap-2 mb-4">
+        <DocBadge>Tool set: notion</DocBadge>
+        <DocBadge>Default: Disabled</DocBadge>
+        <DocBadge>Requires: Notion Integration Token</DocBadge>
+      </div>
+      <DocP>
+        Connect your agent to Notion to search, read, create, and update pages and databases. Your agent can manage project trackers, knowledge bases, meeting notes, and any other Notion content.
+      </DocP>
+
+      <DocH2>Setup</DocH2>
+      <DocP>
+        1. Create an internal integration at <strong className="text-zinc-200">notion.so/my-integrations</strong>. Copy the integration token.
+      </DocP>
+      <DocP>
+        2. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Notion and paste the token.
+      </DocP>
+      <DocP>
+        3. In Notion, share the pages and databases you want the agent to access with your integration (click "..." on a page → "Add connections" → select your integration).
+      </DocP>
+
+      <DocH2>Tools</DocH2>
+      <DocTable
+        headers={["Tool", "Description"]}
+        rows={[
+          ["notion_search", "Search pages and databases by keyword"],
+          ["notion_query_database", "Query a database with filters and sorting"],
+          ["notion_create_page", "Create a new page or database entry"],
+          ["notion_update_page", "Update page properties (status, dates, etc.)"],
+          ["notion_get_page", "Read a page's properties and content"],
+          ["notion_append_blocks", "Add text, headings, lists, todos to a page"],
+        ]}
+      />
+
+      <DocH2>Querying Databases</DocH2>
+      <DocP>
+        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">notion_query_database</code> with Notion filter objects to retrieve specific entries. The agent understands natural language — ask "show me all tasks marked Done" and it builds the right filter.
+      </DocP>
+      <DocCode>{`// Example filter: Status equals "Done"
+{ "property": "Status", "status": { "equals": "Done" } }
+
+// Example filter: Created in last 7 days
+{ "property": "Created", "date": { "past_week": {} } }`}</DocCode>
+
+      <DocH2>Creating Pages</DocH2>
+      <DocP>
+        Create pages as children of existing pages or as new entries in a database. For database entries, the agent sets properties matching the database schema (status, select, date, etc.).
+      </DocP>
+
+      <DocH2>Appending Content</DocH2>
+      <DocP>
+        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">notion_append_blocks</code> to add content to existing pages. Supports paragraphs, headings (H1-H3), bulleted/numbered lists, to-do items, quotes, callouts, and dividers.
+      </DocP>
+
+      <DocH2>Events</DocH2>
+      <DocP>
+        Notion actions emit events to the <AppLink to="/docs/advanced/event-bus">Event Bus</AppLink>, so you can trigger automations when Notion content is created or updated.
+      </DocP>
+      <DocTable
+        headers={["Event", "When"]}
+        rows={[
+          ["notion.searched", "A search is performed"],
+          ["notion.page_created", "A new page is created"],
+          ["notion.page_updated", "A page's properties are updated"],
+          ["notion.database_queried", "A database is queried"],
+          ["notion.blocks_appended", "Content is appended to a page"],
+        ]}
+      />
+
+      <DocH2>Example</DocH2>
+      <DocP>
+        <strong className="text-zinc-200">User:</strong> "Add a new task to my Projects database: 'Launch landing page' with status In Progress and due date March 25"
+      </DocP>
+      <DocP>
+        <strong className="text-zinc-200">Agent:</strong> Searches for the Projects database, then creates a new entry with the specified properties.
+      </DocP>
+
+      <DocH2>Integration Ideas</DocH2>
+      <DocP>
+        Combine with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> for daily syncs (e.g., "every morning, summarize my Notion tasks"). Use with <AppLink to="/docs/tools/automations">Automations</AppLink> to update Notion when events happen (e.g., "when email received → create Notion page").
+      </DocP>
+    </div>
+  );
+}
+
 function EventBusContent() {
   return (
     <div>
@@ -926,6 +1026,11 @@ function EventBusContent() {
         ["document.ready", "An uploaded document finishes processing"],
         ["agent_message.sent", "A message is sent to another agent"],
         ["agent_message.received", "A message is received from another agent"],
+        ["notion.searched", "A Notion search is performed"],
+        ["notion.page_created", "A Notion page is created"],
+        ["notion.page_updated", "A Notion page's properties are updated"],
+        ["notion.database_queried", "A Notion database is queried"],
+        ["notion.blocks_appended", "Content is appended to a Notion page"],
       ]} />
 
       <DocH2>Example: Chain Actions Together</DocH2>
@@ -978,6 +1083,7 @@ function ToolSetsRefContent() {
           ["Timers & Delays", "timers", "Disabled", "All"],
           ["Webhooks", "webhooks", "Disabled", "All"],
           ["Inter-Agent Messaging", "agent_messages", "Disabled", "All"],
+          ["Notion", "notion", "Disabled", "All"],
           ["REST API", "rest_api", "Disabled", "Pro+"],
           ["PostgreSQL", "postgres", "Disabled", "Pro+"],
         ]}
@@ -1010,6 +1116,11 @@ function EventTypesContent() {
           ["document.ready", "documentId, fileName, chunkCount"],
           ["agent_message.sent", "toAgentId, messageId"],
           ["agent_message.received", "fromAgentId, messageId"],
+          ["notion.searched", "query, resultCount"],
+          ["notion.page_created", "pageId, title, parentType"],
+          ["notion.page_updated", "pageId, updatedProperties"],
+          ["notion.database_queried", "databaseId, resultCount"],
+          ["notion.blocks_appended", "pageId, blockCount"],
         ]}
       />
 

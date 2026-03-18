@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Check,
   Mail,
+  BookOpen,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
@@ -74,6 +75,10 @@ const TOOL_SET_INFO: Record<
     label: "Inter-Agent Messaging",
     description: "Communicate with other agents for delegation and coordination",
   },
+  notion: {
+    label: "Notion",
+    description: "Search, read, create, and update pages and databases in Notion",
+  },
 };
 
 const AGENT_SERVER_URL =
@@ -109,6 +114,9 @@ export default function SettingsPage() {
         )}
         {(agent.enabledToolSets ?? []).includes("email") && (
           <EmailConfigSection agent={agent} />
+        )}
+        {(agent.enabledToolSets ?? []).includes("notion") && (
+          <NotionConfigSection agent={agent} />
         )}
         <CustomToolsSection agent={agent} />
       </div>
@@ -764,6 +772,91 @@ function EmailConfigSection({ agent }: { agent: Doc<"agents"> }) {
             resend.com
           </a>
           . You'll need to verify a sending domain to use a custom from address.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ── Notion Config ─────────────────────────────────────────────────────
+
+function NotionConfigSection({ agent }: { agent: Doc<"agents"> }) {
+  const existingConfig = useQuery(api.agents.getToolConfig, {
+    agentId: agent._id,
+    toolSetName: "notion",
+  });
+  const saveConfig = useMutation(api.agents.saveToolConfig);
+  const [apiKey, setApiKey] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (existingConfig && !loaded) {
+      setApiKey(existingConfig.apiKey ?? "");
+      setLoaded(true);
+    }
+  }, [existingConfig, loaded]);
+
+  const hasChanges =
+    loaded && apiKey !== (existingConfig?.apiKey ?? "");
+
+  async function handleSave() {
+    if (!apiKey.trim()) return;
+    setSaving(true);
+    try {
+      await saveConfig({
+        agentId: agent._id,
+        toolSetName: "notion",
+        config: { apiKey: apiKey.trim() },
+      });
+    } catch (err: any) {
+      alert(err.message);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-zinc-400" />
+          <h2 className="text-sm font-medium">Notion Configuration</h2>
+        </div>
+        {hasChanges && (
+          <button
+            onClick={handleSave}
+            disabled={saving || !apiKey.trim()}
+            className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-3 w-3" />
+            {saving ? "Saving..." : "Save"}
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <Field label="Notion Integration Token">
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="ntn_..."
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          />
+        </Field>
+
+        <p className="text-[11px] text-zinc-600 leading-relaxed">
+          Create an internal integration at{" "}
+          <a
+            href="https://www.notion.so/my-integrations"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-400 underline hover:text-zinc-300"
+          >
+            notion.so/my-integrations
+          </a>
+          . Then share the pages/databases you want the agent to access with
+          the integration.
         </p>
       </div>
     </section>
