@@ -12,7 +12,7 @@ import {
   Timer,
   Webhook,
   MessageSquare,
-  Network,
+
   Globe,
   Wrench,
   ChevronRight,
@@ -90,17 +90,7 @@ const SECTIONS: DocSection[] = [
     title: "Advanced",
     icon: <Layers className="h-4 w-4" />,
     pages: [
-      {
-        id: "event-bus",
-        title: "Event Bus",
-        content: <EventBusContent />,
-      },
       { id: "rest-api", title: "REST API Endpoints", content: <RestApiContent /> },
-      {
-        id: "architecture",
-        title: "Architecture",
-        content: <ArchitectureContent />,
-      },
     ],
   },
   {
@@ -252,10 +242,10 @@ function DocsIndex() {
           color="from-purple-500/20 to-purple-600/10"
         />
         <DocCard
-          to="/docs/advanced/event-bus"
-          icon={<Network className="h-5 w-5" />}
-          title="Event Bus"
-          description="How all tools interconnect via events"
+          to="/docs/advanced/rest-api"
+          icon={<Globe className="h-5 w-5" />}
+          title="REST API"
+          description="Expose your agent as an API endpoint"
           color="from-neon-500/20 to-neon-600/10"
         />
       </div>
@@ -904,44 +894,6 @@ function AgentMessagesContent() {
   );
 }
 
-function EventBusContent() {
-  return (
-    <div>
-      <DocH1>Event Bus</DocH1>
-      <DocP>
-        The event bus is the interconnection layer that ties all tools together. Every significant action emits an event, and automations subscribe to those events.
-      </DocP>
-
-      <DocH2>Flow</DocH2>
-      <DocCode>{`Tool Action → Event Emitted → Automations Checked → Actions Executed
-                            → Outgoing Webhooks Fired
-                            → Event Logged for History`}</DocCode>
-
-      <DocH2>All Event Types</DocH2>
-      <DocTable headers={["Event", "Sources"]} rows={[
-        ["task.created", "page_tools, webhook, automation, scheduler"],
-        ["task.updated", "page_tools, webhook, automation"],
-        ["task.deleted", "page_tools, webhook"],
-        ["email.sent", "email_tools, automation, scheduler, timer"],
-        ["email.failed", "email_tools"],
-        ["webhook.received", "webhook"],
-        ["webhook.fired", "webhook_tools, automation, scheduler"],
-        ["schedule.fired", "scheduler"],
-        ["timer.fired", "timer"],
-        ["memory.stored", "memory_tools, automation"],
-        ["document.ready", "document_processor"],
-        ["agent_message.sent", "agent_message_tools, automation"],
-        ["agent_message.received", "agent_message_tools"],
-      ]} />
-
-      <DocH2>Example Chain</DocH2>
-      <DocP>
-        A single incoming webhook can cascade through the entire system: webhook.received → task.created → send_email + fire_webhook — four tool systems interconnected through the event bus.
-      </DocP>
-    </div>
-  );
-}
-
 function RestApiContent() {
   return (
     <div>
@@ -961,39 +913,6 @@ function RestApiContent() {
       <DocH2>Authentication</DocH2>
       <DocP>
         Pass API key via <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Authorization: Bearer YOUR_KEY</code> header or <code className="text-zinc-200 bg-zinc-800 px-1 rounded">?api_key=YOUR_KEY</code> query parameter.
-      </DocP>
-    </div>
-  );
-}
-
-function ArchitectureContent() {
-  return (
-    <div>
-      <DocH1>Architecture</DocH1>
-
-      <DocH2>System Overview</DocH2>
-      <DocCode>{`Web UI (React) ←→ Convex (Backend DB) ←→ Agent Server (Hono + SDK)
-                                                    │
-                                        ┌───────────┼───────────┐
-                                        │           │           │
-                                   Job Poller  Cron Poller  Timer Poller
-                                    (2 sec)    (10 sec)     (5 sec)`}</DocCode>
-
-      <DocH2>Packages</DocH2>
-      <DocTable headers={["Package", "Technology", "Purpose"]} rows={[
-        ["packages/web", "React 19 + React Router", "Frontend dashboard, chat, settings"],
-        ["packages/shared", "Convex", "Database, queries, mutations, auth"],
-        ["packages/agent", "Hono + Claude SDK", "Agent runtime, tools, scheduling"],
-      ]} />
-
-      <DocH2>Tool Architecture</DocH2>
-      <DocP>
-        Tools are registered as MCP tools via Claude Agent SDK. Each tool set is gated by the agent's <code className="text-zinc-200 bg-zinc-800 px-1 rounded">enabledToolSets</code> array. Tools are dynamically loaded based on agent configuration.
-      </DocP>
-
-      <DocH2>Auth Model</DocH2>
-      <DocP>
-        Two auth paths: <strong className="text-zinc-200">User-facing</strong> (Clerk JWT) and <strong className="text-zinc-200">Server-facing</strong> (shared server token). The agent server uses HTTP client with server token auth.
       </DocP>
     </div>
   );
