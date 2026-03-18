@@ -213,6 +213,11 @@ export async function runAgent(params: RunAgentParams) {
       ? await convexClient.getToolConfig(params.agentId, "google_sheets")
       : null;
 
+    // Load Image Generation config if image_generation tool is enabled
+    const imageGenConfig = enabled.includes("image_generation")
+      ? await convexClient.getToolConfig(params.agentId, "image_generation")
+      : null;
+
     // Load schedules context if schedules tool is enabled
     const schedules = enabled.includes("schedules")
       ? await convexClient.listSchedules(params.agentId)
@@ -255,6 +260,7 @@ export async function runAgent(params: RunAgentParams) {
       gcalConfig: gcalConfig as any,
       gdriveConfig: gdriveConfig as any,
       gsheetsConfig: gsheetsConfig as any,
+      imageGenConfig: imageGenConfig as any,
     });
 
     const allowedTools = buildAllowedTools(

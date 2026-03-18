@@ -99,6 +99,10 @@ const TOOL_SET_INFO: Record<
     label: "Google Sheets",
     description: "Read, write, and manage spreadsheet data in Google Sheets",
   },
+  image_generation: {
+    label: "Image Generation",
+    description: "Generate images from text prompts using Gemini Imagen or Nano Banana",
+  },
 };
 
 const AGENT_SERVER_URL =
@@ -149,6 +153,9 @@ export default function SettingsPage() {
         )}
         {(agent.enabledToolSets ?? []).includes("google_sheets") && (
           <GSheetsConfigSection agent={agent} />
+        )}
+        {(agent.enabledToolSets ?? []).includes("image_generation") && (
+          <ImageGenConfigSection agent={agent} />
         )}
         <CustomToolsSection agent={agent} />
       </div>
@@ -322,23 +329,7 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
           </Field>
 
           <Field label="Model">
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
-            >
-              <optgroup label="Claude (Anthropic)">
-                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (balanced)</option>
-                <option value="claude-opus-4-6">Claude Opus 4.6 (most capable)</option>
-                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>
-              </optgroup>
-              <optgroup label="Gemini (Google)">
-                <option value="gemini-3.1-pro">Gemini 3.1 Pro (most capable)</option>
-                <option value="gemini-3-flash">Gemini 3 Flash (fast, agentic)</option>
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (cheapest)</option>
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash (balanced)</option>
-              </optgroup>
-            </select>
+            <ModelSelector value={model} onChange={setModel} />
           </Field>
 
           {/* System Prompt Preview Card */}
@@ -1717,6 +1708,304 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+// ── Model Capability Badges ──────────────────────────────────────────
+
+type ModelCapability = "text" | "vision" | "image_gen" | "code";
+
+interface ModelDef {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+  capabilities: ModelCapability[];
+  tier?: string;
+}
+
+const MODELS: ModelDef[] = [
+  // Claude
+  {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
+    description: "Balanced speed and capability",
+    provider: "Anthropic",
+    capabilities: ["text", "vision", "code"],
+    tier: "$$",
+  },
+  {
+    id: "claude-opus-4-6",
+    name: "Claude Opus 4.6",
+    description: "Most capable Claude model",
+    provider: "Anthropic",
+    capabilities: ["text", "vision", "code"],
+    tier: "$$$",
+  },
+  {
+    id: "claude-haiku-4-5-20251001",
+    name: "Claude Haiku 4.5",
+    description: "Fastest, most affordable",
+    provider: "Anthropic",
+    capabilities: ["text", "vision", "code"],
+    tier: "$",
+  },
+  // Gemini
+  {
+    id: "gemini-3.1-pro",
+    name: "Gemini 3.1 Pro",
+    description: "Most capable Gemini model",
+    provider: "Google",
+    capabilities: ["text", "vision", "code", "image_gen"],
+    tier: "$$$",
+  },
+  {
+    id: "gemini-3-flash",
+    name: "Gemini 3 Flash",
+    description: "Fast and agentic",
+    provider: "Google",
+    capabilities: ["text", "vision", "code", "image_gen"],
+    tier: "$$",
+  },
+  {
+    id: "gemini-3.1-flash-lite",
+    name: "Gemini 3.1 Flash-Lite",
+    description: "Cheapest Gemini option",
+    provider: "Google",
+    capabilities: ["text", "vision"],
+    tier: "$",
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    description: "Balanced Gemini model",
+    provider: "Google",
+    capabilities: ["text", "vision", "code"],
+    tier: "$$",
+  },
+];
+
+const CAPABILITY_CONFIG: Record<
+  ModelCapability,
+  { label: string; color: string; icon: string }
+> = {
+  text: { label: "Text", color: "bg-emerald-500/20 text-emerald-400 ring-emerald-500/30", icon: "T" },
+  vision: { label: "Vision", color: "bg-blue-500/20 text-blue-400 ring-blue-500/30", icon: "V" },
+  image_gen: { label: "Image Gen", color: "bg-violet-500/20 text-violet-400 ring-violet-500/30", icon: "I" },
+  code: { label: "Code", color: "bg-amber-500/20 text-amber-400 ring-amber-500/30", icon: "C" },
+};
+
+function ModelSelector({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = MODELS.find((m) => m.id === value) ?? MODELS[0];
+
+  // Group by provider
+  const providers = [...new Set(MODELS.map((m) => m.provider))];
+
+  return (
+    <div className="relative">
+      {/* Selected model display */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-left hover:border-zinc-600 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium truncate">{selected.name}</span>
+              {selected.tier && (
+                <span className="text-[10px] text-zinc-500 font-mono">{selected.tier}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              {selected.capabilities.map((cap) => (
+                <span
+                  key={cap}
+                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-medium ring-1 ${CAPABILITY_CONFIG[cap].color}`}
+                >
+                  {CAPABILITY_CONFIG[cap].label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <svg
+          className={`h-4 w-4 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 left-0 right-0 mt-1 max-h-80 overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl shadow-black/40">
+            {providers.map((provider) => (
+              <div key={provider}>
+                <div className="sticky top-0 bg-zinc-900/95 backdrop-blur px-3 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-800/50">
+                  {provider}
+                </div>
+                {MODELS.filter((m) => m.provider === provider).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(m.id);
+                      setOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                      m.id === value
+                        ? "bg-neon-400/10"
+                        : "hover:bg-zinc-800/80"
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${m.id === value ? "text-neon-400" : ""}`}>
+                          {m.name}
+                        </span>
+                        {m.tier && (
+                          <span className="text-[10px] text-zinc-500 font-mono">{m.tier}</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">{m.description}</p>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        {m.capabilities.map((cap) => (
+                          <span
+                            key={cap}
+                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ring-1 ${CAPABILITY_CONFIG[cap].color}`}
+                          >
+                            {CAPABILITY_CONFIG[cap].label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {m.id === value && (
+                      <Check className="h-4 w-4 text-neon-400 shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Image Generation Config ─────────────────────────────────────────
+
+function ImageGenConfigSection({ agent }: { agent: Doc<"agents"> }) {
+  const existingConfig = useQuery(api.agents.getToolConfig, {
+    agentId: agent._id,
+    toolSetName: "image_generation",
+  });
+  const saveConfig = useMutation(api.agents.saveToolConfig);
+  const [provider, setProvider] = useState<"gemini" | "nano_banana">("gemini");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [nanoBananaApiKey, setNanoBananaApiKey] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (existingConfig && !loaded) {
+      setProvider(existingConfig.provider ?? "gemini");
+      setGeminiApiKey(existingConfig.geminiApiKey ?? "");
+      setNanoBananaApiKey(existingConfig.nanoBananaApiKey ?? "");
+      setLoaded(true);
+    }
+  }, [existingConfig, loaded]);
+
+  const hasChanges =
+    loaded &&
+    (provider !== (existingConfig?.provider ?? "gemini") ||
+      geminiApiKey !== (existingConfig?.geminiApiKey ?? "") ||
+      nanoBananaApiKey !== (existingConfig?.nanoBananaApiKey ?? ""));
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await saveConfig({
+        agentId: agent._id,
+        toolSetName: "image_generation",
+        config: { provider, geminiApiKey, nanoBananaApiKey },
+      });
+    } catch (err: any) {
+      alert(err.message);
+    }
+    setSaving(false);
+  }
+
+  if (!agent.enabledToolSets.includes("image_generation")) return null;
+
+  return (
+    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-violet-400" />
+          <h2 className="text-sm font-medium">Image Generation</h2>
+        </div>
+        {hasChanges && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-3 w-3" />
+            {saving ? "Saving..." : "Save"}
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <Field label="Default Provider">
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value as any)}
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+          >
+            <option value="gemini">Gemini Imagen</option>
+            <option value="nano_banana">Nano Banana</option>
+          </select>
+        </Field>
+
+        <Field label="Gemini API Key">
+          <input
+            type="password"
+            value={geminiApiKey}
+            onChange={(e) => setGeminiApiKey(e.target.value)}
+            placeholder="AIza..."
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none font-mono"
+          />
+          <p className="text-[10px] text-zinc-600 mt-1">
+            Uses Imagen API. Also used as fallback if GEMINI_API_KEY env var is set on server.
+          </p>
+        </Field>
+
+        <Field label="Nano Banana API Key">
+          <input
+            type="password"
+            value={nanoBananaApiKey}
+            onChange={(e) => setNanoBananaApiKey(e.target.value)}
+            placeholder="nb_..."
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none font-mono"
+          />
+        </Field>
+      </div>
     </section>
   );
 }

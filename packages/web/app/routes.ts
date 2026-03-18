@@ -10,6 +10,7 @@ export default [
     index("routes/agents.$agentId.index.tsx"),
     route("chat/:conversationId", "routes/agents.$agentId.chat.$conversationId.tsx"),
     route("memories", "routes/agents.$agentId.memories.tsx"),
+    route("assets", "routes/agents.$agentId.assets.tsx"),
     route("tab/:tabId", "routes/agents.$agentId.tab.$tabId.tsx"),
     route("settings", "routes/agents.$agentId.settings.tsx"),
   ]),

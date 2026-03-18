@@ -15,6 +15,8 @@ import type * as agentJobs from "../agentJobs.js";
 import type * as agentMessages from "../agentMessages.js";
 import type * as agentTimers from "../agentTimers.js";
 import type * as agents from "../agents.js";
+import type * as assetFolders from "../assetFolders.js";
+import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
 import type * as automations from "../automations.js";
 import type * as conversations from "../conversations.js";
@@ -51,6 +53,8 @@ declare const fullApi: ApiFromModules<{
   agentMessages: typeof agentMessages;
   agentTimers: typeof agentTimers;
   agents: typeof agents;
+  assetFolders: typeof assetFolders;
+  assets: typeof assets;
   auth: typeof auth;
   automations: typeof automations;
   conversations: typeof conversations;

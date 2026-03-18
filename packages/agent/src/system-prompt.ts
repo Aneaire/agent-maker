@@ -169,6 +169,11 @@ export function buildSystemPrompt(
       "- **Google Sheets** — create spreadsheets, read/write ranges, append rows, and manage sheet data"
     );
   }
+  if (has(enabled, "image_generation")) {
+    capabilities.push(
+      "- **Image Generation** — generate images from text prompts using AI (Gemini Imagen or Nano Banana), saved to your asset library"
+    );
+  }
 
   const capabilitiesSection =
     capabilities.length > 0
@@ -292,6 +297,20 @@ export function buildSystemPrompt(
 `
     : "";
 
+  // ── Image Generation guidelines ─────────────────────────────────────
+  const imageGenGuidance = has(enabled, "image_generation")
+    ? `
+## Image Generation
+- Use \`generate_image\` to create images from detailed text prompts
+- Write detailed, specific prompts: include style (photorealistic, watercolor, 3D render), subject details, composition, lighting, and mood
+- Give each image a descriptive name — it's saved to the agent's Assets library for the user to browse
+- Use \`list_assets\` to show the user their generated images
+- You can specify a folder_id to organize images into folders
+- When the user says "create an image", "generate a picture", "make me a visual", etc., use generate_image
+- If image generation fails, explain the error and suggest a modified prompt
+`
+    : "";
+
   // ── Custom tools guidance (only if enabled) ─────────────────────────
   const customToolGuidance = has(enabled, "custom_http_tools")
     ? `
@@ -312,7 +331,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${customToolGuidance}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${imageGenGuidance}${customToolGuidance}
 ## Interactive Questions
 When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
 

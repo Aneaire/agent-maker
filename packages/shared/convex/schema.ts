@@ -470,6 +470,47 @@ export default defineSchema({
     .index("by_agent", ["agentId"])
     .index("by_status_fire", ["status", "fireAt"]),
 
+  // ── Asset Folders ──────────────────────────────────────────────────
+
+  assetFolders: defineTable({
+    agentId: v.id("agents"),
+    name: v.string(),
+    parentId: v.optional(v.id("assetFolders")),
+    createdAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_parent", ["agentId", "parentId"]),
+
+  // ── Assets (generated images, uploaded files) ─────────────────────
+
+  assets: defineTable({
+    agentId: v.id("agents"),
+    folderId: v.optional(v.id("assetFolders")),
+    name: v.string(),
+    type: v.union(v.literal("image"), v.literal("file")),
+    storageId: v.optional(v.id("_storage")),
+    url: v.optional(v.string()),  // External URL (e.g. from generation API)
+    mimeType: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    // Generation metadata
+    generatedBy: v.optional(v.union(
+      v.literal("gemini"),
+      v.literal("nano_banana"),
+    )),
+    prompt: v.optional(v.string()),
+    model: v.optional(v.string()),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_folder", ["agentId", "folderId"])
+    .index("by_agent_type", ["agentId", "type"])
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["agentId"],
+    }),
+
   creatorSessions: defineTable({
     userId: v.id("users"),
     status: v.union(

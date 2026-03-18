@@ -16,6 +16,7 @@ import { createSlackTools } from "./tools/slack-tools.js";
 import { createGCalTools } from "./tools/gcal-tools.js";
 import { createGDriveTools } from "./tools/gdrive-tools.js";
 import { createGSheetsTools } from "./tools/gsheets-tools.js";
+import { createImageGenTools } from "./tools/image-gen-tools.js";
 
 interface Tab {
   _id: string;
@@ -66,6 +67,12 @@ interface GSheetsConfig {
   refreshToken: string;
 }
 
+interface ImageGenConfig {
+  provider: "gemini" | "nano_banana";
+  geminiApiKey?: string;
+  nanoBananaApiKey?: string;
+}
+
 interface McpServerDeps {
   convexClient: AgentConvexClient;
   agentId: string;
@@ -80,6 +87,7 @@ interface McpServerDeps {
   gcalConfig?: GCalConfig | null;
   gdriveConfig?: GDriveConfig | null;
   gsheetsConfig?: GSheetsConfig | null;
+  imageGenConfig?: ImageGenConfig | null;
 }
 
 function has(enabledToolSets: string[], name: string): boolean {
@@ -189,6 +197,13 @@ export function buildMcpServer(deps: McpServerDeps) {
   if (has(enabled, "google_sheets") && deps.gsheetsConfig) {
     tools.push(
       ...createGSheetsTools(deps.convexClient, deps.agentId, deps.gsheetsConfig)
+    );
+  }
+
+  // Image Generation — gated by "image_generation"
+  if (has(enabled, "image_generation") && deps.imageGenConfig) {
+    tools.push(
+      ...createImageGenTools(deps.convexClient, deps.agentId, deps.imageGenConfig)
     );
   }
 
@@ -356,6 +371,14 @@ export function buildAllowedTools(
       "mcp__agent-tools__gsheets_write",
       "mcp__agent-tools__gsheets_append",
       "mcp__agent-tools__gsheets_clear"
+    );
+  }
+
+  // Image Generation — gated by "image_generation"
+  if (has(enabledToolSets, "image_generation")) {
+    allowed.push(
+      "mcp__agent-tools__generate_image",
+      "mcp__agent-tools__list_assets"
     );
   }
 

@@ -507,4 +507,40 @@ export class AgentConvexClient {
       response,
     });
   }
+
+  // ── Assets ─────────────────────────────────────────────────────────
+
+  async createAsset(agentId: string, data: {
+    name: string;
+    type: "image" | "file";
+    folderId?: string;
+    storageId?: string;
+    url?: string;
+    mimeType?: string;
+    fileSize?: number;
+    generatedBy?: "gemini" | "nano_banana";
+    prompt?: string;
+    model?: string;
+    width?: number;
+    height?: number;
+  }) {
+    return this.client.mutation(api.assets.serverCreate, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      ...data as any,
+    });
+  }
+
+  async listAssets(agentId: string) {
+    return this.client.query(api.assets.serverList, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async getAssetUploadUrl() {
+    return this.client.mutation(api.assets.serverGetUploadUrl, {
+      serverToken: this.serverToken,
+    });
+  }
 }

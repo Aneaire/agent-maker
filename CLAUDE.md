@@ -17,7 +17,7 @@ Monorepo with 3 packages:
 
 ## Tool Sets (enabledToolSets)
 
-`memory`, `web_search`, `pages`, `custom_http_tools`, `email`, `rag`, `schedules`, `automations`, `timers`, `webhooks`, `agent_messages`, `notion`, `slack`, `google_calendar`, `google_drive`, `google_sheets`
+`memory`, `web_search`, `pages`, `custom_http_tools`, `email`, `rag`, `schedules`, `automations`, `timers`, `webhooks`, `agent_messages`, `notion`, `slack`, `google_calendar`, `google_drive`, `google_sheets`, `image_generation`
 
 ## Key Patterns
 
@@ -124,6 +124,7 @@ Tools are registered via MCP using `create*Tools()` functions, gated by `enabled
 | `google_calendar` | `gcal-tools.ts` | `gcal_list_calendars`, `gcal_list_events`, `gcal_create_event`, `gcal_update_event`, `gcal_delete_event`, `gcal_find_free_time` |
 | `google_drive` | `gdrive-tools.ts` | `gdrive_search`, `gdrive_list_files`, `gdrive_read_file`, `gdrive_create_file`, `gdrive_move_file`, `gdrive_delete_file` |
 | `google_sheets` | `gsheets-tools.ts` | `gsheets_create`, `gsheets_get_info`, `gsheets_read`, `gsheets_write`, `gsheets_append`, `gsheets_clear` |
+| `image_generation` | `image-gen-tools.ts` | `generate_image`, `list_assets` |
 | (always on) | `suggest-tools.ts` | `suggest_replies`, `ask_questions` — core UX, not gated |
 
 ### Allowed Tools (`buildAllowedTools`)

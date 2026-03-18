@@ -20,6 +20,7 @@ import {
   Pencil,
   Trash2,
   Check,
+  ImageIcon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -132,6 +133,17 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
         >
           <Brain className="h-4 w-4" />
           Memories
+        </Link>
+        <Link
+          to={`/agents/${agent._id}/assets`}
+          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
+            location.pathname.includes("/assets")
+              ? "bg-neon-400/10 text-neon-400 shadow-sm"
+              : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
+          }`}
+        >
+          <ImageIcon className="h-4 w-4" />
+          Assets
         </Link>
       </nav>
 

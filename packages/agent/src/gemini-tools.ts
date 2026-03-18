@@ -653,5 +653,133 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
     }
   }
 
+  // ── Image Generation tools ────────────────────────────────────────
+  if (has(enabled, "image_generation")) {
+    declarations.push({
+      name: "generate_image",
+      description:
+        "Generate an image from a text prompt using AI. The image is saved to the agent's assets library.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          prompt: {
+            type: SchemaType.STRING,
+            description:
+              "Detailed description of the image to generate. Be specific about style, composition, colors, lighting, and subject matter.",
+          },
+          name: {
+            type: SchemaType.STRING,
+            description: "A short descriptive name for the image",
+          },
+          provider: {
+            type: SchemaType.STRING,
+            description: "Which provider to use: gemini or nano_banana",
+            enum: ["gemini", "nano_banana"],
+          },
+          width: { type: SchemaType.NUMBER, description: "Image width in pixels" },
+          height: { type: SchemaType.NUMBER, description: "Image height in pixels" },
+        },
+        required: ["prompt", "name"],
+      },
+    });
+    handlers.generate_image = async (args) => {
+      try {
+        // This handler delegates to the image gen config loaded at runtime
+        // The actual generation happens via the MCP tool in Claude mode,
+        // but for Gemini we use the Imagen API directly
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return "Error: GEMINI_API_KEY not configured";
+
+        const model = "imagen-4.0-generate-001";
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{ prompt: args.prompt }],
+              parameters: { sampleCount: 1 },
+            }),
+          }
+        );
+
+        if (!res.ok) {
+          const err = await res.text();
+          return `Image generation failed (${res.status}): ${err}`;
+        }
+
+        const data = await res.json();
+        const prediction = data.predictions?.[0];
+        if (!prediction?.bytesBase64Encoded) {
+          return "No image returned from Imagen API";
+        }
+
+        // Upload to Convex storage
+        const uploadUrl = await deps.convexClient.getAssetUploadUrl();
+        const buffer = Buffer.from(prediction.bytesBase64Encoded, "base64");
+        const uploadRes = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": prediction.mimeType || "image/png" },
+          body: buffer,
+        });
+        if (!uploadRes.ok) return `Upload failed: ${uploadRes.status}`;
+        const { storageId } = await uploadRes.json();
+
+        // Create asset
+        const assetId = await deps.convexClient.createAsset(deps.agentId, {
+          name: args.name,
+          type: "image",
+          storageId,
+          mimeType: prediction.mimeType || "image/png",
+          fileSize: buffer.length,
+          generatedBy: "gemini",
+          prompt: args.prompt,
+          model,
+          width: args.width || 1024,
+          height: args.height || 1024,
+        });
+
+        await deps.convexClient.emitEvent(
+          deps.agentId,
+          "image.generated",
+          "image_gen_tools",
+          { assetId, name: args.name, provider: "gemini", prompt: args.prompt }
+        );
+
+        return `Image "${args.name}" generated and saved to assets (ID: ${assetId}).`;
+      } catch (err: any) {
+        return `Image generation error: ${err.message}`;
+      }
+    };
+
+    declarations.push({
+      name: "list_assets",
+      description: "List all generated images and files in the agent's asset library.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          type: {
+            type: SchemaType.STRING,
+            description: "Filter by asset type: image or file",
+            enum: ["image", "file"],
+          },
+        },
+      },
+    });
+    handlers.list_assets = async (args) => {
+      const assets = await deps.convexClient.listAssets(deps.agentId);
+      const filtered = args.type
+        ? (assets as any[]).filter((a: any) => a.type === args.type)
+        : assets;
+      if (!filtered || (filtered as any[]).length === 0) return "No assets found.";
+      return (filtered as any[])
+        .map(
+          (a: any) =>
+            `- [${a._id}] ${a.name} (${a.type})${a.generatedBy ? ` via ${a.generatedBy}` : ""}${a.resolvedUrl ? ` — ${a.resolvedUrl}` : ""}`
+        )
+        .join("\n");
+    };
+  }
+
   return { declarations, handlers };
 }
