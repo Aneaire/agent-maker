@@ -22,7 +22,10 @@ type ToolCallEntry = {
   name: string;
   input: string;
   output?: string;
+  progress?: string;
 };
+
+export type ToolProgressCallback = (toolName: string, progress: string) => void;
 
 /**
  * Manages debounced/immediate Convex mutations so the client
@@ -62,6 +65,20 @@ class StreamFlusher {
       this.toolCalls.push(tc);
     }
     this.flushNow("processing");
+  }
+
+  /** Update the progress text of a running tool call (matched by name, last match) */
+  updateToolProgress(toolName: string, progress: string) {
+    // Find the last tool call matching this name that has no output yet (still running)
+    for (let i = this.toolCalls.length - 1; i >= 0; i--) {
+      const tc = this.toolCalls[i];
+      const cleanName = tc.name.replace(/^mcp__[^_]+__/, "");
+      if ((cleanName === toolName || tc.name === toolName) && !tc.output) {
+        this.toolCalls[i] = { ...tc, progress };
+        this.flushNow("processing");
+        return;
+      }
+    }
   }
 
   async flushFinal(status: "done" | "error") {
@@ -232,6 +249,11 @@ export async function runAgent(params: RunAgentParams) {
       (automations ?? []) as any
     );
 
+    // Create progress callback for tools that support streaming progress
+    const onToolProgress: ToolProgressCallback = (toolName, progress) => {
+      flusher.updateToolProgress(toolName, progress);
+    };
+
     // Create MCP server with dynamic tools
     const mcpServer = buildMcpServer({
       convexClient,
@@ -249,6 +271,7 @@ export async function runAgent(params: RunAgentParams) {
       gsheetsConfig: gsheetsConfig as any,
       imageGenConfig: imageGenConfig as any,
       imageGenModel: agent.imageGenModel,
+      onToolProgress,
     });
 
     const allowedTools = buildAllowedTools(

@@ -162,8 +162,10 @@ export function createImageGenTools(
   convexClient: AgentConvexClient,
   agentId: string,
   config: ImageGenConfig,
-  imageGenModel?: string
+  imageGenModel?: string,
+  onProgress?: (toolName: string, progress: string) => void
 ) {
+  const reportProgress = (msg: string) => onProgress?.("generate_image", msg);
   const generateImage = tool(
     "generate_image",
     "Generate an image from a text prompt using AI. The image is saved to the agent's assets library. Returns the asset ID and URL.",
@@ -224,6 +226,7 @@ export function createImageGenTools(
           };
         }
         modelUsed = modelOverride || "imagen-4.0-generate-001";
+        reportProgress(`Generating image with ${modelUsed}...`);
         result = await generateWithGemini(geminiApiKey, input.prompt, {
           width: input.width,
           height: input.height,
@@ -236,6 +239,7 @@ export function createImageGenTools(
           };
         }
         modelUsed = "nano_banana_generate_2";
+        reportProgress("Generating image with Nano Banana...");
         result = await generateWithNanoBanana(
           nanoBananaApiKey,
           input.prompt,
@@ -248,6 +252,7 @@ export function createImageGenTools(
       }
 
       // Upload to Convex storage
+      reportProgress("Uploading image...");
       const storageId = await uploadBase64ToConvex(
         convexClient,
         result.imageBase64,
@@ -255,6 +260,7 @@ export function createImageGenTools(
       );
 
       // Create asset record
+      reportProgress("Saving to assets library...");
       const assetId = await convexClient.createAsset(agentId, {
         name: input.name,
         type: "image",
@@ -278,7 +284,7 @@ export function createImageGenTools(
       });
 
       return {
-        content: [{ type: "text" as const, text: `Image "${input.name}" generated successfully and saved to assets (ID: ${assetId}).` }],
+        content: [{ type: "text" as const, text: JSON.stringify({ success: true, assetId, name: input.name, provider, prompt: input.prompt }) }],
       };
     }
   );

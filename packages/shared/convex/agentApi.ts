@@ -83,6 +83,7 @@ export const updateMessage = mutation({
           name: v.string(),
           input: v.string(),
           output: v.optional(v.string()),
+          progress: v.optional(v.string()),
         })
       )
     ),

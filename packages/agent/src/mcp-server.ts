@@ -89,6 +89,7 @@ interface McpServerDeps {
   gsheetsConfig?: GSheetsConfig | null;
   imageGenConfig?: ImageGenConfig | null;
   imageGenModel?: string | null;
+  onToolProgress?: (toolName: string, progress: string) => void;
 }
 
 function has(enabledToolSets: string[], name: string): boolean {
@@ -208,7 +209,8 @@ export function buildMcpServer(deps: McpServerDeps) {
         deps.convexClient,
         deps.agentId,
         deps.imageGenConfig ?? { provider: "gemini" as const },
-        deps.imageGenModel ?? undefined
+        deps.imageGenModel ?? undefined,
+        deps.onToolProgress
       )
     );
   }

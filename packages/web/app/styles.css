@@ -211,6 +211,39 @@
   }
 }
 
+/* ── Image generation preview animations ────────────────────────────── */
+
+@keyframes shimmer-bg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float-orb-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+  50% { transform: translate(20px, -15px) scale(1.2); opacity: 0.35; }
+}
+
+@keyframes float-orb-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+  50% { transform: translate(-15px, 10px) scale(1.15); opacity: 0.3; }
+}
+
+@keyframes float-orb-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
+  50% { transform: translate(10px, 15px) scale(1.1); opacity: 0.25; }
+}
+
+@keyframes scan-line {
+  0% { top: -2px; }
+  100% { top: 100%; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.15); }
+}
+
 /* ── Scrollbar styling ──────────────────────────────────────────────── */
 
 @layer base {

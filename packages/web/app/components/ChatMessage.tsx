@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bot,
   User,
@@ -22,6 +22,7 @@ import {
   Eye,
   Download,
   Image as ImageIcon,
+  Sparkles,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -50,6 +51,116 @@ function CopyButton({ text }: { text: string }) {
       )}
     </button>
   );
+}
+
+// ── Image generation preview (blur placeholder while generating) ────────
+
+function ImageGenerationPreview({
+  prompt,
+  progress,
+}: {
+  prompt: string;
+  progress?: string;
+}) {
+  const [dots, setDots] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots((d) => (d.length >= 3 ? "" : d + "."));
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="mt-2">
+      <div className="relative rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950/40">
+        {/* Shimmer background */}
+        <div className="relative h-72 overflow-hidden">
+          {/* Animated gradient layers */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(24,24,27,1) 0%, rgba(39,39,42,0.8) 25%, rgba(24,24,27,1) 50%, rgba(39,39,42,0.6) 75%, rgba(24,24,27,1) 100%)",
+              backgroundSize: "400% 400%",
+              animation: "shimmer-bg 3s ease-in-out infinite",
+            }}
+          />
+
+          {/* Floating orbs */}
+          <div
+            className="absolute w-32 h-32 rounded-full opacity-20 blur-3xl"
+            style={{
+              background: "radial-gradient(circle, var(--color-neon-400) 0%, transparent 70%)",
+              top: "20%",
+              left: "30%",
+              animation: "float-orb-1 4s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute w-24 h-24 rounded-full opacity-15 blur-3xl"
+            style={{
+              background: "radial-gradient(circle, rgba(168,85,247,0.8) 0%, transparent 70%)",
+              bottom: "20%",
+              right: "25%",
+              animation: "float-orb-2 5s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute w-20 h-20 rounded-full opacity-10 blur-2xl"
+            style={{
+              background: "radial-gradient(circle, rgba(56,189,248,0.8) 0%, transparent 70%)",
+              top: "50%",
+              left: "60%",
+              animation: "float-orb-3 3.5s ease-in-out infinite",
+            }}
+          />
+
+          {/* Scan line effect */}
+          <div
+            className="absolute inset-x-0 h-px opacity-20"
+            style={{
+              background: "linear-gradient(90deg, transparent, var(--color-neon-400), transparent)",
+              animation: "scan-line 2.5s ease-in-out infinite",
+            }}
+          />
+
+          {/* Center content */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8">
+            <div className="relative">
+              <div
+                className="h-12 w-12 rounded-xl bg-neon-400/10 border border-neon-400/20 flex items-center justify-center"
+                style={{ animation: "pulse-glow 2s ease-in-out infinite" }}
+              >
+                <Sparkles className="h-6 w-6 text-neon-400" />
+              </div>
+            </div>
+
+            {/* Progress text */}
+            <div className="text-center space-y-1.5">
+              <p className="text-xs font-medium text-zinc-300">
+                {progress || "Generating image"}{dots}
+              </p>
+              <p className="text-[11px] text-zinc-500 max-w-xs line-clamp-2 leading-relaxed">
+                &ldquo;{prompt}&rdquo;
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Extract prompt from a generate_image tool input */
+function parseImageGenInput(tc: { name: string; input: any }): { prompt: string; name?: string } | null {
+  const toolName = tc.name.replace(/^mcp__[^_]+__/, "");
+  if (toolName !== "generate_image") return null;
+  try {
+    const parsed = typeof tc.input === "string" ? JSON.parse(tc.input) : tc.input;
+    if (parsed?.prompt) return { prompt: parsed.prompt, name: parsed.name };
+  } catch {}
+  return null;
 }
 
 // ── Inline asset image (for generate_image tool results) ────────────────
@@ -124,12 +235,22 @@ function parseImageAsset(tc: { name: string; output?: string }): { assetId: stri
   if (!tc.output) return null;
   const toolName = tc.name.replace(/^mcp__[^_]+__/, "");
   if (toolName !== "generate_image") return null;
+
+  // Try JSON format first: { success: true, assetId: "..." }
   try {
     const parsed = JSON.parse(tc.output);
     if (parsed.success && parsed.assetId) {
       return { assetId: parsed.assetId, name: parsed.name };
     }
   } catch {}
+
+  // Fallback: extract asset ID from text like 'saved to assets (ID: xxx)'
+  const match = tc.output.match(/\(ID:\s*([^)]+)\)/);
+  if (match) {
+    const nameMatch = tc.output.match(/Image "([^"]+)"/);
+    return { assetId: match[1].trim(), name: nameMatch?.[1] };
+  }
+
   return null;
 }
 
@@ -268,7 +389,7 @@ function ToolCallRow({
   isStreaming,
   isLast,
 }: {
-  tc: { id: string; name: string; input: any; output?: string };
+  tc: { id: string; name: string; input: any; output?: string; progress?: string };
   isStreaming: boolean;
   isLast: boolean;
 }) {
@@ -328,9 +449,9 @@ function ToolCallRow({
 
         {/* Status badge */}
         {isRunning && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded-full px-2 py-0.5">
-            <span className="h-1 w-1 rounded-full bg-amber-400 status-pulse" />
-            Running
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded-full px-2 py-0.5 max-w-[200px]">
+            <span className="h-1 w-1 rounded-full bg-amber-400 status-pulse shrink-0" />
+            <span className="truncate">{tc.progress || "Running"}</span>
           </span>
         )}
         {hasOutput && (
@@ -383,7 +504,7 @@ function ToolCallRow({
           {isRunning && (
             <div className="px-3 py-2 flex items-center gap-2 text-xs text-zinc-500">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Executing...
+              {tc.progress || "Executing..."}
             </div>
           )}
         </div>
@@ -398,7 +519,7 @@ function ToolCallsPanel({
   toolCalls,
   isStreaming,
 }: {
-  toolCalls: { id: string; name: string; input: any; output?: string }[];
+  toolCalls: { id: string; name: string; input: any; output?: string; progress?: string }[];
   isStreaming: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -653,11 +774,27 @@ export function ChatMessage({
           />
         )}
 
-        {/* Inline generated images */}
+        {/* Inline generated images — preview while generating, actual image when done */}
         {visibleToolCalls?.map((tc) => {
+          // Show completed image
           const img = parseImageAsset(tc);
-          if (!img) return null;
-          return <InlineAssetImage key={tc.id} assetId={img.assetId} name={img.name} />;
+          if (img) {
+            return <InlineAssetImage key={tc.id} assetId={img.assetId} name={img.name} />;
+          }
+          // Show preview placeholder while generating
+          if (!tc.output && isStreaming) {
+            const genInput = parseImageGenInput(tc);
+            if (genInput) {
+              return (
+                <ImageGenerationPreview
+                  key={tc.id}
+                  prompt={genInput.prompt}
+                  progress={tc.progress}
+                />
+              );
+            }
+          }
+          return null;
         })}
 
         {/* Pending state */}

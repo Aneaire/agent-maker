@@ -52,6 +52,7 @@ export class AgentConvexClient {
       name: string;
       input: string;
       output?: string;
+      progress?: string;
     }>
   ): Promise<{ stopped: boolean }> {
     const result = await this.client.mutation(api.agentApi.updateMessage, {

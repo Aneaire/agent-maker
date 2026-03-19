@@ -218,6 +218,7 @@ export default defineSchema({
           name: v.string(),
           input: v.any(),
           output: v.optional(v.string()),
+          progress: v.optional(v.string()),
         })
       )
     ),

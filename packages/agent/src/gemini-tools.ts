@@ -32,6 +32,7 @@ interface GeminiToolDeps {
   customTools: CustomToolConfig[];
   imageGenConfig?: ImageGenConfig | null;
   imageGenModel?: string;
+  onToolProgress?: (toolName: string, progress: string) => void;
 }
 
 export interface GeminiFunctionDeclaration {
@@ -702,6 +703,8 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
       },
     });
     handlers.generate_image = async (args) => {
+      const reportProgress = (msg: string) => deps.onToolProgress?.("generate_image", msg);
+
       try {
         // Determine provider: imageGenModel setting (user's choice) > explicit input > config default
         let provider: "gemini" | "nano_banana" | undefined;
@@ -729,6 +732,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
         if (provider === "nano_banana") {
           if (!nanoBananaApiKey) return "Error: Nano Banana API key not configured. Add it in Settings > Credentials.";
           modelUsed = "nano_banana_generate_2";
+          reportProgress("Generating image with Nano Banana...");
 
           // Submit generation task
           const aspectRatio = args.width && args.height
@@ -750,6 +754,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
           let imageUrl: string | undefined;
           for (let i = 0; i < 60; i++) {
             await new Promise((r) => setTimeout(r, 3000));
+            reportProgress(`Generating image... (${i * 3}s)`);
             const pollRes = await fetch(
               `https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=${encodeURIComponent(taskId)}`,
               { headers: { Authorization: `Bearer ${nanoBananaApiKey}` } }
@@ -767,6 +772,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
           }
           if (!imageUrl) return "Nano Banana image generation timed out";
 
+          reportProgress("Downloading generated image...");
           const imgRes = await fetch(imageUrl);
           if (!imgRes.ok) return `Failed to download generated image: ${imgRes.status}`;
           const buf = await imgRes.arrayBuffer();
@@ -776,6 +782,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
           // Gemini Imagen
           if (!geminiApiKey) return "Error: GEMINI_API_KEY not configured";
           modelUsed = modelOverride || "imagen-4.0-generate-001";
+          reportProgress(`Generating image with ${modelUsed}...`);
 
           const res = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${modelUsed}:predict?key=${geminiApiKey}`,
@@ -800,6 +807,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
         }
 
         // Upload to Convex storage
+        reportProgress("Uploading image...");
         const uploadUrl = await deps.convexClient.getAssetUploadUrl();
         const buffer = Buffer.from(imageBase64, "base64");
         const uploadRes = await fetch(uploadUrl, {
@@ -811,6 +819,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
         const { storageId } = await uploadRes.json();
 
         // Create asset
+        reportProgress("Saving to assets library...");
         const assetId = await deps.convexClient.createAsset(deps.agentId, {
           name: args.name,
           type: "image",
@@ -831,7 +840,7 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
           { assetId, name: args.name, provider, prompt: args.prompt }
         );
 
-        return `Image "${args.name}" generated and saved to assets (ID: ${assetId}).`;
+        return JSON.stringify({ success: true, assetId, name: args.name, provider, prompt: args.prompt });
       } catch (err: any) {
         return `Image generation error: ${err.message}`;
       }

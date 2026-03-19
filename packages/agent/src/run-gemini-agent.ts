@@ -17,6 +17,7 @@ type ToolCallEntry = {
   name: string;
   input: string;
   output?: string;
+  progress?: string;
 };
 
 class StreamFlusher {
@@ -50,6 +51,17 @@ class StreamFlusher {
     if (idx >= 0) this.toolCalls[idx] = tc;
     else this.toolCalls.push(tc);
     this.flushNow("processing");
+  }
+
+  updateToolProgress(toolName: string, progress: string) {
+    for (let i = this.toolCalls.length - 1; i >= 0; i--) {
+      const tc = this.toolCalls[i];
+      if (tc.name === toolName && !tc.output) {
+        this.toolCalls[i] = { ...tc, progress };
+        this.flushNow("processing");
+        return;
+      }
+    }
   }
 
   async flushFinal(status: "done" | "error") {
@@ -182,7 +194,11 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
       (documents ?? []) as any
     );
 
-    // Build Gemini tools
+    // Build Gemini tools with progress callback
+    const onToolProgress = (toolName: string, progress: string) => {
+      flusher.updateToolProgress(toolName, progress);
+    };
+
     const { declarations, handlers } = buildGeminiTools({
       convexClient,
       agentId: params.agentId,
@@ -192,6 +208,7 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
       customTools: customTools as any,
       imageGenConfig,
       imageGenModel: agent.imageGenModel,
+      onToolProgress,
     });
 
     // Initialize Gemini
