@@ -20,6 +20,7 @@ export default defineSchema({
     model: v.string(),
     imageGenModel: v.optional(v.string()),
     enabledToolSets: v.array(v.string()),
+    enabledModels: v.optional(v.array(v.string())),
     status: v.union(
       v.literal("active"),
       v.literal("paused"),

@@ -123,6 +123,7 @@ export default function ChatPage() {
         imageGenModel={(agent.enabledToolSets ?? []).includes("image_generation") && configuredImageGenProviders.length > 0 ? (agent.imageGenModel || "gemini:imagen-4.0-generate-001") : undefined}
         onImageGenModelChange={(agent.enabledToolSets ?? []).includes("image_generation") && configuredImageGenProviders.length > 0 ? (imageGenModel) => updateAgent({ agentId: agent._id, imageGenModel }) : undefined}
         configuredImageGenProviders={configuredImageGenProviders}
+        enabledModels={agent.enabledModels}
       />
     </div>
   );

@@ -133,6 +133,7 @@ function ModelDropdown({
   onImageGenModelChange,
   configuredImageGenProviders,
   disabled,
+  enabledModels,
 }: {
   model: string;
   onModelChange: (model: string) => void;
@@ -140,6 +141,7 @@ function ModelDropdown({
   onImageGenModelChange?: (model: string) => void;
   configuredImageGenProviders?: string[];
   disabled?: boolean;
+  enabledModels?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -178,12 +180,17 @@ function ModelDropdown({
     return () => document.removeEventListener("keydown", handler);
   }, [open, close]);
 
+  const visibleChatModels = useMemo(() => {
+    if (!enabledModels) return CHAT_MODELS;
+    return CHAT_MODELS.filter((m) => enabledModels.includes(m.value));
+  }, [enabledModels]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const results: AnyModel[] = [];
 
     if (filter === "all" || filter === "Claude" || filter === "Gemini") {
-      for (const m of CHAT_MODELS) {
+      for (const m of visibleChatModels) {
         if (filter !== "all" && m.group !== filter) continue;
         if (q && !m.label.toLowerCase().includes(q) && !m.description.toLowerCase().includes(q)) continue;
         results.push(m);
@@ -198,7 +205,7 @@ function ModelDropdown({
     }
 
     return results;
-  }, [search, filter, onImageGenModelChange]);
+  }, [search, filter, onImageGenModelChange, visibleChatModels]);
 
   // Group into two sections: Agent Brain (chat models) and Image Generation
   const sections = useMemo(() => {
@@ -457,6 +464,7 @@ export function ChatInput({
   imageGenModel,
   onImageGenModelChange,
   configuredImageGenProviders,
+  enabledModels,
 }: {
   onSend: (content: string) => void;
   onStop?: () => void;
@@ -467,6 +475,7 @@ export function ChatInput({
   imageGenModel?: string;
   onImageGenModelChange?: (model: string) => void;
   configuredImageGenProviders?: string[];
+  enabledModels?: string[];
 }) {
   const [value, setValue] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
@@ -548,6 +557,7 @@ export function ChatInput({
                 onImageGenModelChange={onImageGenModelChange}
                 configuredImageGenProviders={configuredImageGenProviders}
                 disabled={isProcessing}
+                enabledModels={enabledModels}
               />
             ) : (
               <div />

@@ -8,7 +8,6 @@ import {
   Trash2,
   Wrench,
   Bot,
-  ToggleLeft,
   ToggleRight,
   Upload,
   Loader2,
@@ -20,11 +19,7 @@ import {
   FileText,
   RotateCcw,
   Check,
-  Eye,
-  Brain,
-  Code,
-  Type,
-  ImagePlus,
+  Cpu,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
@@ -32,79 +27,82 @@ import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import { CredentialManager } from "~/components/CredentialManager";
 import { TOOL_SETS_REQUIRING_CREDENTIALS } from "@agent-maker/shared/src/credential-types";
 
-const TOOL_SET_INFO: Record<
-  string,
-  { label: string; description: string }
-> = {
-  memory: {
-    label: "Memory",
-    description: "Store and recall information across conversations",
-  },
-  web_search: {
-    label: "Web Search",
-    description: "Search the internet and fetch web pages",
-  },
-  pages: {
-    label: "Pages",
-    description: "Create and manage task boards, notes, spreadsheets, and markdown pages",
-  },
-  rag: {
-    label: "Knowledge Base",
-    description: "Upload documents and let your agent search them",
-  },
-  email: {
-    label: "Email",
-    description: "Send emails via Resend to users and contacts",
-  },
-  custom_http_tools: {
-    label: "Custom HTTP Tools",
-    description: "Call external APIs configured below",
-  },
-  schedules: {
-    label: "Scheduled Actions",
-    description: "Create recurring or one-time scheduled tasks (cron jobs, intervals)",
-  },
-  automations: {
-    label: "Automations",
-    description: "Event-driven rules: when X happens → do Y automatically",
-  },
-  timers: {
-    label: "Timers & Delays",
-    description: "Set delayed actions for follow-ups, reminders, and drip sequences",
-  },
-  webhooks: {
-    label: "Webhooks",
-    description: "Fire outgoing webhooks to external services and view event history",
-  },
-  agent_messages: {
-    label: "Inter-Agent Messaging",
-    description: "Communicate with other agents for delegation and coordination",
-  },
-  notion: {
-    label: "Notion",
-    description: "Search, read, create, and update pages and databases in Notion",
-  },
-  slack: {
-    label: "Slack",
-    description: "Send messages, read channels, search, and react in Slack",
-  },
-  google_calendar: {
-    label: "Google Calendar",
-    description: "List events, schedule meetings, check availability, and manage calendar",
-  },
-  google_drive: {
-    label: "Google Drive",
-    description: "Search, read, create, and manage files and folders in Google Drive",
-  },
-  google_sheets: {
-    label: "Google Sheets",
-    description: "Read, write, and manage spreadsheet data in Google Sheets",
-  },
-  image_generation: {
-    label: "Image Generation",
-    description: "Generate images from text prompts using Gemini Imagen or Nano Banana",
-  },
+interface ToolSetEntry {
+  label: string;
+  description: string;
+}
+
+// Flat lookup used by credential sections and other references
+const TOOL_SET_INFO: Record<string, ToolSetEntry> = {
+  memory: { label: "Memory", description: "Store and recall information across conversations" },
+  web_search: { label: "Web Search", description: "Search the internet and fetch web pages" },
+  pages: { label: "Pages", description: "Create and manage task boards, notes, spreadsheets, and markdown pages" },
+  rag: { label: "Knowledge Base", description: "Upload documents and let your agent search them" },
+  email: { label: "Resend Email", description: "Send transactional emails via Resend" },
+  gmail: { label: "Gmail", description: "Send and read emails via Gmail" },
+  custom_http_tools: { label: "Custom HTTP Tools", description: "Call external APIs configured below" },
+  schedules: { label: "Scheduled Actions", description: "Create recurring or one-time scheduled tasks (cron jobs, intervals)" },
+  automations: { label: "Automations", description: "Event-driven rules: when X happens → do Y automatically" },
+  timers: { label: "Timers & Delays", description: "Set delayed actions for follow-ups, reminders, and drip sequences" },
+  webhooks: { label: "Webhooks", description: "Fire outgoing webhooks to external services and view event history" },
+  agent_messages: { label: "Inter-Agent Messaging", description: "Communicate with other agents for delegation and coordination" },
+  notion: { label: "Notion", description: "Search, read, create, and update pages and databases in Notion" },
+  slack: { label: "Slack", description: "Send messages, read channels, search, and react in Slack" },
+  google_calendar: { label: "Google Calendar", description: "List events, schedule meetings, check availability, and manage calendar" },
+  google_drive: { label: "Google Drive", description: "Search, read, create, and manage files and folders in Google Drive" },
+  google_sheets: { label: "Google Sheets", description: "Read, write, and manage spreadsheet data in Google Sheets" },
+  image_generation: { label: "Image Generation", description: "Generate images from text prompts using Gemini Imagen or Nano Banana" },
 };
+
+// Categorized tool sets for the settings UI
+const TOOL_SET_CATEGORIES: {
+  title: string;
+  description: string;
+  items: { key: string; label: string; description: string }[];
+}[] = [
+  {
+    title: "Core",
+    description: "Built-in agent capabilities",
+    items: [
+      { key: "memory", label: "Memory", description: "Store and recall information across conversations" },
+      { key: "web_search", label: "Web Search", description: "Search the internet and fetch web pages" },
+      { key: "pages", label: "Pages", description: "Create and manage task boards, notes, spreadsheets, and markdown pages" },
+      { key: "rag", label: "Knowledge Base", description: "Upload documents and let your agent search them" },
+      { key: "image_generation", label: "Image Generation", description: "Generate images from text prompts" },
+      { key: "custom_http_tools", label: "Custom HTTP Tools", description: "Call external APIs configured below" },
+    ],
+  },
+  {
+    title: "Automation",
+    description: "Scheduling and event-driven workflows",
+    items: [
+      { key: "schedules", label: "Scheduled Actions", description: "Recurring or one-time scheduled tasks" },
+      { key: "automations", label: "Automations", description: "Event-driven rules: when X happens → do Y" },
+      { key: "timers", label: "Timers & Delays", description: "Delayed actions for follow-ups and reminders" },
+      { key: "webhooks", label: "Webhooks", description: "Fire outgoing webhooks to external services" },
+      { key: "agent_messages", label: "Inter-Agent Messaging", description: "Communicate with other agents" },
+    ],
+  },
+  {
+    title: "Communication",
+    description: "Email providers",
+    items: [
+      { key: "email", label: "Resend Email", description: "Send transactional emails via Resend" },
+      { key: "gmail", label: "Gmail", description: "Send and read emails via Gmail" },
+    ],
+  },
+  {
+    title: "Third-Party Integrations",
+    description: "Connect to external services",
+    items: [
+      { key: "slack", label: "Slack", description: "Send messages, read channels, search, and react" },
+      { key: "notion", label: "Notion", description: "Search, read, create, and update pages and databases" },
+      { key: "google_calendar", label: "Google Calendar", description: "Schedule meetings and manage calendar" },
+      { key: "google_drive", label: "Google Drive", description: "Search, read, create, and manage files" },
+      { key: "google_sheets", label: "Google Sheets", description: "Read, write, and manage spreadsheet data" },
+    ],
+  },
+];
 
 const AGENT_SERVER_URL =
   typeof window !== "undefined"
@@ -135,11 +133,9 @@ export default function SettingsPage() {
 
         <AgentIconSection agent={agent} />
         <AgentConfigSection agent={agent} />
+        <EnabledModelsSection agent={agent} />
         <ToolSetsSection agent={agent} />
-        {(agent.enabledToolSets ?? []).includes("image_generation") && (
-          <ImageGenModelSection agent={agent} />
-        )}
-        {(agent.enabledToolSets ?? []).includes("rag") && (
+{(agent.enabledToolSets ?? []).includes("rag") && (
           <DocumentsSection agent={agent} />
         )}
         {/* Credential-managed tool sets */}
@@ -253,7 +249,6 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
   const [name, setName] = useState(agent.name);
   const [description, setDescription] = useState(agent.description ?? "");
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt);
-  const [model, setModel] = useState(agent.model);
   const [saving, setSaving] = useState(false);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
 
@@ -261,14 +256,12 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
     setName(agent.name);
     setDescription(agent.description ?? "");
     setSystemPrompt(agent.systemPrompt);
-    setModel(agent.model);
   }, [agent]);
 
   const hasChanges =
     name !== agent.name ||
     description !== (agent.description ?? "") ||
-    systemPrompt !== agent.systemPrompt ||
-    model !== agent.model;
+    systemPrompt !== agent.systemPrompt;
 
   async function handleSave() {
     setSaving(true);
@@ -278,7 +271,6 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
         name: name.trim() || undefined,
         description: description.trim() || undefined,
         systemPrompt: systemPrompt.trim() || undefined,
-        model: model || undefined,
       });
     } catch (err: any) {
       alert(err.message);
@@ -324,10 +316,6 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
               placeholder="What does this agent do?"
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
             />
-          </Field>
-
-          <Field label="Model">
-            <ModelSelector value={model} onChange={setModel} />
           </Field>
 
           {/* System Prompt Preview Card */}
@@ -629,6 +617,148 @@ function SystemPromptDialog({
   );
 }
 
+// ── Enabled Models ────────────────────────────────────────────────────
+
+const ALL_MODELS = [
+  {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
+    description: "Balanced speed and capability",
+    provider: "Anthropic",
+    tier: "$$",
+  },
+  {
+    id: "claude-opus-4-6",
+    name: "Claude Opus 4.6",
+    description: "Most capable Claude model",
+    provider: "Anthropic",
+    tier: "$$$",
+  },
+  {
+    id: "claude-haiku-4-5-20251001",
+    name: "Claude Haiku 4.5",
+    description: "Fastest and most affordable",
+    provider: "Anthropic",
+    tier: "$",
+  },
+  {
+    id: "gemini-3.1-pro",
+    name: "Gemini 3.1 Pro",
+    description: "Most capable Gemini model",
+    provider: "Google",
+    tier: "$$$",
+  },
+  {
+    id: "gemini-3-flash",
+    name: "Gemini 3 Flash",
+    description: "Lightning-fast with agentic capability",
+    provider: "Google",
+    tier: "$$",
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    description: "Balanced Gemini model",
+    provider: "Google",
+    tier: "$$",
+  },
+];
+
+function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
+  const updateAgent = useMutation(api.agents.update);
+  // If enabledModels is not set, all models are enabled by default
+  const enabledModels = agent.enabledModels ?? ALL_MODELS.map((m) => m.id);
+
+  async function handleToggle(modelId: string) {
+    const isCurrentModel = agent.model === modelId;
+    const isEnabled = enabledModels.includes(modelId);
+
+    if (isEnabled && isCurrentModel) return; // can't disable the active model
+    if (isEnabled && enabledModels.length <= 1) return; // must keep at least one
+
+    const newModels = isEnabled
+      ? enabledModels.filter((m) => m !== modelId)
+      : [...enabledModels, modelId];
+
+    try {
+      await updateAgent({ agentId: agent._id, enabledModels: newModels });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <Cpu className="h-4 w-4 text-zinc-400" />
+        <h2 className="text-sm font-medium">Enabled Models</h2>
+        <span className="text-xs text-zinc-600 ml-auto">
+          {enabledModels.length} of {ALL_MODELS.length}
+        </span>
+      </div>
+      <p className="text-xs text-zinc-500 mb-4">
+        Choose which models appear in the chat model selector.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {ALL_MODELS.map((m) => {
+          const enabled = enabledModels.includes(m.id);
+          const isCurrentModel = agent.model === m.id;
+          const cantDisable = enabled && (isCurrentModel || enabledModels.length <= 1);
+          return (
+            <button
+              key={m.id}
+              onClick={() => handleToggle(m.id)}
+              disabled={cantDisable}
+              title={
+                isCurrentModel
+                  ? "Can't disable the currently active model"
+                  : enabledModels.length <= 1 && enabled
+                    ? "At least one model must be enabled"
+                    : undefined
+              }
+              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
+                enabled
+                  ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
+                  : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
+              } ${cantDisable ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              <div
+                className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
+                  enabled ? "bg-neon-400/30" : "bg-zinc-700"
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
+                    enabled
+                      ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
+                      : "left-0.5 bg-zinc-500"
+                  }`}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
+                    {m.name}
+                  </span>
+                  <span className={`text-[10px] font-mono ${
+                    m.tier === "$$$" ? "text-amber-400" : m.tier === "$$" ? "text-zinc-500" : "text-zinc-600"
+                  }`}>{m.tier}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-[11px] text-zinc-600 line-clamp-1">{m.description}</p>
+                  {isCurrentModel && (
+                    <span className="text-[9px] text-neon-400 font-medium shrink-0">ACTIVE</span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ── Tool Sets Toggle ──────────────────────────────────────────────────
 
 function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
@@ -659,44 +789,55 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
           {enabledSets.length} active
         </span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {Object.entries(TOOL_SET_INFO).map(([key, info]) => {
-          const enabled = enabledSets.includes(key);
-          return (
-            <button
-              key={key}
-              onClick={() => handleToggle(key)}
-              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
-                enabled
-                  ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
-                  : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
-              }`}
-            >
-              {/* Custom toggle */}
-              <div
-                className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
-                  enabled ? "bg-neon-400/30" : "bg-zinc-700"
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
-                    enabled
-                      ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
-                      : "left-0.5 bg-zinc-500"
-                  }`}
-                />
-              </div>
-              <div className="min-w-0">
-                <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
-                  {info.label}
-                </span>
-                <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-1">
-                  {info.description}
-                </p>
-              </div>
-            </button>
-          );
-        })}
+      <div className="space-y-6">
+        {TOOL_SET_CATEGORIES.map((category) => (
+          <div key={category.title}>
+            <div className="flex items-center gap-2 mb-2.5">
+              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                {category.title}
+              </h3>
+              <div className="flex-1 h-px bg-zinc-800/60" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {category.items.map((item) => {
+                const enabled = enabledSets.includes(item.key);
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => handleToggle(item.key)}
+                    className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
+                      enabled
+                        ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
+                        : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
+                    }`}
+                  >
+                    <div
+                      className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
+                        enabled ? "bg-neon-400/30" : "bg-zinc-700"
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
+                          enabled
+                            ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
+                            : "left-0.5 bg-zinc-500"
+                        }`}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
+                        {item.label}
+                      </span>
+                      <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-1">
+                        {item.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -1106,319 +1247,6 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
         </div>
       )}
     </section>
-  );
-}
-
-// ── Image Generation Model Section ───────────────────────────────────
-
-const IMAGE_GEN_MODELS = [
-  {
-    id: "gemini:imagen-4.0-generate-001",
-    name: "Gemini Imagen 4.0",
-    provider: "Google",
-    description: "High quality image generation",
-  },
-  {
-    id: "nano_banana:generate-2",
-    name: "Nano Banana Generate-2",
-    provider: "Nano Banana",
-    description: "Fast AI image generation",
-  },
-];
-
-function ImageGenModelSection({ agent }: { agent: Doc<"agents"> }) {
-  const updateAgent = useMutation(api.agents.update);
-  const [imageGenModel, setImageGenModel] = useState(
-    agent.imageGenModel || IMAGE_GEN_MODELS[0].id
-  );
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setImageGenModel(agent.imageGenModel || IMAGE_GEN_MODELS[0].id);
-  }, [agent.imageGenModel]);
-
-  const hasChanges = imageGenModel !== (agent.imageGenModel || IMAGE_GEN_MODELS[0].id);
-  const selected = IMAGE_GEN_MODELS.find((m) => m.id === imageGenModel) ?? IMAGE_GEN_MODELS[0];
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      await updateAgent({ agentId: agent._id, imageGenModel });
-    } catch (err: any) {
-      alert(err.message);
-    }
-    setSaving(false);
-  }
-
-  return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <ImagePlus className="h-4 w-4 text-violet-400" />
-          <h2 className="text-sm font-medium">Image Generation Model</h2>
-        </div>
-        {hasChanges && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-neon-400 px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-neon-300 disabled:opacity-50 transition-colors"
-          >
-            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-            Save
-          </button>
-        )}
-      </div>
-      <p className="text-xs text-zinc-500 mb-3">
-        Select which model to use for generating images, separate from your conversation model.
-      </p>
-      <div className="space-y-2">
-        {IMAGE_GEN_MODELS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => setImageGenModel(m.id)}
-            className={`w-full flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left transition-all ${
-              m.id === imageGenModel
-                ? "border-violet-500/40 bg-violet-500/5"
-                : "border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
-            }`}
-          >
-            <div
-              className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                m.id === imageGenModel
-                  ? "bg-violet-500/20"
-                  : "bg-zinc-800/60"
-              }`}
-            >
-              <ImagePlus
-                className={`h-4 w-4 ${
-                  m.id === imageGenModel ? "text-violet-400" : "text-zinc-500"
-                }`}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-sm font-medium ${
-                    m.id === imageGenModel ? "text-violet-300" : "text-zinc-300"
-                  }`}
-                >
-                  {m.name}
-                </span>
-                <span className="text-[10px] text-zinc-600">{m.provider}</span>
-              </div>
-              <p className="text-[11px] text-zinc-500 mt-0.5">{m.description}</p>
-            </div>
-            {m.id === imageGenModel && (
-              <Check className="h-4 w-4 text-violet-400 shrink-0" />
-            )}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ── Model Capability Badges ──────────────────────────────────────────
-
-type ModelCapability = "text" | "vision" | "image_gen" | "code" | "thinking";
-
-interface ModelDef {
-  id: string;
-  name: string;
-  description: string;
-  provider: string;
-  capabilities: ModelCapability[];
-  tier?: string;
-}
-
-const MODELS: ModelDef[] = [
-  // Claude
-  {
-    id: "claude-sonnet-4-6",
-    name: "Claude Sonnet 4.6",
-    description: "Balanced speed and capability",
-    provider: "Anthropic",
-    capabilities: ["text", "vision", "thinking", "code"],
-    tier: "$$",
-  },
-  {
-    id: "claude-opus-4-6",
-    name: "Claude Opus 4.6",
-    description: "Most capable Claude model",
-    provider: "Anthropic",
-    capabilities: ["text", "vision", "thinking", "code"],
-    tier: "$$$",
-  },
-  {
-    id: "claude-haiku-4-5-20251001",
-    name: "Claude Haiku 4.5",
-    description: "Fastest, most affordable",
-    provider: "Anthropic",
-    capabilities: ["text", "vision", "code"],
-    tier: "$",
-  },
-  // Gemini
-  {
-    id: "gemini-3.1-pro",
-    name: "Gemini 3.1 Pro",
-    description: "Most capable Gemini model",
-    provider: "Google",
-    capabilities: ["text", "vision", "thinking", "code", "image_gen"],
-    tier: "$$$",
-  },
-  {
-    id: "gemini-3-flash",
-    name: "Gemini 3 Flash",
-    description: "Fast and agentic",
-    provider: "Google",
-    capabilities: ["text", "vision", "thinking", "code", "image_gen"],
-    tier: "$$",
-  },
-  {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    description: "Balanced Gemini model",
-    provider: "Google",
-    capabilities: ["text", "vision", "thinking", "code"],
-    tier: "$$",
-  },
-];
-
-const CAPABILITY_ICONS: Record<ModelCapability, React.ComponentType<{ className?: string }>> = {
-  text: Type,
-  vision: Eye,
-  thinking: Brain,
-  code: Code,
-  image_gen: ImagePlus,
-};
-
-const CAPABILITY_CONFIG: Record<
-  ModelCapability,
-  { label: string; color: string }
-> = {
-  text: { label: "Text", color: "bg-emerald-500/20 text-emerald-400 ring-emerald-500/30" },
-  vision: { label: "Vision", color: "bg-blue-500/20 text-blue-400 ring-blue-500/30" },
-  thinking: { label: "Thinking", color: "bg-pink-500/20 text-pink-400 ring-pink-500/30" },
-  code: { label: "Code", color: "bg-amber-500/20 text-amber-400 ring-amber-500/30" },
-  image_gen: { label: "Image Gen", color: "bg-violet-500/20 text-violet-400 ring-violet-500/30" },
-};
-
-function ModelSelector({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = MODELS.find((m) => m.id === value) ?? MODELS[0];
-
-  // Group by provider
-  const providers = [...new Set(MODELS.map((m) => m.provider))];
-
-  return (
-    <div className="relative">
-      {/* Selected model display */}
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-left hover:border-zinc-600 transition-colors"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium truncate">{selected.name}</span>
-              {selected.tier && (
-                <span className="text-[10px] text-zinc-500 font-mono">{selected.tier}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              {selected.capabilities.map((cap) => (
-                (() => {
-                  const Icon = CAPABILITY_ICONS[cap];
-                  return (
-                    <span
-                      key={cap}
-                      title={CAPABILITY_CONFIG[cap].label}
-                      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ring-1 ${CAPABILITY_CONFIG[cap].color}`}
-                    >
-                      <Icon className="h-2.5 w-2.5" />
-                      {CAPABILITY_CONFIG[cap].label}
-                    </span>
-                  );
-                })()
-              ))}
-            </div>
-          </div>
-        </div>
-        <svg
-          className={`h-4 w-4 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Dropdown */}
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 left-0 right-0 mt-1 max-h-80 overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl shadow-black/40">
-            {providers.map((provider) => (
-              <div key={provider}>
-                <div className="sticky top-0 bg-zinc-900/95 backdrop-blur px-3 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-800/50">
-                  {provider}
-                </div>
-                {MODELS.filter((m) => m.provider === provider).map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      onChange(m.id);
-                      setOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                      m.id === value
-                        ? "bg-neon-400/10"
-                        : "hover:bg-zinc-800/80"
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${m.id === value ? "text-neon-400" : ""}`}>
-                          {m.name}
-                        </span>
-                        {m.tier && (
-                          <span className="text-[10px] text-zinc-500 font-mono">{m.tier}</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-zinc-500 mt-0.5">{m.description}</p>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        {m.capabilities.map((cap) => (
-                          <span
-                            key={cap}
-                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ring-1 ${CAPABILITY_CONFIG[cap].color}`}
-                          >
-                            {CAPABILITY_CONFIG[cap].label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {m.id === value && (
-                      <Check className="h-4 w-4 text-neon-400 shrink-0" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
   );
 }
 

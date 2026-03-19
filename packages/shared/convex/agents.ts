@@ -222,6 +222,7 @@ export const update = mutation({
     model: v.optional(v.string()),
     imageGenModel: v.optional(v.string()),
     enabledToolSets: v.optional(v.array(v.string())),
+    enabledModels: v.optional(v.array(v.string())),
     status: v.optional(
       v.union(v.literal("active"), v.literal("paused"), v.literal("draft"))
     ),
