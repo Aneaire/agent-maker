@@ -248,6 +248,7 @@ export async function runAgent(params: RunAgentParams) {
       gdriveConfig: gdriveConfig as any,
       gsheetsConfig: gsheetsConfig as any,
       imageGenConfig: imageGenConfig as any,
+      imageGenModel: agent.imageGenModel,
     });
 
     const allowedTools = buildAllowedTools(

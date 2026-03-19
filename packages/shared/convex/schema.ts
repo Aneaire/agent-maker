@@ -18,6 +18,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     systemPrompt: v.string(),
     model: v.string(),
+    imageGenModel: v.optional(v.string()),
     enabledToolSets: v.array(v.string()),
     status: v.union(
       v.literal("active"),

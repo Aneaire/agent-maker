@@ -181,8 +181,8 @@ export const CREDENTIAL_TYPE_REGISTRY: Record<string, CredentialTypeDef> = {
 
   image_gen_nano_banana: {
     type: "image_gen_nano_banana",
-    label: "Nano Banana (Flux)",
-    description: "Generate images using Nano Banana's Flux model",
+    label: "Nano Banana",
+    description: "Generate images using Nano Banana's AI models",
     icon: "Image",
     authMethod: "api_key",
     fields: [
@@ -190,14 +190,14 @@ export const CREDENTIAL_TYPE_REGISTRY: Record<string, CredentialTypeDef> = {
         key: "nanoBananaApiKey",
         label: "Nano Banana API Key",
         type: "password",
-        placeholder: "nb_...",
+        placeholder: "Your API key from nanobananaapi.ai",
         required: true,
       },
     ],
     compatibleToolSets: ["image_generation"],
     test: {
       method: "GET",
-      url: "https://api.nanobanana.com/v1/models",
+      url: "https://api.nanobananaapi.ai/api/v1/common/credit",
       headers: { Authorization: "Bearer {{nanoBananaApiKey}}" },
       expectedStatus: 200,
     },

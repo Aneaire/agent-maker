@@ -88,6 +88,7 @@ interface McpServerDeps {
   gdriveConfig?: GDriveConfig | null;
   gsheetsConfig?: GSheetsConfig | null;
   imageGenConfig?: ImageGenConfig | null;
+  imageGenModel?: string | null;
 }
 
 function has(enabledToolSets: string[], name: string): boolean {
@@ -201,9 +202,14 @@ export function buildMcpServer(deps: McpServerDeps) {
   }
 
   // Image Generation — gated by "image_generation"
-  if (has(enabled, "image_generation") && deps.imageGenConfig) {
+  if (has(enabled, "image_generation")) {
     tools.push(
-      ...createImageGenTools(deps.convexClient, deps.agentId, deps.imageGenConfig)
+      ...createImageGenTools(
+        deps.convexClient,
+        deps.agentId,
+        deps.imageGenConfig ?? { provider: "gemini" as const },
+        deps.imageGenModel ?? undefined
+      )
     );
   }
 

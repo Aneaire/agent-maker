@@ -48,12 +48,21 @@ async function generateWithGemini(
   };
 }
 
+const NANO_BANANA_BASE = "https://api.nanobananaapi.ai/api/v1/nanobanana";
+const NANO_BANANA_POLL_INTERVAL = 3000; // 3s
+const NANO_BANANA_MAX_POLLS = 60; // 3 min max
+
 async function generateWithNanoBanana(
   apiKey: string,
   prompt: string,
   opts: { width?: number; height?: number; model?: string }
 ): Promise<{ imageBase64: string; mimeType: string }> {
-  const res = await fetch("https://api.nanobanana.com/v1/images/generate", {
+  // Step 1: Submit generation task
+  const aspectRatio = opts.width && opts.height
+    ? getAspectRatio(opts.width, opts.height)
+    : "1:1";
+
+  const submitRes = await fetch(`${NANO_BANANA_BASE}/generate-2`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -61,37 +70,59 @@ async function generateWithNanoBanana(
     },
     body: JSON.stringify({
       prompt,
-      width: opts.width || 1024,
-      height: opts.height || 1024,
-      model: opts.model || "default",
+      aspectRatio,
+      resolution: "1K",
+      outputFormat: "png",
     }),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Nano Banana API error (${res.status}): ${err}`);
+  if (!submitRes.ok) {
+    const err = await submitRes.text();
+    throw new Error(`Nano Banana API error (${submitRes.status}): ${err}`);
   }
 
-  const data = await res.json();
-  const image = data.images?.[0] || data.image;
-  if (!image) {
-    throw new Error("No image returned from Nano Banana API");
+  const submitData = await submitRes.json();
+  const taskId = submitData.data?.taskId;
+  if (!taskId) {
+    throw new Error("No taskId returned from Nano Banana API");
   }
 
-  // Nano Banana may return base64 or URL
-  if (image.base64) {
-    return { imageBase64: image.base64, mimeType: "image/png" };
-  } else if (image.url) {
-    // Download and convert to base64
-    const imgRes = await fetch(image.url);
-    const buf = await imgRes.arrayBuffer();
-    return {
-      imageBase64: Buffer.from(buf).toString("base64"),
-      mimeType: imgRes.headers.get("content-type") || "image/png",
-    };
+  // Step 2: Poll for completion
+  for (let i = 0; i < NANO_BANANA_MAX_POLLS; i++) {
+    await new Promise((r) => setTimeout(r, NANO_BANANA_POLL_INTERVAL));
+
+    const pollRes = await fetch(
+      `${NANO_BANANA_BASE}/record-info?taskId=${encodeURIComponent(taskId)}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    );
+
+    if (!pollRes.ok) continue;
+
+    const pollData = await pollRes.json();
+    const status = pollData.data?.successFlag ?? pollData.successFlag;
+
+    if (status === 1) {
+      // Success — download the result image
+      const imageUrl =
+        pollData.data?.response?.resultImageUrl ??
+        pollData.response?.resultImageUrl;
+      if (!imageUrl) throw new Error("Nano Banana returned success but no image URL");
+
+      const imgRes = await fetch(imageUrl);
+      if (!imgRes.ok) throw new Error(`Failed to download generated image: ${imgRes.status}`);
+      const buf = await imgRes.arrayBuffer();
+      return {
+        imageBase64: Buffer.from(buf).toString("base64"),
+        mimeType: imgRes.headers.get("content-type") || "image/png",
+      };
+    } else if (status === 2 || status === 3) {
+      const errMsg = pollData.data?.errorMessage ?? pollData.errorMessage ?? "Unknown error";
+      throw new Error(`Nano Banana generation failed: ${errMsg}`);
+    }
+    // status 0 = still generating, keep polling
   }
 
-  throw new Error("Unexpected Nano Banana response format");
+  throw new Error("Nano Banana image generation timed out");
 }
 
 function getAspectRatio(width: number, height: number): string {
@@ -130,7 +161,8 @@ async function uploadBase64ToConvex(
 export function createImageGenTools(
   convexClient: AgentConvexClient,
   agentId: string,
-  config: ImageGenConfig
+  config: ImageGenConfig,
+  imageGenModel?: string
 ) {
   const tools = [];
 
@@ -158,27 +190,49 @@ export function createImageGenTools(
           .describe("Optional folder ID to save the image in"),
       }),
       execute: async (input) => {
-        const provider = input.provider || config.provider;
+        // Determine provider: explicit input > imageGenModel setting > config default > auto-detect from keys
+        let provider = input.provider || config.provider;
+        let modelOverride: string | undefined;
+
+        // Use imageGenModel setting if no explicit provider in input
+        if (!input.provider && imageGenModel) {
+          const [p, m] = imageGenModel.split(":");
+          if (p === "gemini" || p === "nano_banana") {
+            provider = p;
+            modelOverride = m;
+          }
+        }
+
+        // Resolve API keys: credential system first, then env var fallback
+        const geminiApiKey = config.geminiApiKey || process.env.GEMINI_API_KEY;
+        const nanoBananaApiKey = config.nanoBananaApiKey;
+
+        // Auto-detect provider from available API keys if still not set
+        if (!provider) {
+          if (nanoBananaApiKey) provider = "nano_banana";
+          else if (geminiApiKey) provider = "gemini";
+        }
 
         let result: { imageBase64: string; mimeType: string };
         let modelUsed: string;
 
         if (provider === "gemini") {
-          if (!config.geminiApiKey) {
-            return { error: "Gemini API key not configured. Ask the user to add it in Settings > Image Generation." };
+          if (!geminiApiKey) {
+            return { error: "Gemini API key not configured. Set GEMINI_API_KEY or add it in Settings > Image Generation." };
           }
-          modelUsed = "imagen-4.0-generate-001";
-          result = await generateWithGemini(config.geminiApiKey, input.prompt, {
+          modelUsed = modelOverride || "imagen-4.0-generate-001";
+          result = await generateWithGemini(geminiApiKey, input.prompt, {
             width: input.width,
             height: input.height,
+            model: modelUsed,
           });
         } else if (provider === "nano_banana") {
-          if (!config.nanoBananaApiKey) {
-            return { error: "Nano Banana API key not configured. Ask the user to add it in Settings > Image Generation." };
+          if (!nanoBananaApiKey) {
+            return { error: "Nano Banana API key not configured. Add it in Settings > Image Generation." };
           }
-          modelUsed = "nano_banana";
+          modelUsed = "nano_banana_generate_2";
           result = await generateWithNanoBanana(
-            config.nanoBananaApiKey,
+            nanoBananaApiKey,
             input.prompt,
             { width: input.width, height: input.height }
           );

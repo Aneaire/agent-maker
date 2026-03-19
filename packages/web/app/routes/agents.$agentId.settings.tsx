@@ -136,6 +136,9 @@ export default function SettingsPage() {
         <AgentIconSection agent={agent} />
         <AgentConfigSection agent={agent} />
         <ToolSetsSection agent={agent} />
+        {(agent.enabledToolSets ?? []).includes("image_generation") && (
+          <ImageGenModelSection agent={agent} />
+        )}
         {(agent.enabledToolSets ?? []).includes("rag") && (
           <DocumentsSection agent={agent} />
         )}
@@ -1102,6 +1105,116 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+// ── Image Generation Model Section ───────────────────────────────────
+
+const IMAGE_GEN_MODELS = [
+  {
+    id: "gemini:imagen-4.0-generate-001",
+    name: "Gemini Imagen 4.0",
+    provider: "Google",
+    description: "High quality image generation",
+  },
+  {
+    id: "nano_banana:generate-2",
+    name: "Nano Banana Generate-2",
+    provider: "Nano Banana",
+    description: "Fast AI image generation",
+  },
+];
+
+function ImageGenModelSection({ agent }: { agent: Doc<"agents"> }) {
+  const updateAgent = useMutation(api.agents.update);
+  const [imageGenModel, setImageGenModel] = useState(
+    agent.imageGenModel || IMAGE_GEN_MODELS[0].id
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setImageGenModel(agent.imageGenModel || IMAGE_GEN_MODELS[0].id);
+  }, [agent.imageGenModel]);
+
+  const hasChanges = imageGenModel !== (agent.imageGenModel || IMAGE_GEN_MODELS[0].id);
+  const selected = IMAGE_GEN_MODELS.find((m) => m.id === imageGenModel) ?? IMAGE_GEN_MODELS[0];
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateAgent({ agentId: agent._id, imageGenModel });
+    } catch (err: any) {
+      alert(err.message);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <ImagePlus className="h-4 w-4 text-violet-400" />
+          <h2 className="text-sm font-medium">Image Generation Model</h2>
+        </div>
+        {hasChanges && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-neon-400 px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-neon-300 disabled:opacity-50 transition-colors"
+          >
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+            Save
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-zinc-500 mb-3">
+        Select which model to use for generating images, separate from your conversation model.
+      </p>
+      <div className="space-y-2">
+        {IMAGE_GEN_MODELS.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => setImageGenModel(m.id)}
+            className={`w-full flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left transition-all ${
+              m.id === imageGenModel
+                ? "border-violet-500/40 bg-violet-500/5"
+                : "border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
+            }`}
+          >
+            <div
+              className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                m.id === imageGenModel
+                  ? "bg-violet-500/20"
+                  : "bg-zinc-800/60"
+              }`}
+            >
+              <ImagePlus
+                className={`h-4 w-4 ${
+                  m.id === imageGenModel ? "text-violet-400" : "text-zinc-500"
+                }`}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-sm font-medium ${
+                    m.id === imageGenModel ? "text-violet-300" : "text-zinc-300"
+                  }`}
+                >
+                  {m.name}
+                </span>
+                <span className="text-[10px] text-zinc-600">{m.provider}</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5">{m.description}</p>
+            </div>
+            {m.id === imageGenModel && (
+              <Check className="h-4 w-4 text-violet-400 shrink-0" />
+            )}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { ChatMessageList } from "~/components/ChatMessageList";
 import { ChatInput } from "~/components/ChatInput";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
+import { useMemo } from "react";
 
 export default function ChatPage() {
   const { conversationId } = useParams();
@@ -19,6 +20,33 @@ export default function ChatPage() {
   const sendMessage = useMutation(api.messages.send);
   const stopMessage = useMutation(api.messages.stop);
   const updateAgent = useMutation(api.agents.update);
+  const linkedCredentials = useQuery(api.credentials.listForAgent, { agentId: agent._id });
+
+  // Determine which image gen providers have credentials available
+  const configuredImageGenProviders = useMemo(() => {
+    const providers: string[] = [];
+
+    // If agent uses a Gemini chat model, the server has GEMINI_API_KEY — Imagen is available
+    if (agent.model?.startsWith("gemini-")) {
+      providers.push("gemini");
+    }
+
+    // Also check credential system links
+    if (linkedCredentials) {
+      for (const link of linkedCredentials) {
+        if (link.toolSetName === "image_generation") {
+          if (link.credentialType === "image_gen_gemini" && !providers.includes("gemini")) {
+            providers.push("gemini");
+          }
+          if (link.credentialType === "image_gen_nano_banana" && !providers.includes("nano_banana")) {
+            providers.push("nano_banana");
+          }
+        }
+      }
+    }
+
+    return providers;
+  }, [linkedCredentials, agent.model]);
 
   // Loading state
   if (conversation === undefined || messages === undefined) {
@@ -96,6 +124,9 @@ export default function ChatPage() {
         isProcessing={hasActiveRun}
         model={agent.model}
         onModelChange={(model) => updateAgent({ agentId: agent._id, model })}
+        imageGenModel={(agent.enabledToolSets ?? []).includes("image_generation") && configuredImageGenProviders.length > 0 ? (agent.imageGenModel || "gemini:imagen-4.0-generate-001") : undefined}
+        onImageGenModelChange={(agent.enabledToolSets ?? []).includes("image_generation") && configuredImageGenProviders.length > 0 ? (imageGenModel) => updateAgent({ agentId: agent._id, imageGenModel }) : undefined}
+        configuredImageGenProviders={configuredImageGenProviders}
       />
     </div>
   );
