@@ -9,7 +9,6 @@ const MODELS: { value: string; label: string; group: string; capabilities: Model
   { value: "claude-haiku-4-5-20251001", label: "Haiku 4.5", group: "Claude", capabilities: ["vision"] },
   { value: "gemini-3.1-pro", label: "Gemini 3.1 Pro", group: "Gemini", capabilities: ["vision", "thinking"] },
   { value: "gemini-3-flash", label: "Gemini 3 Flash", group: "Gemini", capabilities: ["vision", "thinking"] },
-  { value: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", group: "Gemini", capabilities: ["vision"] },
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", group: "Gemini", capabilities: ["vision", "thinking"] },
 ];
 

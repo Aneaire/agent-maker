@@ -1163,14 +1163,6 @@ const MODELS: ModelDef[] = [
     tier: "$$",
   },
   {
-    id: "gemini-3.1-flash-lite",
-    name: "Gemini 3.1 Flash-Lite",
-    description: "Cheapest Gemini option",
-    provider: "Google",
-    capabilities: ["text", "vision"],
-    tier: "$",
-  },
-  {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     description: "Balanced Gemini model",

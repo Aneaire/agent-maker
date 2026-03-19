@@ -132,7 +132,6 @@ Walk through these steps naturally (adapt to the user):
    - \`claude-haiku-4-5-20251001\` — Fastest and cheapest Claude, good for simple tasks
    - \`gemini-3.1-pro\` — Most capable Gemini, advanced reasoning with 1M context
    - \`gemini-3-flash\` — Fast Gemini, great for agentic and multimodal tasks
-   - \`gemini-3.1-flash-lite\` — Cheapest Gemini, optimized for low-latency
    - \`gemini-2.5-flash\` — Balanced Gemini, good all-rounder
 6. **Starter Pages** — Offer to create initial pages (task boards, notes, spreadsheets, API pages) that will be ready when they start using the agent
 6b. **API Endpoints** (if applicable) — If the user wants to expose their agent as an API or integrate with external systems, create the necessary data pages FIRST (spreadsheets, tasks, notes), then create an API page, then set up endpoints using \`create_api_endpoints\`.
