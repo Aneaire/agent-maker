@@ -1,12 +1,17 @@
 import { useQuery } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
-import { useParams, Link, Outlet } from "react-router";
+import { useParams, Link, Outlet, useLocation } from "react-router";
 import { Bot } from "lucide-react";
 import { AgentSidebar } from "~/components/AgentSidebar";
+import { SettingsSidebar } from "~/components/SettingsSidebar";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
+import { useState } from "react";
 
 export default function AgentLayout() {
   const { agentId } = useParams();
+  const location = useLocation();
+  const isSettings = location.pathname.endsWith("/settings");
+  const [settingsSection, setSettingsSection] = useState("general");
   const agent = useQuery(api.agents.get, {
     agentId: agentId as Id<"agents">,
   });
@@ -39,9 +44,17 @@ export default function AgentLayout() {
 
   return (
     <div className="flex h-screen bg-zinc-950">
-      <AgentSidebar agent={agent} />
+      {isSettings ? (
+        <SettingsSidebar
+          agent={agent}
+          activeSection={settingsSection}
+          onSectionChange={setSettingsSection}
+        />
+      ) : (
+        <AgentSidebar agent={agent} />
+      )}
       <main className="flex-1 flex flex-col min-w-0">
-        <Outlet context={{ agent }} />
+        <Outlet context={{ agent, settingsSection, setSettingsSection }} />
       </main>
     </div>
   );

@@ -54,12 +54,14 @@ const TOOL_SET_INFO: Record<string, ToolSetEntry> = {
   image_generation: { label: "Image Generation", description: "Generate images from text prompts using Gemini Imagen or Nano Banana" },
 };
 
-// Categorized tool sets for the settings UI
-const TOOL_SET_CATEGORIES: {
+type ToolSetCategory = {
   title: string;
   description: string;
   items: { key: string; label: string; description: string }[];
-}[] = [
+};
+
+// Capabilities tab: Core features + Automation
+const CAPABILITY_CATEGORIES: ToolSetCategory[] = [
   {
     title: "Core",
     description: "Built-in agent capabilities",
@@ -83,6 +85,10 @@ const TOOL_SET_CATEGORIES: {
       { key: "agent_messages", label: "Inter-Agent Messaging", description: "Communicate with other agents" },
     ],
   },
+];
+
+// Integrations tab: Communication + Third-party services
+const INTEGRATION_CATEGORIES: ToolSetCategory[] = [
   {
     title: "Communication",
     description: "Email providers",
@@ -92,7 +98,7 @@ const TOOL_SET_CATEGORIES: {
     ],
   },
   {
-    title: "Third-Party Integrations",
+    title: "Third-Party Services",
     description: "Connect to external services",
     items: [
       { key: "slack", label: "Slack", description: "Send messages, read channels, search, and react" },
@@ -109,8 +115,20 @@ const AGENT_SERVER_URL =
     ? `${window.location.protocol}//${window.location.hostname}:3001`
     : "http://localhost:3001";
 
+const SECTION_TITLES: Record<string, string> = {
+  general: "General",
+  models: "Models",
+  capabilities: "Capabilities",
+  integrations: "Integrations",
+  tools: "Tools",
+};
+
 export default function SettingsPage() {
-  const { agent } = useOutletContext<{ agent: Doc<"agents"> }>();
+  const { agent, settingsSection } = useOutletContext<{
+    agent: Doc<"agents">;
+    settingsSection: string;
+  }>();
+  const section = settingsSection || "general";
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -120,7 +138,7 @@ export default function SettingsPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
               <Settings className="h-4 w-4 text-zinc-300" />
             </div>
-            <h1 className="text-lg font-semibold">Settings</h1>
+            <h1 className="text-lg font-semibold">{SECTION_TITLES[section] ?? "Settings"}</h1>
           </div>
           <Link
             to={`/agents/${agent._id}/editor`}
@@ -131,27 +149,47 @@ export default function SettingsPage() {
           </Link>
         </div>
 
-        <AgentIconSection agent={agent} />
-        <AgentConfigSection agent={agent} />
-        <EnabledModelsSection agent={agent} />
-        <ToolSetsSection agent={agent} />
-{(agent.enabledToolSets ?? []).includes("rag") && (
-          <DocumentsSection agent={agent} />
+        {section === "general" && (
+          <>
+            <AgentIconSection agent={agent} />
+            <AgentConfigSection agent={agent} />
+          </>
         )}
-        {/* Credential-managed tool sets */}
-        {(agent.enabledToolSets ?? [])
-          .filter((ts) => TOOL_SETS_REQUIRING_CREDENTIALS[ts])
-          .map((ts) => (
-            <section key={ts} className="rounded-xl border border-zinc-800/60 glass-card p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-sm font-medium">
-                  {TOOL_SET_INFO[ts]?.label ?? ts} Credentials
-                </h2>
-              </div>
-              <CredentialManager agent={agent} toolSetName={ts} />
-            </section>
-          ))}
-        <CustomToolsSection agent={agent} />
+
+        {section === "models" && (
+          <EnabledModelsSection agent={agent} />
+        )}
+
+        {section === "capabilities" && (
+          <ToolSetsSection agent={agent} />
+        )}
+
+        {section === "integrations" && (
+          <>
+            <IntegrationsSection agent={agent} />
+            {(agent.enabledToolSets ?? [])
+              .filter((ts) => TOOL_SETS_REQUIRING_CREDENTIALS[ts])
+              .map((ts) => (
+                <section key={ts} className="rounded-xl border border-zinc-800/60 glass-card p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <h2 className="text-sm font-medium">
+                      {TOOL_SET_INFO[ts]?.label ?? ts} Credentials
+                    </h2>
+                  </div>
+                  <CredentialManager agent={agent} toolSetName={ts} />
+                </section>
+              ))}
+          </>
+        )}
+
+        {section === "tools" && (
+          <>
+            {(agent.enabledToolSets ?? []).includes("rag") && (
+              <DocumentsSection agent={agent} />
+            )}
+            <CustomToolsSection agent={agent} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -759,9 +797,72 @@ function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
   );
 }
 
-// ── Tool Sets Toggle ──────────────────────────────────────────────────
+// ── Tool Set Toggle Grid (shared) ────────────────────────────────────
 
-function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
+function ToolSetCategoryGrid({
+  categories,
+  enabledSets,
+  onToggle,
+}: {
+  categories: ToolSetCategory[];
+  enabledSets: string[];
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      {categories.map((category) => (
+        <div key={category.title}>
+          <div className="flex items-center gap-2 mb-2.5">
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              {category.title}
+            </h3>
+            <div className="flex-1 h-px bg-zinc-800/60" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {category.items.map((item) => {
+              const enabled = enabledSets.includes(item.key);
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => onToggle(item.key)}
+                  className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
+                    enabled
+                      ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
+                      : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div
+                    className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
+                      enabled ? "bg-neon-400/30" : "bg-zinc-700"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
+                        enabled
+                          ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
+                          : "left-0.5 bg-zinc-500"
+                      }`}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
+                      {item.label}
+                    </span>
+                    <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-1">
+                      {item.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function useToolSetToggle(agent: Doc<"agents">) {
   const updateAgent = useMutation(api.agents.update);
   const enabledSets = agent.enabledToolSets ?? [];
 
@@ -780,65 +881,53 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
     }
   }
 
+  return { enabledSets, handleToggle };
+}
+
+// ── Capabilities Section ─────────────────────────────────────────────
+
+function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
+  const { enabledSets, handleToggle } = useToolSetToggle(agent);
+
   return (
     <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
       <div className="flex items-center gap-2 mb-5">
         <ToggleRight className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Enabled Capabilities</h2>
+        <h2 className="text-sm font-medium">Capabilities</h2>
         <span className="text-xs text-zinc-600 ml-auto">
           {enabledSets.length} active
         </span>
       </div>
-      <div className="space-y-6">
-        {TOOL_SET_CATEGORIES.map((category) => (
-          <div key={category.title}>
-            <div className="flex items-center gap-2 mb-2.5">
-              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                {category.title}
-              </h3>
-              <div className="flex-1 h-px bg-zinc-800/60" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {category.items.map((item) => {
-                const enabled = enabledSets.includes(item.key);
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => handleToggle(item.key)}
-                    className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
-                      enabled
-                        ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
-                        : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
-                    }`}
-                  >
-                    <div
-                      className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
-                        enabled ? "bg-neon-400/30" : "bg-zinc-700"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
-                          enabled
-                            ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
-                            : "left-0.5 bg-zinc-500"
-                        }`}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
-                        {item.label}
-                      </span>
-                      <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-1">
-                        {item.description}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+      <ToolSetCategoryGrid
+        categories={CAPABILITY_CATEGORIES}
+        enabledSets={enabledSets}
+        onToggle={handleToggle}
+      />
+    </section>
+  );
+}
+
+// ── Integrations Section ─────────────────────────────────────────────
+
+function IntegrationsSection({ agent }: { agent: Doc<"agents"> }) {
+  const { enabledSets, handleToggle } = useToolSetToggle(agent);
+
+  return (
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <ToggleRight className="h-4 w-4 text-zinc-400" />
+        <h2 className="text-sm font-medium">Integrations</h2>
+        <span className="text-xs text-zinc-600 ml-auto">
+          {enabledSets.filter((s) =>
+            INTEGRATION_CATEGORIES.some((c) => c.items.some((i) => i.key === s))
+          ).length} active
+        </span>
       </div>
+      <ToolSetCategoryGrid
+        categories={INTEGRATION_CATEGORIES}
+        enabledSets={enabledSets}
+        onToggle={handleToggle}
+      />
     </section>
   );
 }
