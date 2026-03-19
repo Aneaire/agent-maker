@@ -52,28 +52,68 @@ const NANO_BANANA_BASE = "https://api.nanobananaapi.ai/api/v1/nanobanana";
 const NANO_BANANA_POLL_INTERVAL = 3000; // 3s
 const NANO_BANANA_MAX_POLLS = 60; // 3 min max
 
+// Maps model IDs to their API endpoint paths and supported features
+const NANO_BANANA_MODELS: Record<string, {
+  endpoint: string;
+  supportsResolution: boolean;
+  supportsOutputFormat: boolean;
+  defaultResolution: string;
+}> = {
+  "generate": {
+    endpoint: "/generate",
+    supportsResolution: false,
+    supportsOutputFormat: false,
+    defaultResolution: "1K",
+  },
+  "generate-2": {
+    endpoint: "/generate-2",
+    supportsResolution: true,
+    supportsOutputFormat: true,
+    defaultResolution: "1K",
+  },
+  "generate-pro": {
+    endpoint: "/generate-pro",
+    supportsResolution: true,
+    supportsOutputFormat: false,
+    defaultResolution: "2K",
+  },
+};
+
 async function generateWithNanoBanana(
   apiKey: string,
   prompt: string,
   opts: { width?: number; height?: number; model?: string }
 ): Promise<{ imageBase64: string; mimeType: string }> {
+  const modelKey = opts.model || "generate-2";
+  const modelConfig = NANO_BANANA_MODELS[modelKey] ?? NANO_BANANA_MODELS["generate-2"];
+
   // Step 1: Submit generation task
   const aspectRatio = opts.width && opts.height
     ? getAspectRatio(opts.width, opts.height)
     : "1:1";
 
-  const submitRes = await fetch(`${NANO_BANANA_BASE}/generate-2`, {
+  // Build request body based on endpoint capabilities
+  const body: Record<string, unknown> = { prompt, aspectRatio };
+  if (modelConfig.supportsResolution) {
+    body.resolution = modelConfig.defaultResolution;
+  }
+  if (modelConfig.supportsOutputFormat) {
+    body.outputFormat = "png";
+  }
+  // v1 endpoint uses different field names
+  if (modelKey === "generate") {
+    body.type = "TEXTTOIAMGE";
+    body.image_size = aspectRatio;
+    delete body.aspectRatio;
+  }
+
+  const submitRes = await fetch(`${NANO_BANANA_BASE}${modelConfig.endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      prompt,
-      aspectRatio,
-      resolution: "1K",
-      outputFormat: "png",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!submitRes.ok) {
@@ -238,12 +278,14 @@ export function createImageGenTools(
             content: [{ type: "text" as const, text: "Error: Nano Banana API key not configured. Add it in Settings > Credentials." }],
           };
         }
-        modelUsed = "nano_banana_generate_2";
-        reportProgress("Generating image with Nano Banana...");
+        const nbModel = modelOverride || "generate-2";
+        modelUsed = `nano_banana_${nbModel.replace(/-/g, "_")}`;
+        const nbLabel = nbModel === "generate" ? "Nano Banana" : nbModel === "generate-pro" ? "Nano Banana Pro" : "Nano Banana 2";
+        reportProgress(`Generating image with ${nbLabel}...`);
         result = await generateWithNanoBanana(
           nanoBananaApiKey,
           input.prompt,
-          { width: input.width, height: input.height }
+          { width: input.width, height: input.height, model: nbModel }
         );
       } else {
         return {

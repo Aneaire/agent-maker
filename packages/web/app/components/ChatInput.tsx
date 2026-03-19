@@ -95,8 +95,18 @@ const IMAGE_GEN_MODELS: ImageGenEntry[] = [
     group: "Gemini", provider: "gemini", type: "image_gen",
   },
   {
-    value: "nano_banana:generate-2", label: "Nano Banana",
-    description: "Fast AI image generation",
+    value: "nano_banana:generate", label: "Nano Banana",
+    description: "Fastest, $0.02/image",
+    group: "Nano Banana", provider: "nano_banana", type: "image_gen",
+  },
+  {
+    value: "nano_banana:generate-2", label: "Nano Banana 2",
+    description: "Balanced, up to 4K, $0.04/image",
+    group: "Nano Banana", provider: "nano_banana", type: "image_gen",
+  },
+  {
+    value: "nano_banana:generate-pro", label: "Nano Banana Pro",
+    description: "Highest quality, 4K native, $0.09/image",
     group: "Nano Banana", provider: "nano_banana", type: "image_gen",
   },
 ];
