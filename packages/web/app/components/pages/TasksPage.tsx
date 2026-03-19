@@ -553,15 +553,17 @@ function KanbanColumn({
 
   return (
     <div
-      className={`w-76 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 ${
+      className={`w-76 shrink-0 flex flex-col rounded-2xl border transition-all duration-200 overflow-hidden ${
         isOver
           ? "border-zinc-600 bg-zinc-800/40 scale-[1.01] shadow-lg shadow-black/20"
           : "border-zinc-800/60 bg-zinc-900/30"
       }`}
     >
+      {/* Colored top border */}
+      <div className={`h-[3px] w-full ${colorClasses.dot}`} />
       {/* Column Header */}
       <div
-        className={`px-4 py-3.5 rounded-t-2xl flex items-center justify-between ${colorClasses.headerBg}`}
+        className={`px-4 py-3.5 flex items-center justify-between ${colorClasses.headerBg}`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {/* Column drag handle */}
@@ -774,8 +776,8 @@ function SortableTaskCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-xl border border-zinc-800/60 bg-zinc-900/80 p-3.5 hover:border-zinc-700 transition-all cursor-default ${
-        isDragging ? "opacity-40 scale-95" : ""
+      className={`group rounded-xl border border-zinc-800/60 bg-zinc-900/60 backdrop-blur-sm p-3.5 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-200 cursor-default ${
+        isDragging ? "opacity-40 scale-95 shadow-xl" : "hover:shadow-md hover:shadow-black/20"
       }`}
     >
       <div className="flex items-start gap-2">

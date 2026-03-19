@@ -205,8 +205,8 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur-sm">
-                <th className="w-12 px-3 py-2.5 text-zinc-600 text-xs font-medium text-center">
+              <tr className="border-b-2 border-zinc-800 bg-zinc-900/95 backdrop-blur-sm">
+                <th className="w-12 px-3 py-3 text-zinc-600 text-xs font-medium text-center">
                   #
                 </th>
                 {columns.map((col) => {
@@ -214,7 +214,7 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                   return (
                     <th
                       key={col._id}
-                      className="px-3 py-2.5 text-left text-xs font-semibold text-zinc-400 group"
+                      className="px-3 py-3 text-left text-xs font-semibold text-zinc-400 group border-r border-zinc-800/30 last:border-r-0"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">

@@ -168,15 +168,17 @@ export default function CredentialsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <KeyRound className="h-5 w-5 text-zinc-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
+              <KeyRound className="h-4 w-4 text-zinc-300" />
+            </div>
             <h1 className="text-lg font-semibold">Credentials</h1>
           </div>
           <button
             onClick={() => setShowCreate(!showCreate)}
-            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg bg-neon-400 px-3.5 py-2 text-sm font-medium text-zinc-950 hover:bg-neon-300 transition-colors glow-neon-sm"
           >
             <Plus className="h-4 w-4" />
             New Credential
@@ -210,7 +212,7 @@ export default function CredentialsPage() {
 
         {/* Create new credential */}
         {showCreate && (
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 space-y-4">
+          <section className="rounded-xl border border-zinc-800/60 glass-card p-6 space-y-4 fade-in-up">
             <h2 className="text-sm font-medium">Create Credential</h2>
             <div>
               <label className="block text-xs text-zinc-500 mb-1.5">Type</label>
@@ -230,41 +232,44 @@ export default function CredentialsPage() {
             <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
           </div>
         ) : credentials.length === 0 && !showCreate ? (
-          <div className="text-center py-12 text-zinc-500 text-sm">
-            No credentials yet. Create one to get started.
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800 mb-5">
+              <KeyRound className="h-7 w-7 text-zinc-700" />
+            </div>
+            <p className="text-zinc-400 font-medium">No credentials yet</p>
+            <p className="text-zinc-600 text-sm mt-1">Create one to get started</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {credentials.map((cred) => (
               <div
                 key={cred._id}
-                className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex items-center justify-between"
+                className="group rounded-xl border border-zinc-800/60 glass-card p-4 hover:border-zinc-700/60 transition-all"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-zinc-800 border border-zinc-700/50 shrink-0">
-                    <ServiceIcon type={cred.type} className="h-4.5 w-4.5" />
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-zinc-800 border border-zinc-700/50 shrink-0">
+                    <ServiceIcon type={cred.type} className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{cred.name}</span>
+                      <span className="text-sm font-medium truncate">{cred.name}</span>
                       <StatusBadge status={cred.status} />
                     </div>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {CREDENTIAL_TYPE_REGISTRY[cred.type]?.label ?? cred.type}
-                      {cred.lastTestedAt && (
-                        <>
-                          {" · "}Last tested{" "}
-                          {new Date(cred.lastTestedAt).toLocaleDateString()}
-                        </>
-                      )}
                     </p>
+                    {cred.lastTestedAt && (
+                      <p className="text-[10px] text-zinc-600 mt-1">
+                        Tested {new Date(cred.lastTestedAt).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-1.5 mt-3 pt-3 border-t border-zinc-800/40">
                   <TestButton credentialId={cred._id as Id<"credentials">} />
                   <button
                     onClick={() => handleDelete(cred._id)}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>

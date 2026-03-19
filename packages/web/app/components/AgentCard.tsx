@@ -4,9 +4,7 @@ import { api } from "@agent-maker/shared/convex/_generated/api";
 import {
   Bot,
   Trash2,
-  MessageSquare,
   Zap,
-  Clock,
   GripVertical,
 } from "lucide-react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -62,18 +60,18 @@ export function AgentCard({
     <div
       ref={sortable?.setNodeRef}
       style={style}
-      className={`group relative rounded-2xl border border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700/80 hover:shadow-lg hover:shadow-black/30 transition-all duration-200 overflow-hidden ${
+      className={`group relative rounded-2xl glass-card hover:glass-card-hover hover-lift overflow-hidden gradient-border ${
         sortable?.isDragging ? "opacity-50 scale-[1.02]" : ""
-      }`}
+      } ${agent.status === "active" ? "shadow-lg shadow-neon-400/[0.03]" : ""}`}
     >
-      {/* Subtle top accent line */}
+      {/* Top accent line — wider gradient */}
       <div
         className={`h-[2px] w-full ${
           agent.status === "active"
-            ? "bg-gradient-to-r from-transparent via-neon-400/40 to-transparent"
+            ? "bg-gradient-to-r from-transparent from-10% via-neon-400/50 to-transparent to-90%"
             : agent.status === "paused"
-              ? "bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"
-              : "bg-gradient-to-r from-transparent via-zinc-700/40 to-transparent"
+              ? "bg-gradient-to-r from-transparent from-10% via-amber-500/50 to-transparent to-90%"
+              : "bg-gradient-to-r from-transparent from-10% via-zinc-700/50 to-transparent to-90%"
         }`}
       />
 
@@ -106,9 +104,9 @@ export function AgentCard({
           {/* Icon + Name */}
           <div className="flex items-start gap-3.5">
             {agent.iconUrl ? (
-              <img src={agent.iconUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+              <img src={agent.iconUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-zinc-800" />
             ) : (
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-800/60 ring-1 ring-zinc-700/50">
                 <Bot className="h-5 w-5 text-zinc-400" />
               </div>
             )}
@@ -125,14 +123,14 @@ export function AgentCard({
           </div>
 
           {/* Footer meta */}
-          <div className="mt-4 flex items-center gap-3 pt-3 border-t border-zinc-800/50">
+          <div className="mt-4 flex items-center gap-3 pt-3 border-t border-zinc-800/40">
             {/* Status badge */}
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status.bg} ${status.text}`}
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${status.dot} ${
-                  agent.status === "active" ? "animate-pulse" : ""
+                  agent.status === "active" ? "status-pulse" : ""
                 }`}
               />
               {status.label}
@@ -142,6 +140,14 @@ export function AgentCard({
             <span className="flex items-center gap-1 text-xs text-zinc-600">
               <Zap className="h-3 w-3" />
               {agent.model}
+            </span>
+
+            {/* Created date */}
+            <span className="ml-auto text-[10px] text-zinc-700">
+              {new Date(agent._creationTime).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
             </span>
           </div>
         </Link>

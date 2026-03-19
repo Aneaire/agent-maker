@@ -56,10 +56,10 @@ export default function MemoriesPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="border-b border-zinc-800/60 px-6 py-4 flex items-center justify-between shrink-0">
+      <div className="border-b border-zinc-800/60 px-6 py-4 flex items-center justify-between shrink-0 bg-zinc-950/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
-            <Brain className="h-4 w-4 text-zinc-300" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-zinc-800/80 ring-1 ring-purple-500/20">
+            <Brain className="h-4 w-4 text-purple-400" />
           </div>
           <div>
             <h2 className="text-sm font-semibold">Memories</h2>
@@ -81,7 +81,7 @@ export default function MemoriesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search memories..."
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all"
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-all"
           />
         </div>
 
@@ -147,38 +147,55 @@ export default function MemoriesPage() {
           </div>
         ) : (
           <div className="space-y-2.5 max-w-2xl">
-            {displayMemories.map((memory) => (
-              <div
-                key={memory._id}
-                className="group rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-4 hover:border-zinc-700/60 transition-all"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800/60 mt-0.5">
-                    <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+            {displayMemories.map((memory) => {
+              const catStyle = memory.category
+                ? getCategoryStyle(memory.category)
+                : null;
+              return (
+                <div
+                  key={memory._id}
+                  className="group rounded-2xl border border-zinc-800/60 glass-card p-4 hover:border-zinc-700/60 transition-all relative overflow-hidden"
+                >
+                  {/* Category color band */}
+                  {catStyle && (
+                    <div
+                      className={`absolute left-0 top-0 bottom-0 w-[3px] ${catStyle.bg}`}
+                    />
+                  )}
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800/60 mt-0.5">
+                      <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-zinc-200 leading-relaxed">
+                        {memory.content}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2.5">
+                        {memory.category && (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${catStyle!.bg} ${catStyle!.text}`}
+                          >
+                            {memory.category}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-zinc-700">
+                          {new Date(memory._creationTime).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(memory._id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-zinc-200 leading-relaxed">
-                      {memory.content}
-                    </p>
-                    {memory.category && (
-                      <span
-                        className={`inline-flex items-center gap-1 mt-2.5 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          getCategoryStyle(memory.category).bg
-                        } ${getCategoryStyle(memory.category).text}`}
-                      >
-                        {memory.category}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDelete(memory._id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

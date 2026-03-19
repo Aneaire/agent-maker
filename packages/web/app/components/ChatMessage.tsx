@@ -69,6 +69,21 @@ function getToolIcon(name: string) {
   return Wrench;
 }
 
+// ── Tool category color ─────────────────────────────────────────────────
+
+function getToolColor(name: string): { bg: string; text: string; icon: string } {
+  const lower = name.toLowerCase();
+  if (lower.includes("search") || lower.includes("find") || lower.includes("query"))
+    return { bg: "bg-blue-500/10", text: "text-blue-400", icon: "text-blue-400" };
+  if (lower.includes("database") || lower.includes("db") || lower.includes("sql"))
+    return { bg: "bg-purple-500/10", text: "text-purple-400", icon: "text-purple-400" };
+  if (lower.includes("web") || lower.includes("fetch") || lower.includes("http") || lower.includes("api"))
+    return { bg: "bg-cyan-500/10", text: "text-cyan-400", icon: "text-cyan-400" };
+  if (lower.includes("create") || lower.includes("generate") || lower.includes("run"))
+    return { bg: "bg-amber-500/10", text: "text-amber-400", icon: "text-amber-400" };
+  return { bg: "bg-neon-400/10", text: "text-neon-400", icon: "text-neon-400" };
+}
+
 // ── Format tool name for display ────────────────────────────────────────
 
 function formatToolName(name: string): string {
@@ -111,6 +126,56 @@ function summarizeInput(name: string, input: any): string {
   }
 }
 
+// ── Code block with language header ─────────────────────────────────────
+
+function CodeBlock({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const lang = className?.replace("language-", "") || "";
+  const code = String(children).replace(/\n$/, "");
+
+  return (
+    <div className="group relative rounded-xl border border-zinc-800 bg-zinc-950/60 overflow-hidden my-3">
+      {lang && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-zinc-900/60 border-b border-zinc-800/50">
+          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+            {lang}
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(code);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors"
+          >
+            {copied ? (
+              <>
+                <CheckCheck className="h-3 w-3" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                Copy
+              </>
+            )}
+          </button>
+        </div>
+      )}
+      <pre className="p-4 overflow-x-auto text-sm">
+        <code className={className}>{children}</code>
+      </pre>
+      {!lang && <CopyButton text={code} />}
+    </div>
+  );
+}
+
 // ── Single tool call row (inside the grouped panel) ─────────────────────
 
 function ToolCallRow({
@@ -126,6 +191,7 @@ function ToolCallRow({
   const hasOutput = tc.output !== undefined;
   const isRunning = !hasOutput && isStreaming;
   const Icon = getToolIcon(tc.name);
+  const color = getToolColor(tc.name);
   const displayName = formatToolName(tc.name);
   const inputSummary = summarizeInput(tc.name, tc.input);
 
@@ -151,8 +217,8 @@ function ToolCallRow({
               <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
             </div>
           ) : hasOutput ? (
-            <div className="h-6 w-6 rounded-lg bg-neon-400/10 flex items-center justify-center">
-              <Icon className="h-3.5 w-3.5 text-neon-400" />
+            <div className={`h-6 w-6 rounded-lg ${color.bg} flex items-center justify-center`}>
+              <Icon className={`h-3.5 w-3.5 ${color.icon}`} />
             </div>
           ) : (
             <div className="h-6 w-6 rounded-lg bg-zinc-800/60 flex items-center justify-center">
@@ -164,12 +230,6 @@ function ToolCallRow({
         {/* Name + summary */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-              tool_call
-            </span>
-            <span className="text-[10px] text-zinc-700">
-              /
-            </span>
             <span className="font-mono text-xs font-medium text-zinc-300 truncate">
               {displayName}
             </span>
@@ -184,12 +244,12 @@ function ToolCallRow({
         {/* Status badge */}
         {isRunning && (
           <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded-full px-2 py-0.5">
-            <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
+            <span className="h-1 w-1 rounded-full bg-amber-400 status-pulse" />
             Running
           </span>
         )}
         {hasOutput && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-neon-400/80 bg-neon-400/10 rounded-full px-2 py-0.5">
+          <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-medium ${color.text} ${color.bg} rounded-full px-2 py-0.5`}>
             <Check className="h-2.5 w-2.5" />
             Done
           </span>
@@ -206,7 +266,7 @@ function ToolCallRow({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="mx-3.5 mb-2.5 rounded-lg border border-zinc-800/60 bg-zinc-950/40 overflow-hidden">
+        <div className="mx-3.5 mb-2.5 rounded-lg border border-zinc-800/60 bg-zinc-950/40 overflow-hidden fade-in-up">
           {inputDisplay && inputDisplay !== "{}" && (
             <div className="px-3 py-2 border-b border-zinc-800/40">
               <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">
@@ -264,7 +324,7 @@ function ToolCallsPanel({
   const allDone = completedCount === totalCount && !isStreaming;
 
   return (
-    <div className="border border-zinc-800/80 rounded-xl overflow-hidden bg-zinc-900/50 backdrop-blur-sm">
+    <div className="border border-zinc-800/80 rounded-xl overflow-hidden glass-card">
       {/* Panel header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
@@ -366,7 +426,7 @@ function QuestionCards({
         return (
           <div
             key={q.id}
-            className="border border-zinc-800 rounded-xl bg-zinc-900/40 overflow-hidden"
+            className="border border-zinc-800 rounded-xl glass-card overflow-hidden"
           >
             {/* Question header */}
             <div className="px-3.5 py-2.5 flex items-start gap-2.5">
@@ -464,12 +524,12 @@ export function ChatMessage({
   if (isUser) {
     return (
       <div className="flex gap-3 justify-end">
-        <div className="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm bg-zinc-800 text-zinc-100">
+        <div className="max-w-[75%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-neon-400/10 border border-neon-400/20 text-zinc-100">
           <div className="whitespace-pre-wrap break-words">
             {message.content}
           </div>
         </div>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-700 mt-0.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-700/80 mt-0.5">
           <User className="h-4 w-4 text-zinc-300" />
         </div>
       </div>
@@ -495,7 +555,7 @@ export function ChatMessage({
 
   return (
     <div className="flex gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neon-400/10 mt-0.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neon-400/10 ring-1 ring-neon-400/20 mt-0.5">
         <Bot className="h-4 w-4 text-neon-400" />
       </div>
 
@@ -519,7 +579,7 @@ export function ChatMessage({
           <div
             className={`text-sm leading-relaxed prose prose-invert prose-zinc max-w-none
               prose-p:my-1.5 prose-headings:my-3 prose-li:my-0.5
-              prose-pre:bg-zinc-950/60 prose-pre:border prose-pre:border-zinc-800 prose-pre:rounded-xl
+              prose-pre:bg-transparent prose-pre:border-0 prose-pre:p-0 prose-pre:my-0
               prose-code:text-neon-400 prose-code:font-medium
               prose-code:before:content-none prose-code:after:content-none
               prose-a:text-neon-400 prose-a:no-underline hover:prose-a:underline
@@ -530,9 +590,27 @@ export function ChatMessage({
               prose-blockquote:border-neon-400/30 prose-blockquote:text-zinc-400
               ${isError ? "text-red-200" : "text-zinc-200"}`}
           >
-            <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                code({ className, children, ...props }) {
+                  const isBlock = className?.startsWith("language-");
+                  if (isBlock) {
+                    return (
+                      <CodeBlock className={className}>{children}</CodeBlock>
+                    );
+                  }
+                  return <code className={className} {...props}>{children}</code>;
+                },
+                pre({ children }) {
+                  return <>{children}</>;
+                },
+              }}
+            >
+              {message.content}
+            </Markdown>
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 bg-neon-400 ml-0.5 animate-pulse rounded-sm align-middle" />
+              <span className="inline-block w-1.5 h-4 bg-neon-400 ml-0.5 rounded-sm align-middle status-pulse" />
             )}
           </div>
         ) : null}

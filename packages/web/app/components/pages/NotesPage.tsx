@@ -63,7 +63,7 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search notes..."
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-colors"
             />
           </div>
         </div>
@@ -100,15 +100,21 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 onClick={() => setSelectedId(note._id)}
                 className={`w-full text-left rounded-xl px-3.5 py-3 transition-all ${
                   selectedId === note._id
-                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm border-l-2 border-neon-400 pl-3"
                     : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
                 }`}
               >
                 <div className="text-sm font-medium truncate">
                   {note.title}
                 </div>
-                <div className="text-xs text-zinc-600 truncate mt-1 leading-relaxed">
-                  {note.content.substring(0, 60) || "Empty note"}
+                <div className="text-[11px] text-zinc-600 line-clamp-2 mt-1 leading-relaxed">
+                  {note.content.substring(0, 80) || "Empty note"}
+                </div>
+                <div className="text-[9px] text-zinc-700 mt-1.5">
+                  {new Date(note._creationTime).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </div>
               </button>
             ))

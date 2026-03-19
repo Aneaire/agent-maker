@@ -111,10 +111,12 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Settings className="h-5 w-5 text-zinc-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
+              <Settings className="h-4 w-4 text-zinc-300" />
+            </div>
             <h1 className="text-lg font-semibold">Settings</h1>
           </div>
           <Link
@@ -136,7 +138,7 @@ export default function SettingsPage() {
         {(agent.enabledToolSets ?? [])
           .filter((ts) => TOOL_SETS_REQUIRING_CREDENTIALS[ts])
           .map((ts) => (
-            <section key={ts} className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+            <section key={ts} className="rounded-xl border border-zinc-800/60 glass-card p-6">
               <div className="flex items-center gap-2 mb-4">
                 <h2 className="text-sm font-medium">
                   {TOOL_SET_INFO[ts]?.label ?? ts} Credentials
@@ -189,7 +191,7 @@ function AgentIconSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
       <div className="flex items-center gap-2 mb-4">
         <Image className="h-4 w-4 text-zinc-400" />
         <h2 className="text-sm font-medium">Agent Icon</h2>
@@ -278,7 +280,7 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
 
   return (
     <>
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-zinc-400" />
@@ -641,31 +643,49 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
       <div className="flex items-center gap-2 mb-5">
         <ToggleRight className="h-4 w-4 text-zinc-400" />
         <h2 className="text-sm font-medium">Enabled Capabilities</h2>
+        <span className="text-xs text-zinc-600 ml-auto">
+          {enabledSets.length} active
+        </span>
       </div>
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {Object.entries(TOOL_SET_INFO).map(([key, info]) => {
           const enabled = enabledSets.includes(key);
           return (
             <button
               key={key}
               onClick={() => handleToggle(key)}
-              className="w-full flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-800/50 px-4 py-3 hover:bg-zinc-800 transition-colors text-left"
+              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
+                enabled
+                  ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
+                  : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
+              }`}
             >
-              <div>
-                <span className="text-sm font-medium">{info.label}</span>
-                <p className="text-xs text-zinc-500 mt-0.5">
+              {/* Custom toggle */}
+              <div
+                className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
+                  enabled ? "bg-neon-400/30" : "bg-zinc-700"
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
+                    enabled
+                      ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
+                      : "left-0.5 bg-zinc-500"
+                  }`}
+                />
+              </div>
+              <div className="min-w-0">
+                <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
+                  {info.label}
+                </span>
+                <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-1">
                   {info.description}
                 </p>
               </div>
-              {enabled ? (
-                <ToggleRight className="h-5 w-5 text-neon-400 shrink-0" />
-              ) : (
-                <ToggleLeft className="h-5 w-5 text-zinc-600 shrink-0" />
-              )}
             </button>
           );
         })}
@@ -706,7 +726,7 @@ function CustomToolsSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Wrench className="h-4 w-4 text-zinc-400" />
@@ -970,7 +990,7 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
   };
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-zinc-400" />

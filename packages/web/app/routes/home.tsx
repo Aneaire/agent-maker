@@ -53,9 +53,16 @@ export default function HomePage() {
 
 function LandingView() {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div className="relative flex flex-col items-center justify-center py-20 text-center overflow-hidden">
+      {/* Floating ambient glow orbs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full bg-neon-400/[0.04] blur-[100px] float-orb" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 rounded-full bg-emerald-500/[0.03] blur-[120px] float-orb-alt" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-neon-400/[0.02] blur-[150px]" />
+      </div>
+
       {/* Hero icon */}
-      <div className="relative mb-8">
+      <div className="relative mb-8 fade-in-up">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-neon-400/10 ring-1 ring-neon-400/20 shadow-2xl shadow-neon-400/10">
           <Bot className="h-10 w-10 text-neon-400" />
         </div>
@@ -64,16 +71,19 @@ function LandingView() {
         </div>
       </div>
 
-      <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+      <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-100 to-zinc-400 bg-clip-text text-transparent fade-in-up" style={{ animationDelay: "0.05s" }}>
         Agent Maker
       </h1>
-      <p className="mt-4 text-lg text-zinc-400 max-w-lg leading-relaxed">
+      <p className="mt-2 text-sm text-neon-400/60 font-medium tracking-wide fade-in-up" style={{ animationDelay: "0.1s" }}>
+        Build AI that works for you
+      </p>
+      <p className="mt-4 text-lg text-zinc-400 max-w-lg leading-relaxed fade-in-up" style={{ animationDelay: "0.15s" }}>
         Create, customize, and interact with your own AI agents. Each agent gets
         its own memory, tools, and chat interface.
       </p>
 
       {/* Feature pills */}
-      <div className="flex flex-wrap justify-center gap-3 mt-8">
+      <div className="flex flex-wrap justify-center gap-3 mt-8 fade-in-up" style={{ animationDelay: "0.2s" }}>
         {[
           { icon: MessageSquare, label: "Chat Interface" },
           { icon: Brain, label: "Memory & Context" },
@@ -81,21 +91,28 @@ function LandingView() {
         ].map(({ icon: Icon, label }) => (
           <div
             key={label}
-            className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 text-sm text-zinc-400"
+            className="group flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-2 text-sm text-zinc-400 hover:border-zinc-700 hover:text-zinc-300 transition-all duration-300 cursor-default"
           >
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className="h-3.5 w-3.5 group-hover:text-neon-400 transition-colors duration-300" />
             {label}
           </div>
         ))}
       </div>
 
       <SignInButton mode="modal">
-        <button className="mt-10 rounded-xl bg-neon-400 px-8 py-3.5 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon hover:shadow-neon-400/30">
+        <button className="relative mt-10 rounded-xl bg-gradient-to-r from-neon-500 to-neon-400 px-8 py-3.5 text-sm font-semibold text-zinc-950 hover:from-neon-400 hover:to-neon-300 transition-all glow-neon hover:shadow-lg hover:shadow-neon-400/30 fade-in-up" style={{ animationDelay: "0.25s" }}>
           Get Started
         </button>
       </SignInButton>
     </div>
   );
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
 
 function PlanToggle() {
@@ -155,6 +172,7 @@ function DashboardView() {
   const user = useQuery(api.users.me);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const visibleAgents = agents?.filter((a) => a.status !== "draft");
   const filteredAgents = visibleAgents?.filter(
@@ -172,15 +190,15 @@ function DashboardView() {
     // Reordering logic — for now just visual feedback
   }
 
-  const isPro = user?.plan === "pro" || user?.plan === "enterprise";
-
   return (
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">Your Agents</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {getGreeting()}
+            </h1>
             <PlanToggle />
           </div>
           {filteredAgents && (
@@ -196,7 +214,7 @@ function DashboardView() {
         </div>
         <Link
           to="/agents/new"
-          className="flex items-center gap-2 rounded-xl bg-neon-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon-sm"
+          className="flex items-center gap-2 rounded-xl bg-neon-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon-sm hover:shadow-lg hover:shadow-neon-400/20"
         >
           <Plus className="h-4 w-4" />
           New Agent
@@ -207,14 +225,16 @@ function DashboardView() {
       {visibleAgents && visibleAgents.length > 0 && (
         <div className="flex items-center gap-3 mb-6">
           {/* Search */}
-          <div className="relative flex-1 max-w-xs">
+          <div className={`relative transition-all duration-300 ${searchFocused ? "flex-1 max-w-sm" : "flex-1 max-w-xs"}`}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               placeholder="Search agents..."
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-neon-400/30 focus:ring-1 focus:ring-neon-400/20 transition-all"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-all"
             />
           </div>
 
@@ -264,8 +284,15 @@ function DashboardView() {
         </div>
       ) : filteredAgents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800 mb-5">
-            <Bot className="h-7 w-7 text-zinc-600" />
+          {/* CSS-art empty state */}
+          <div className="relative mb-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800">
+              <Bot className="h-8 w-8 text-zinc-700" />
+            </div>
+            {/* Decorative dots */}
+            <div className="absolute -top-2 -right-2 h-3 w-3 rounded-full bg-neon-400/20" />
+            <div className="absolute -bottom-1 -left-3 h-2 w-2 rounded-full bg-zinc-700/40" />
+            <div className="absolute top-1/2 -right-5 h-1.5 w-1.5 rounded-full bg-zinc-600/30" />
           </div>
           {searchQuery ? (
             <>
@@ -277,9 +304,10 @@ function DashboardView() {
           ) : (
             <>
               <p className="text-zinc-400 font-medium">No agents yet</p>
+              <p className="mt-1 text-sm text-zinc-600">Create your first agent to get started</p>
               <Link
                 to="/agents/new"
-                className="mt-4 flex items-center gap-2 rounded-xl bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
+                className="mt-5 flex items-center gap-2 rounded-xl bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Create your first agent

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ArrowUp, Square, MessageSquare, ChevronDown, Sparkles } from "lucide-react";
+import { ArrowUp, Square, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 
 const MODELS = [
   { value: "claude-sonnet-4-6", label: "Sonnet 4.6", group: "Claude" },
@@ -13,6 +13,76 @@ const MODELS = [
 
 function getModelLabel(value: string) {
   return MODELS.find((m) => m.value === value)?.label ?? value;
+}
+
+function ModelDropdown({
+  model,
+  onModelChange,
+  disabled,
+}: {
+  model: string;
+  onModelChange: (model: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const groups = [
+    { label: "Claude", models: MODELS.filter((m) => m.group === "Claude") },
+    { label: "Gemini", models: MODELS.filter((m) => m.group === "Gemini") },
+  ];
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen(!open)}
+        onBlur={(e) => {
+          if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+            setOpen(false);
+          }
+        }}
+        disabled={disabled}
+        className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-lg text-[11px] font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80 disabled:opacity-50 transition-all cursor-pointer"
+      >
+        {getModelLabel(model)}
+        {open ? (
+          <ChevronUp className="h-2.5 w-2.5 text-zinc-600" />
+        ) : (
+          <ChevronDown className="h-2.5 w-2.5 text-zinc-600" />
+        )}
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 mb-1 w-48 rounded-xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden z-20">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <div className="text-[9px] text-zinc-600 px-3 py-1.5 font-semibold uppercase tracking-wider">
+                {group.label}
+              </div>
+              {group.models.map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onModelChange(m.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                    m.value === model
+                      ? "bg-neon-400/10 text-neon-400"
+                      : "text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ChatInput({
@@ -85,7 +155,7 @@ export function ChatInput({
     <div className="p-4 pb-5">
       <div className="max-w-3xl mx-auto">
         <div
-          className={`relative rounded-2xl border bg-zinc-900/80 backdrop-blur-sm transition-all duration-200 ${
+          className={`relative rounded-2xl border bg-zinc-900/80 backdrop-blur-sm transition-all duration-300 shadow-inner shadow-black/10 ${
             hasContent
               ? "border-neon-400/30 shadow-lg shadow-neon-400/5"
               : "border-zinc-800 hover:border-zinc-700"
@@ -107,30 +177,11 @@ export function ChatInput({
           <div className="flex items-center justify-between px-3 pb-2.5">
             {/* Model selector */}
             {model && onModelChange ? (
-              <div className="relative">
-                <select
-                  value={model}
-                  onChange={(e) => onModelChange(e.target.value)}
-                  disabled={isProcessing}
-                  className="appearance-none pl-2 pr-6 py-1 rounded-lg text-[11px] font-medium text-zinc-500 hover:text-zinc-300 bg-transparent hover:bg-zinc-800/80 focus:outline-none disabled:opacity-50 transition-all cursor-pointer"
-                >
-                  <optgroup label="Claude">
-                    {MODELS.filter((m) => m.group === "Claude").map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Gemini">
-                    {MODELS.filter((m) => m.group === "Gemini").map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-zinc-600 pointer-events-none" />
-              </div>
+              <ModelDropdown
+                model={model}
+                onModelChange={onModelChange}
+                disabled={isProcessing}
+              />
             ) : (
               <div />
             )}
@@ -148,7 +199,7 @@ export function ChatInput({
               <button
                 onClick={handleSubmit}
                 disabled={!hasContent}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 send-bounce ${
                   hasContent
                     ? "bg-neon-400 text-zinc-950 hover:bg-neon-300 glow-neon-sm"
                     : "bg-zinc-800 text-zinc-600 cursor-default"

@@ -22,7 +22,7 @@ import {
   Check,
   ImageIcon,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 
 const TAB_ICONS: Record<string, React.ReactNode> = {
@@ -42,6 +42,27 @@ const PAGE_TYPES = [
   { type: "api" as const, label: "REST API", description: "Expose agent as API", icon: Globe },
 ];
 
+function groupConversationsByTime(conversations: Doc<"conversations">[]) {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterdayStart = todayStart - 86400000;
+
+  const groups: { label: string; items: Doc<"conversations">[] }[] = [
+    { label: "Today", items: [] },
+    { label: "Yesterday", items: [] },
+    { label: "Earlier", items: [] },
+  ];
+
+  for (const conv of conversations) {
+    const t = conv._creationTime;
+    if (t >= todayStart) groups[0].items.push(conv);
+    else if (t >= yesterdayStart) groups[1].items.push(conv);
+    else groups[2].items.push(conv);
+  }
+
+  return groups.filter((g) => g.items.length > 0);
+}
+
 export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const { conversationId } = useParams();
   const location = useLocation();
@@ -60,6 +81,11 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  const conversationGroups = useMemo(
+    () => (conversations ? groupConversationsByTime(conversations) : null),
+    [conversations]
+  );
+
   async function handleNewChat() {
     const id = await createConversation({ agentId: agent._id });
     navigate(`/agents/${agent._id}/chat/${id}`);
@@ -76,7 +102,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <aside className="w-64 border-r border-zinc-800/50 flex flex-col bg-zinc-950 shrink-0">
+    <aside className="w-64 border-r border-zinc-800/50 flex flex-col bg-gradient-to-b from-zinc-950 to-zinc-900/50 shrink-0">
       {/* Header */}
       <div className="p-4 border-b border-zinc-800/50">
         <Link
@@ -88,7 +114,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
         </Link>
         <div className="flex items-center gap-3">
           {agent.iconUrl ? (
-            <img src={agent.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+            <img src={agent.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-zinc-800" />
           ) : (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
               <Bot className="h-5 w-5 text-zinc-400" />
@@ -100,7 +126,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   agent.status === "active"
-                    ? "bg-neon-400 animate-pulse"
+                    ? "bg-neon-400 status-pulse"
                     : agent.status === "paused"
                       ? "bg-amber-400"
                       : "bg-zinc-600"
@@ -116,18 +142,16 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
       <nav className="p-2 space-y-0.5">
         <button
           onClick={handleNewChat}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-800/80 hover:text-zinc-100 transition-all group"
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-950 bg-gradient-to-r from-neon-500 to-neon-400 hover:from-neon-400 hover:to-neon-300 transition-all group glow-neon-sm"
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-800 group-hover:bg-zinc-700 transition-colors">
-            <Plus className="h-3.5 w-3.5" />
-          </div>
+          <Plus className="h-4 w-4" />
           New Chat
         </button>
         <Link
           to={`/agents/${agent._id}/memories`}
           className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
             location.pathname.endsWith("/memories")
-              ? "bg-neon-400/10 text-neon-400 shadow-sm"
+              ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
               : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
           }`}
         >
@@ -138,7 +162,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           to={`/agents/${agent._id}/assets`}
           className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
             location.pathname.includes("/assets")
-              ? "bg-neon-400/10 text-neon-400 shadow-sm"
+              ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
               : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
           }`}
         >
@@ -160,7 +184,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                 to={`/agents/${agent._id}/tab/${tab._id}`}
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-all ${
                   location.pathname.includes(`/tab/${tab._id}`)
-                    ? "bg-neon-400/10 text-neon-400 shadow-sm"
+                    ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
                     : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
                 }`}
               >
@@ -182,7 +206,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           Add Page
         </button>
         {showAddPage && (
-          <div className="absolute left-2 right-2 mt-1 rounded-xl border border-zinc-800 bg-zinc-900 p-1.5 shadow-xl shadow-black/30 z-10">
+          <div className="absolute left-2 right-2 mt-1 rounded-xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/40 z-10">
             <div className="flex items-center justify-between px-2.5 py-1.5 mb-1">
               <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                 Add a page
@@ -200,9 +224,11 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                 <button
                   key={pt.type}
                   onClick={() => handleAddPage(pt.type, pt.label)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors group"
                 >
-                  <Icon className="h-4 w-4 text-zinc-500" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-800 group-hover:bg-zinc-700 transition-colors">
+                    <Icon className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+                  </div>
                   <div className="text-left">
                     <div className="font-medium">{pt.label}</div>
                     <div className="text-zinc-600 text-[10px]">
@@ -235,90 +261,99 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
             No conversations yet
           </p>
         ) : (
-          <div className="space-y-0.5">
-            {conversations.map((conv) => {
-              const isEditing = editingId === conv._id;
-              const isActive = conversationId === conv._id;
-              return (
-                <div
-                  key={conv._id}
-                  className={`group flex items-center rounded-xl text-sm transition-all ${
-                    isActive
-                      ? "bg-zinc-800 text-zinc-100 shadow-sm"
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
-                  }`}
-                >
-                  {isEditing ? (
-                    <form
-                      className="flex items-center gap-2 flex-1 px-3 py-2"
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (editTitle.trim()) {
-                          await updateTitle({
-                            conversationId: conv._id,
-                            title: editTitle.trim(),
-                          });
-                        }
-                        setEditingId(null);
-                      }}
-                    >
-                      <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                      <input
-                        ref={editInputRef}
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onBlur={() => setEditingId(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        className="flex-1 bg-transparent border-b border-zinc-600 text-sm text-zinc-100 outline-none min-w-0"
-                        autoFocus
-                      />
-                      <button
-                        type="submit"
-                        onMouseDown={(e) => e.preventDefault()}
-                        className="p-0.5 text-zinc-500 hover:text-neon-400"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                      </button>
-                    </form>
-                  ) : (
-                    <>
-                      <Link
-                        to={`/agents/${agent._id}/chat/${conv._id}`}
-                        className="flex items-center gap-2.5 flex-1 px-3 py-2 min-w-0"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">
-                          {conv.title || "New conversation"}
-                        </span>
-                      </Link>
-                      <div className="hidden group-hover:flex items-center gap-0.5 pr-2">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setEditTitle(conv.title || "");
-                            setEditingId(conv._id);
-                          }}
-                          className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setDeleteId(conv._id);
-                          }}
-                          className="p-1 rounded-md text-zinc-500 hover:text-red-400 hover:bg-zinc-700/50"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </>
-                  )}
+          <div className="space-y-3">
+            {conversationGroups?.map((group) => (
+              <div key={group.label}>
+                <div className="text-[9px] text-zinc-700 px-3 py-1 font-medium uppercase tracking-wider">
+                  {group.label}
                 </div>
-              );
-            })}
+                <div className="space-y-0.5">
+                  {group.items.map((conv) => {
+                    const isEditing = editingId === conv._id;
+                    const isActive = conversationId === conv._id;
+                    return (
+                      <div
+                        key={conv._id}
+                        className={`group flex items-center rounded-xl text-sm transition-all ${
+                          isActive
+                            ? "bg-zinc-800/80 text-zinc-100 shadow-sm border-l-2 border-neon-400 ml-0 pl-0"
+                            : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
+                        }`}
+                      >
+                        {isEditing ? (
+                          <form
+                            className="flex items-center gap-2 flex-1 px-3 py-2"
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              if (editTitle.trim()) {
+                                await updateTitle({
+                                  conversationId: conv._id,
+                                  title: editTitle.trim(),
+                                });
+                              }
+                              setEditingId(null);
+                            }}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                            <input
+                              ref={editInputRef}
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onBlur={() => setEditingId(null)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              className="flex-1 bg-transparent border-b border-zinc-600 text-sm text-zinc-100 outline-none min-w-0"
+                              autoFocus
+                            />
+                            <button
+                              type="submit"
+                              onMouseDown={(e) => e.preventDefault()}
+                              className="p-0.5 text-zinc-500 hover:text-neon-400"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          </form>
+                        ) : (
+                          <>
+                            <Link
+                              to={`/agents/${agent._id}/chat/${conv._id}`}
+                              className="flex items-center gap-2.5 flex-1 px-3 py-2 min-w-0"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                              <span className="truncate">
+                                {conv.title || "New conversation"}
+                              </span>
+                            </Link>
+                            <div className="hidden group-hover:flex items-center gap-0.5 pr-2">
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setEditTitle(conv.title || "");
+                                  setEditingId(conv._id);
+                                }}
+                                className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setDeleteId(conv._id);
+                                }}
+                                className="p-1 rounded-md text-zinc-500 hover:text-red-400 hover:bg-zinc-700/50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -329,7 +364,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           to={`/agents/${agent._id}/settings`}
           className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
             location.pathname === `/agents/${agent._id}/settings`
-              ? "bg-neon-400/10 text-neon-400 shadow-sm"
+              ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
               : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300"
           }`}
         >
@@ -341,7 +376,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
       {/* Delete Confirmation Dialog */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-80 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
+          <div className="w-80 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl fade-in-up">
             <h3 className="text-sm font-semibold text-zinc-100 mb-2">
               Delete conversation
             </h3>
