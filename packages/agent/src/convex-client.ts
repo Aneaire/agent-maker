@@ -1,6 +1,10 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 
+// In-memory credential cache shared across all client instances
+const credentialCache = new Map<string, { value: any; expiresAt: number }>();
+const CREDENTIAL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export class AgentConvexClient {
   private client: ConvexHttpClient;
   private serverToken: string;
@@ -297,19 +301,41 @@ export class AgentConvexClient {
 
   /**
    * Try the new credential system first, fall back to legacy agentToolConfigs.
+   * Results are cached for 5 minutes to avoid redundant decryption on every turn.
    */
   async getCredentialForToolSet(agentId: string, toolSetName: string) {
+    const cacheKey = `${agentId}:${toolSetName}`;
+    const cached = credentialCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.value;
+    }
+
+    let result: any = null;
     try {
       const linked = await this.client.action(api.credentialActions.getDecryptedForAgent, {
         serverToken: this.serverToken,
         agentId: agentId as any,
         toolSetName,
       });
-      if (linked) return linked;
+      if (linked) {
+        result = linked;
+      }
     } catch {
       // New credential system not available — fall through to legacy
     }
-    return this.getToolConfig(agentId, toolSetName);
+
+    if (!result) {
+      result = await this.getToolConfig(agentId, toolSetName);
+    }
+
+    if (result) {
+      credentialCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + CREDENTIAL_CACHE_TTL_MS,
+      });
+    }
+
+    return result;
   }
 
   // ── Document / RAG ──────────────────────────────────────────────────

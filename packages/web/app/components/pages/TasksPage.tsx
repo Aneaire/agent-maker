@@ -18,6 +18,9 @@ import {
   Check,
   ToggleLeft,
   ToggleRight,
+  Tag,
+  Eye,
+  FileText,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -39,6 +42,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ── Column config types ────────────────────────────────────────────
 
@@ -119,6 +124,8 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const [activeColumn, setActiveColumn] = useState<ColumnConfig | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [showWebhooks, setShowWebhooks] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState<string | null>(null);
+  const [expandedTask, setExpandedTask] = useState<string | null>(null);
 
   // Local columns state for instant UI updates (optimistic)
   const serverColumns: ColumnConfig[] = (tab.config as any)?.columns ?? DEFAULT_COLUMNS;
@@ -150,6 +157,24 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
     });
     setNewTitle("");
     setNewTaskColumn(null);
+  }
+
+  async function handleCreateRich(data: {
+    title: string;
+    description?: string;
+    priority?: "low" | "medium" | "high";
+    tags?: string[];
+    status: string;
+  }) {
+    await createTask({
+      tabId: tab._id,
+      title: data.title,
+      description: data.description || undefined,
+      status: data.status,
+      priority: data.priority || undefined,
+      tags: data.tags && data.tags.length > 0 ? data.tags : undefined,
+    });
+    setShowCreateDialog(null);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -321,6 +346,16 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
         <WebhooksDialog tab={tab} onClose={() => setShowWebhooks(false)} />
       )}
 
+      {/* Create Task Dialog */}
+      {showCreateDialog && (
+        <CreateTaskDialog
+          status={showCreateDialog}
+          columns={columns}
+          onClose={() => setShowCreateDialog(null)}
+          onCreate={handleCreateRich}
+        />
+      )}
+
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto p-4">
         <DndContext
@@ -345,7 +380,9 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                     isAddingTask={newTaskColumn === col.key}
                     newTitle={newTitle}
                     canDelete={columns.length > 1}
+                    expandedTask={expandedTask}
                     onStartAdd={() => setNewTaskColumn(col.key)}
+                    onOpenCreateDialog={() => setShowCreateDialog(col.key)}
                     onTitleChange={setNewTitle}
                     onConfirmAdd={() => handleCreate(col.key)}
                     onCancelAdd={() => {
@@ -353,6 +390,8 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                       setNewTitle("");
                     }}
                     onDelete={(taskId) => removeTask({ taskId })}
+                    onToggleExpand={(taskId) => setExpandedTask(expandedTask === taskId ? null : taskId)}
+                    onUpdateTask={updateTask}
                     onRemoveColumn={() => handleRemoveColumn(col.key)}
                     onRenameColumn={(name) => handleRenameColumn(col.key, name)}
                     onRecolorColumn={(color) => handleRecolorColumn(col.key, color)}
@@ -369,6 +408,15 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 <p className="text-sm text-zinc-100 font-medium">
                   {activeTask.title}
                 </p>
+                {activeTask.tags && activeTask.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {activeTask.tags.map((tag) => (
+                      <span key={tag} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-950/40 text-blue-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {activeTask.priority && (
                   <PriorityBadge priority={activeTask.priority} />
                 )}
@@ -464,11 +512,15 @@ function SortableColumn(props: {
   isAddingTask: boolean;
   newTitle: string;
   canDelete: boolean;
+  expandedTask: string | null;
   onStartAdd: () => void;
+  onOpenCreateDialog: () => void;
   onTitleChange: (v: string) => void;
   onConfirmAdd: () => void;
   onCancelAdd: () => void;
   onDelete: (taskId: any) => void;
+  onToggleExpand: (taskId: string) => void;
+  onUpdateTask: (args: any) => void;
   onRemoveColumn: () => void;
   onRenameColumn: (name: string) => void;
   onRecolorColumn: (color: string) => void;
@@ -509,11 +561,15 @@ function KanbanColumn({
   isAddingTask,
   newTitle,
   canDelete,
+  expandedTask,
   onStartAdd,
+  onOpenCreateDialog,
   onTitleChange,
   onConfirmAdd,
   onCancelAdd,
   onDelete,
+  onToggleExpand,
+  onUpdateTask,
   onRemoveColumn,
   onRenameColumn,
   onRecolorColumn,
@@ -524,11 +580,15 @@ function KanbanColumn({
   isAddingTask: boolean;
   newTitle: string;
   canDelete: boolean;
+  expandedTask: string | null;
   onStartAdd: () => void;
+  onOpenCreateDialog: () => void;
   onTitleChange: (v: string) => void;
   onConfirmAdd: () => void;
   onCancelAdd: () => void;
   onDelete: (taskId: any) => void;
+  onToggleExpand: (taskId: string) => void;
+  onUpdateTask: (args: any) => void;
   onRemoveColumn: () => void;
   onRenameColumn: (name: string) => void;
   onRecolorColumn: (color: string) => void;
@@ -606,8 +666,9 @@ function KanbanColumn({
 
         <div className="flex items-center gap-0.5 shrink-0">
           <button
-            onClick={onStartAdd}
+            onClick={onOpenCreateDialog}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors"
+            title="Add task"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
@@ -728,14 +789,17 @@ function KanbanColumn({
             <SortableTaskCard
               key={task._id}
               task={task}
+              isExpanded={expandedTask === task._id}
+              onToggleExpand={() => onToggleExpand(task._id)}
               onDelete={() => onDelete(task._id)}
+              onUpdate={onUpdateTask}
             />
           ))}
         </SortableContext>
 
         {tasks.length === 0 && !isAddingTask && (
           <button
-            onClick={onStartAdd}
+            onClick={onOpenCreateDialog}
             className="flex flex-col items-center justify-center py-6 text-center w-full rounded-xl border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/30 transition-all group"
           >
             <Plus className="h-4 w-4 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
@@ -753,10 +817,16 @@ function KanbanColumn({
 
 function SortableTaskCard({
   task,
+  isExpanded,
+  onToggleExpand,
   onDelete,
+  onUpdate,
 }: {
   task: Doc<"tabTasks">;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
   onDelete: () => void;
+  onUpdate: (args: any) => void;
 }) {
   const {
     attributes,
@@ -772,40 +842,363 @@ function SortableTaskCard({
     transition,
   };
 
+  const hasMeta = !!(task.description || task.priority || (task.tags && task.tags.length > 0));
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-xl border border-zinc-800/60 bg-zinc-900/60 backdrop-blur-sm p-3.5 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-200 cursor-default ${
+      className={`group rounded-xl border border-zinc-800/60 bg-zinc-900/60 backdrop-blur-sm hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-200 cursor-default ${
         isDragging ? "opacity-40 scale-95 shadow-xl" : "hover:shadow-md hover:shadow-black/20"
       }`}
     >
-      <div className="flex items-start gap-2">
-        {/* Drag handle */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="mt-0.5 opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-600 hover:text-zinc-400 cursor-grab active:cursor-grabbing transition-all shrink-0"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+      <div className="p-3.5">
+        <div className="flex items-start gap-2">
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="mt-0.5 opacity-0 group-hover:opacity-100 p-0.5 rounded text-zinc-600 hover:text-zinc-400 cursor-grab active:cursor-grabbing transition-all shrink-0"
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
 
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-zinc-200 leading-snug">{task.title}</p>
-          {task.description && (
-            <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-              {task.description}
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-sm text-zinc-200 leading-snug cursor-pointer hover:text-zinc-100 transition-colors"
+              onClick={onToggleExpand}
+            >
+              {task.title}
             </p>
-          )}
-          {task.priority && <PriorityBadge priority={task.priority} />}
+
+            {/* Tags row (always visible if present) */}
+            {task.tags && task.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {task.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-950/40 text-blue-400 ring-1 ring-blue-900/30"
+                  >
+                    <Tag className="h-2 w-2" />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Description preview (collapsed) */}
+            {!isExpanded && task.description && (
+              <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                {task.description.replace(/[#*`>_~\[\]]/g, "").slice(0, 100)}
+              </p>
+            )}
+
+            {task.priority && <PriorityBadge priority={task.priority} />}
+          </div>
+
+          <div className="flex items-center gap-0.5 shrink-0">
+            {hasMeta && (
+              <button
+                onClick={onToggleExpand}
+                className={`p-1 rounded-lg transition-all shrink-0 ${
+                  isExpanded
+                    ? "text-zinc-400 bg-zinc-800"
+                    : "opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-400"
+                }`}
+                title={isExpanded ? "Collapse" : "Expand"}
+              >
+                <FileText className="h-3 w-3" />
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded view with markdown description */}
+      {isExpanded && task.description && (
+        <div className="border-t border-zinc-800/60 px-3.5 py-3">
+          <div className="prose prose-invert prose-xs max-w-none text-xs leading-relaxed text-zinc-400 [&_h1]:text-sm [&_h1]:text-zinc-200 [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h2]:text-xs [&_h2]:text-zinc-300 [&_h2]:font-semibold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h3]:text-xs [&_h3]:text-zinc-300 [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:mb-2 [&_ul]:space-y-0.5 [&_ol]:pl-4 [&_ol]:mb-2 [&_ol]:space-y-0.5 [&_li]:text-zinc-400 [&_code]:text-[10px] [&_code]:bg-zinc-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-zinc-300 [&_pre]:bg-zinc-800/80 [&_pre]:rounded-lg [&_pre]:p-2.5 [&_pre]:mb-2 [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-zinc-700 [&_blockquote]:pl-3 [&_blockquote]:text-zinc-500 [&_blockquote]:italic [&_a]:text-blue-400 [&_a]:underline [&_a]:underline-offset-2 [&_hr]:border-zinc-800 [&_hr]:my-2 [&_table]:text-[10px] [&_th]:px-2 [&_th]:py-1 [&_th]:text-zinc-300 [&_td]:px-2 [&_td]:py-1 [&_td]:border-t [&_td]:border-zinc-800 [&_input[type=checkbox]]:mr-1.5 [&_input[type=checkbox]]:accent-blue-500">
+            <Markdown remarkPlugins={[remarkGfm]}>{task.description}</Markdown>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Create Task Dialog ──────────────────────────────────────────────
+
+function CreateTaskDialog({
+  status,
+  columns,
+  onClose,
+  onCreate,
+}: {
+  status: string;
+  columns: ColumnConfig[];
+  onClose: () => void;
+  onCreate: (data: {
+    title: string;
+    description?: string;
+    priority?: "low" | "medium" | "high";
+    tags?: string[];
+    status: string;
+  }) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState(status);
+  const [showPreview, setShowPreview] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  function addTag(val: string) {
+    const tag = val.trim().toLowerCase();
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+    setTagInput("");
+  }
+
+  function removeTag(tag: string) {
+    setTags(tags.filter((t) => t !== tag));
+  }
+
+  function handleSubmit() {
+    if (!title.trim()) return;
+    onCreate({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      priority: priority || undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      status: selectedStatus,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
+      <div className="w-full max-w-lg max-h-[85vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-600/20 to-cyan-600/20 ring-1 ring-emerald-500/20">
+              <Plus className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-100">New Task</h2>
+              <p className="text-[11px] text-zinc-500">
+                Add a task with description, tags & priority
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <button
-          onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              Title <span className="text-red-400">*</span>
+            </label>
+            <input
+              ref={titleRef}
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && title.trim()) handleSubmit();
+                if (e.key === "Escape") onClose();
+              }}
+              placeholder="What needs to be done?"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+            />
+          </div>
+
+          {/* Description with markdown */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-zinc-400">
+                Description
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors ${
+                    !showPreview
+                      ? "bg-zinc-700 text-zinc-200"
+                      : "text-zinc-500 hover:text-zinc-400"
+                  }`}
+                >
+                  Write
+                </button>
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                    showPreview
+                      ? "bg-zinc-700 text-zinc-200"
+                      : "text-zinc-500 hover:text-zinc-400"
+                  }`}
+                >
+                  <Eye className="h-2.5 w-2.5" />
+                  Preview
+                </button>
+              </div>
+            </div>
+
+            {!showPreview ? (
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add a description... (supports **markdown**)"
+                rows={5}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none font-mono text-xs leading-relaxed"
+              />
+            ) : (
+              <div className="min-h-[120px] rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 overflow-y-auto">
+                {description.trim() ? (
+                  <div className="prose prose-invert prose-sm max-w-none text-xs leading-relaxed text-zinc-300 [&_h1]:text-base [&_h1]:text-zinc-100 [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h2]:text-sm [&_h2]:text-zinc-200 [&_h2]:font-semibold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h3]:text-xs [&_h3]:text-zinc-200 [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:mb-2 [&_ul]:space-y-0.5 [&_ol]:pl-4 [&_ol]:mb-2 [&_ol]:space-y-0.5 [&_li]:text-zinc-300 [&_code]:text-[11px] [&_code]:bg-zinc-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-zinc-200 [&_pre]:bg-zinc-800/80 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:mb-2 [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-zinc-600 [&_blockquote]:pl-3 [&_blockquote]:text-zinc-400 [&_blockquote]:italic [&_a]:text-blue-400 [&_a]:underline [&_a]:underline-offset-2 [&_hr]:border-zinc-700 [&_hr]:my-3 [&_table]:text-[11px] [&_th]:px-2 [&_th]:py-1 [&_th]:text-zinc-200 [&_td]:px-2 [&_td]:py-1 [&_td]:border-t [&_td]:border-zinc-800 [&_input[type=checkbox]]:mr-1.5 [&_input[type=checkbox]]:accent-blue-500">
+                    <Markdown remarkPlugins={[remarkGfm]}>{description}</Markdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-600 italic">
+                    Nothing to preview
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="text-[10px] text-zinc-600 mt-1">
+              Supports Markdown: **bold**, *italic*, `code`, lists, links, tables & more
+            </p>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              Tags
+            </label>
+            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 min-h-[38px]">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-950/40 text-blue-400 ring-1 ring-blue-900/30"
+                >
+                  <Tag className="h-2.5 w-2.5" />
+                  {tag}
+                  <button
+                    onClick={() => removeTag(tag)}
+                    className="ml-0.5 hover:text-blue-200 transition-colors"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    addTag(tagInput);
+                  }
+                  if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+                    setTags(tags.slice(0, -1));
+                  }
+                }}
+                onBlur={() => {
+                  if (tagInput.trim()) addTag(tagInput);
+                }}
+                placeholder={tags.length === 0 ? "Type and press Enter..." : ""}
+                className="flex-1 min-w-[80px] bg-transparent text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Priority & Status row */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Priority */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                Priority
+              </label>
+              <div className="flex gap-1">
+                {(["low", "medium", "high"] as const).map((p) => {
+                  const pConfig = {
+                    low: { bg: "bg-zinc-800/50", activeBg: "bg-zinc-700 ring-1 ring-zinc-600", text: "text-zinc-400" },
+                    medium: { bg: "bg-zinc-800/50", activeBg: "bg-amber-950/50 ring-1 ring-amber-900/30", text: "text-amber-400" },
+                    high: { bg: "bg-zinc-800/50", activeBg: "bg-red-950/50 ring-1 ring-red-900/30", text: "text-red-400" },
+                  };
+                  const c = pConfig[p];
+                  const isActive = priority === p;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPriority(isActive ? "" : p)}
+                      className={`flex-1 text-[11px] font-medium py-1.5 rounded-lg capitalize transition-all ${
+                        isActive ? `${c.activeBg} ${c.text}` : `${c.bg} text-zinc-500 hover:text-zinc-400`
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                Column
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors"
+              >
+                {columns.map((col) => (
+                  <option key={col.key} value={col.key}>
+                    {col.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-800/80">
+          <button
+            onClick={onClose}
+            className="text-xs text-zinc-500 px-4 py-2 hover:text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!title.trim()}
+            className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
+          >
+            Create Task
+          </button>
+        </div>
       </div>
     </div>
   );

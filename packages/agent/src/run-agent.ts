@@ -34,9 +34,12 @@ export type ToolProgressCallback = (toolName: string, progress: string) => void;
 class StreamFlusher {
   private text = "";
   private toolCalls: ToolCallEntry[] = [];
+  private toolCallMap = new Map<string, number>(); // id → index for O(1) lookup
   private pending: Promise<void> = Promise.resolve();
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private _stopped = false;
+  private inflightMutation: Promise<void> | null = null;
+  private pendingFlush: { status: string } | null = null;
 
   constructor(
     private convexClient: AgentConvexClient,
@@ -58,10 +61,11 @@ class StreamFlusher {
   }
 
   upsertToolCall(tc: ToolCallEntry) {
-    const idx = this.toolCalls.findIndex((t) => t.id === tc.id);
-    if (idx >= 0) {
-      this.toolCalls[idx] = tc;
+    const existingIdx = this.toolCallMap.get(tc.id);
+    if (existingIdx !== undefined) {
+      this.toolCalls[existingIdx] = tc;
     } else {
+      this.toolCallMap.set(tc.id, this.toolCalls.length);
       this.toolCalls.push(tc);
     }
     this.flushNow("processing");
@@ -86,7 +90,8 @@ class StreamFlusher {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
-    this.enqueueMutation(status);
+    this.pendingFlush = null;
+    this.fireMutation(status);
     await this.pending;
   }
 
@@ -99,14 +104,15 @@ class StreamFlusher {
   }
 
   private get debounceMs(): number {
-    return this.text.length < 500 ? 50 : 100;
+    // Reduced debounce: 25ms for short text, 50ms for longer text
+    return this.text.length < 500 ? 25 : 50;
   }
 
   private scheduleDebouncedFlush() {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
       this.debounceTimer = null;
-      this.enqueueMutation("processing");
+      this.flushNow("processing");
     }, this.debounceMs);
   }
 
@@ -115,26 +121,41 @@ class StreamFlusher {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
-    this.enqueueMutation(status);
+    // If a mutation is already in-flight, coalesce: just mark pending
+    if (this.inflightMutation) {
+      this.pendingFlush = { status };
+      return;
+    }
+    this.fireMutation(status);
   }
 
-  private enqueueMutation(status: string) {
+  private fireMutation(status: string) {
     if (this._stopped) return;
     const text = this.text;
     const toolCalls =
       this.toolCalls.length > 0 ? [...this.toolCalls] : undefined;
 
-    this.pending = this.pending.then(() =>
-      this.convexClient
-        .updateMessage(this.messageId, text, status, toolCalls)
-        .then((result) => {
-          if (result?.stopped) {
-            console.log("[agent] Message was stopped by user, aborting.");
-            this._stopped = true;
-          }
-        })
-        .catch((err) => console.error("StreamFlusher mutation error:", err))
-    );
+    const mutationPromise = this.convexClient
+      .updateMessage(this.messageId, text, status, toolCalls)
+      .then((result) => {
+        if (result?.stopped) {
+          console.log("[agent] Message was stopped by user, aborting.");
+          this._stopped = true;
+        }
+      })
+      .catch((err) => console.error("StreamFlusher mutation error:", err))
+      .finally(() => {
+        this.inflightMutation = null;
+        // If updates accumulated while this mutation was in-flight, flush them now
+        if (this.pendingFlush && !this._stopped) {
+          const { status: pendingStatus } = this.pendingFlush;
+          this.pendingFlush = null;
+          this.fireMutation(pendingStatus);
+        }
+      });
+
+    this.inflightMutation = mutationPromise;
+    this.pending = this.pending.then(() => mutationPromise);
   }
 }
 
@@ -163,8 +184,58 @@ export async function runAgent(params: RunAgentParams) {
     // Load agent config (already loaded above)
     if (!agent) throw new Error("Agent not found");
 
-    // Load conversation history
-    const allMessages = await convexClient.listMessages(params.conversationId);
+    // Load all data in parallel for maximum performance
+    const enabled = agent.enabledToolSets ?? [];
+
+    // Credential loading (parallel)
+    const toolSetsNeedingCreds = [
+      "email", "notion", "slack", "google_calendar",
+      "google_drive", "google_sheets", "image_generation",
+    ];
+    const enabledCredToolSets = toolSetsNeedingCreds.filter((ts) => enabled.includes(ts));
+
+    // Fire ALL queries in parallel — no waterfalls
+    const [
+      allMessages,
+      tabs,
+      customTools,
+      memories,
+      documents,
+      schedules,
+      automations,
+      ...credResults
+    ] = await Promise.all([
+      convexClient.listMessages(params.conversationId),
+      convexClient.listTabs(params.agentId).then((r) => r ?? []),
+      convexClient.listCustomTools(params.agentId).then((r) => r ?? []),
+      convexClient.listMemories(params.agentId),
+      enabled.includes("rag")
+        ? convexClient.listAgentDocuments(params.agentId)
+        : Promise.resolve([]),
+      enabled.includes("schedules")
+        ? convexClient.listSchedules(params.agentId)
+        : Promise.resolve([]),
+      enabled.includes("automations")
+        ? convexClient.listAutomations(params.agentId)
+        : Promise.resolve([]),
+      ...enabledCredToolSets.map((ts) =>
+        convexClient.getCredentialForToolSet(params.agentId, ts)
+      ),
+    ]);
+
+    // Map credential results back to config object
+    const configs: Record<string, any> = {};
+    enabledCredToolSets.forEach((ts, i) => {
+      configs[ts] = credResults[i];
+    });
+
+    const emailConfig = configs.email ?? null;
+    const notionConfig = configs.notion ?? null;
+    const slackConfig = configs.slack ?? null;
+    const gcalConfig = configs.google_calendar ?? null;
+    const gdriveConfig = configs.google_drive ?? null;
+    const gsheetsConfig = configs.google_sheets ?? null;
+    const imageGenConfig = configs.image_generation ?? null;
 
     // Build conversation messages (exclude the placeholder assistant message)
     const apiMessages = allMessages
@@ -189,48 +260,6 @@ export async function runAgent(params: RunAgentParams) {
       historyMessages.length > 0
         ? `\n\n## Conversation History\n${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n`
         : "";
-
-    // Load tabs, custom tools, memories, and documents
-    const tabs = (await convexClient.listTabs(params.agentId)) ?? [];
-    const customTools = (await convexClient.listCustomTools(params.agentId)) ?? [];
-    const memories = await convexClient.listMemories(params.agentId);
-
-    const enabled = agent.enabledToolSets ?? [];
-    const documents = enabled.includes("rag")
-      ? await convexClient.listAgentDocuments(params.agentId)
-      : [];
-
-    // Load credentials for tool sets (new credential system with legacy fallback)
-    const toolSetsNeedingCreds = [
-      "email", "notion", "slack", "google_calendar",
-      "google_drive", "google_sheets", "image_generation",
-    ];
-    const configs: Record<string, any> = {};
-    await Promise.all(
-      toolSetsNeedingCreds
-        .filter((ts) => enabled.includes(ts))
-        .map(async (ts) => {
-          configs[ts] = await convexClient.getCredentialForToolSet(params.agentId, ts);
-        })
-    );
-
-    const emailConfig = configs.email ?? null;
-    const notionConfig = configs.notion ?? null;
-    const slackConfig = configs.slack ?? null;
-    const gcalConfig = configs.google_calendar ?? null;
-    const gdriveConfig = configs.google_drive ?? null;
-    const gsheetsConfig = configs.google_sheets ?? null;
-    const imageGenConfig = configs.image_generation ?? null;
-
-    // Load schedules context if schedules tool is enabled
-    const schedules = enabled.includes("schedules")
-      ? await convexClient.listSchedules(params.agentId)
-      : [];
-
-    // Load automations context if automations tool is enabled
-    const automations = enabled.includes("automations")
-      ? await convexClient.listAutomations(params.agentId)
-      : [];
 
     // Build system prompt with full context
     const systemPrompt = buildSystemPrompt(

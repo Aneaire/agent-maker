@@ -53,6 +53,7 @@ export const create = mutation({
     priority: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
     ),
+    tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const { tab } = await requireTabAccess(ctx, args.tabId);
@@ -74,6 +75,7 @@ export const create = mutation({
       description: args.description,
       status: args.status ?? "todo",
       priority: args.priority,
+      tags: args.tags,
       sortOrder: maxOrder + 1,
     });
 
@@ -87,6 +89,7 @@ export const create = mutation({
         description: args.description,
         status: args.status ?? "todo",
         priority: args.priority,
+        tags: args.tags,
       },
     });
 
@@ -103,6 +106,7 @@ export const update = mutation({
     priority: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
     ),
+    tags: v.optional(v.array(v.string())),
     sortOrder: v.optional(v.number()),
   },
   handler: async (ctx, args) => {

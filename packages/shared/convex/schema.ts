@@ -84,6 +84,7 @@ export default defineSchema({
     priority: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
     ),
+    tags: v.optional(v.array(v.string())),
     sortOrder: v.number(),
   })
     .index("by_tab", ["tabId"])
@@ -234,7 +235,9 @@ export default defineSchema({
         })
       )
     ),
-  }).index("by_conversation", ["conversationId"]),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_conversation_status", ["conversationId", "status"]),
 
   memories: defineTable({
     agentId: v.id("agents"),

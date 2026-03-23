@@ -1,9 +1,23 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
-import { FileText, Plus, Trash2, Search } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { FileText, Plus, Trash2, Search, Pencil, Eye } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+/** Toggle the Nth checkbox in raw markdown content (0-indexed) */
+function toggleCheckboxInMarkdown(content: string, index: number): string {
+  const checkboxRegex = /- \[([ xX])\]/g;
+  let count = 0;
+  return content.replace(checkboxRegex, (match, check) => {
+    if (count++ === index) {
+      return check === " " ? "- [x]" : "- [ ]";
+    }
+    return match;
+  });
+}
 
 export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const notes = useQuery(api.tabNotes.list, { tabId: tab._id });
@@ -158,6 +172,7 @@ function NoteEditor({
   onUpdate: (updates: { title?: string; content?: string }) => void;
   onDelete: () => void;
 }) {
+  const [mode, setMode] = useState<"edit" | "preview">("preview");
   const [localTitle, setLocalTitle] = useState(note.title);
   const [localContent, setLocalContent] = useState(note.content);
   const titleTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -173,6 +188,13 @@ function NoteEditor({
   useEffect(() => {
     if (!isContentFocused.current) setLocalContent(note.content);
   }, [note.content]);
+
+  // Reset local state when switching notes
+  useEffect(() => {
+    setLocalTitle(note.title);
+    setLocalContent(note.content);
+    setMode("preview");
+  }, [note._id]);
 
   // Cleanup timers
   useEffect(() => {
@@ -211,6 +233,35 @@ function NoteEditor({
     if (localContent !== note.content) onUpdate({ content: localContent });
   }
 
+  // Track checkbox index during render for interactive toggling
+  const checkboxIndex = useRef(0);
+
+  const markdownComponents = useMemo(() => {
+    return {
+      input: (props: React.InputHTMLAttributes<HTMLInputElement>) => {
+        if (props.type === "checkbox") {
+          const idx = checkboxIndex.current++;
+          return (
+            <input
+              type="checkbox"
+              checked={props.checked}
+              onChange={() => {
+                const updated = toggleCheckboxInMarkdown(localContent, idx);
+                setLocalContent(updated);
+                onUpdate({ content: updated });
+              }}
+              className="cursor-pointer accent-blue-500 h-4 w-4 rounded border-zinc-600 align-middle mr-1"
+            />
+          );
+        }
+        return <input {...props} />;
+      },
+    };
+  }, [localContent, onUpdate]);
+
+  // Reset checkbox counter before each render
+  checkboxIndex.current = 0;
+
   return (
     <>
       <div className="border-b border-zinc-800/60 px-6 py-3.5 flex items-center justify-between shrink-0">
@@ -220,24 +271,78 @@ function NoteEditor({
           onChange={(e) => handleTitleChange(e.target.value)}
           onFocus={() => (isTitleFocused.current = true)}
           onBlur={handleTitleBlur}
-          className="bg-transparent text-base font-semibold text-zinc-100 focus:outline-none flex-1"
+          className="bg-transparent text-base font-semibold text-zinc-100 focus:outline-none flex-1 min-w-0"
           placeholder="Note title..."
         />
-        <button
-          onClick={onDelete}
-          className="p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Mode toggle */}
+          <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-0.5">
+            <button
+              onClick={() => setMode("edit")}
+              className={`p-1.5 rounded-md transition-colors ${
+                mode === "edit"
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+              title="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setMode("preview")}
+              className={`p-1.5 rounded-md transition-colors ${
+                mode === "preview"
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+              title="Preview"
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Delete */}
+          <button
+            onClick={onDelete}
+            className="p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all ml-1"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-      <textarea
-        value={localContent}
-        onChange={(e) => handleContentChange(e.target.value)}
-        onFocus={() => (isContentFocused.current = true)}
-        onBlur={handleContentBlur}
-        placeholder="Start writing..."
-        className="flex-1 bg-transparent px-6 py-5 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none resize-none font-mono leading-relaxed"
-      />
+
+      {/* Content */}
+      {mode === "edit" ? (
+        <textarea
+          value={localContent}
+          onChange={(e) => handleContentChange(e.target.value)}
+          onFocus={() => (isContentFocused.current = true)}
+          onBlur={handleContentBlur}
+          placeholder="Start writing... (supports markdown)"
+          className="flex-1 bg-transparent px-6 py-5 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none resize-none font-mono leading-relaxed"
+        />
+      ) : (
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {localContent ? (
+            <div className="max-w-2xl mx-auto prose prose-invert prose-sm prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-300 prose-a:text-blue-400 prose-strong:text-zinc-200 prose-code:text-zinc-300 prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 prose-blockquote:border-zinc-700 prose-hr:border-zinc-800 prose-th:text-zinc-300 prose-td:text-zinc-400">
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+              >
+                {localContent}
+              </Markdown>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Pencil className="h-8 w-8 text-zinc-800 mb-3" />
+              <p className="text-zinc-600 text-sm">
+                Switch to edit mode to start writing
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

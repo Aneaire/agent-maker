@@ -11,11 +11,23 @@ import {
   Pencil,
   Eye,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+/** Toggle the Nth checkbox in raw markdown content (0-indexed) */
+function toggleCheckboxInMarkdown(content: string, index: number): string {
+  const checkboxRegex = /- \[([ xX])\]/g;
+  let count = 0;
+  return content.replace(checkboxRegex, (match, check) => {
+    if (count++ === index) {
+      return check === " " ? "- [x]" : "- [ ]";
+    }
+    return match;
+  });
+}
 
 export function MarkdownPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const notes = useQuery(api.tabNotes.list, { tabId: tab._id });
@@ -323,6 +335,35 @@ function MarkdownEditor({
     onUpdate({ tags: tags.filter((t) => t !== tag) });
   }
 
+  // Track checkbox index during render for interactive toggling
+  const checkboxIndex = useRef(0);
+
+  const markdownComponents = useMemo(() => {
+    return {
+      input: (props: React.InputHTMLAttributes<HTMLInputElement>) => {
+        if (props.type === "checkbox") {
+          const idx = checkboxIndex.current++;
+          return (
+            <input
+              type="checkbox"
+              checked={props.checked}
+              onChange={() => {
+                const updated = toggleCheckboxInMarkdown(localContent, idx);
+                setLocalContent(updated);
+                onUpdate({ content: updated });
+              }}
+              className="cursor-pointer accent-blue-500 h-4 w-4 rounded border-zinc-600 align-middle mr-1"
+            />
+          );
+        }
+        return <input {...props} />;
+      },
+    };
+  }, [localContent, onUpdate]);
+
+  // Reset checkbox counter before each render
+  checkboxIndex.current = 0;
+
   return (
     <>
       {/* Toolbar */}
@@ -448,7 +489,12 @@ function MarkdownEditor({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {localContent ? (
             <div className="max-w-2xl mx-auto prose prose-invert prose-sm prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-300 prose-a:text-blue-400 prose-strong:text-zinc-200 prose-code:text-zinc-300 prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 prose-blockquote:border-zinc-700 prose-hr:border-zinc-800 prose-th:text-zinc-300 prose-td:text-zinc-400">
-              <Markdown remarkPlugins={[remarkGfm]}>{localContent}</Markdown>
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+              >
+                {localContent}
+              </Markdown>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
