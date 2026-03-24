@@ -16,7 +16,6 @@ import {
   Zap,
   Globe,
   Database,
-  Calendar,
   Mail,
   Workflow,
   Shield,
@@ -28,13 +27,12 @@ import {
   Webhook,
   Clock,
   Users,
-  ChevronRight,
   Cpu,
-  Layers,
   Code2,
   Puzzle,
-  Rocket,
   Star,
+  ArrowUpRight,
+  Minus,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
@@ -54,11 +52,11 @@ import type { Route } from "./+types/home";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "HiGantic — Build AI Agents That Work For You" },
+    { title: "HiGantic — AI Agents That Think, Remember, and Act" },
     {
       name: "description",
       content:
-        "Create powerful AI agents with memory, tools, automations, and integrations. No code required. Powered by Claude.",
+        "Build autonomous AI agents with persistent memory, tools, and automations. Powered by Claude and Gemini.",
     },
   ];
 }
@@ -79,46 +77,26 @@ export default function HomePage() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   LANDING PAGE — Full marketing site for unauthenticated users
+   LANDING PAGE
    ═══════════════════════════════════════════════════════════════════════ */
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
-      {/* ── Sticky Nav ──────────────────────────────────────────────── */}
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 overflow-x-hidden">
       <LandingNav />
-
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <HeroSection />
-
-      {/* ── Trusted by / Social proof bar ───────────────────────────── */}
-      <SocialProofBar />
-
-      {/* ── Features grid ───────────────────────────────────────────── */}
-      <FeaturesSection />
-
-      {/* ── How it works ────────────────────────────────────────────── */}
-      <HowItWorksSection />
-
-      {/* ── Capabilities deep dive ──────────────────────────────────── */}
-      <CapabilitiesSection />
-
-      {/* ── Integrations ────────────────────────────────────────────── */}
-      <IntegrationsSection />
-
-      {/* ── Pricing ─────────────────────────────────────────────────── */}
-      <PricingSection />
-
-      {/* ── Final CTA ───────────────────────────────────────────────── */}
-      <FinalCTASection />
-
-      {/* ── Footer ──────────────────────────────────────────────────── */}
+      <Hero />
+      <Marquee />
+      <WhatItDoes />
+      <ShowDontTell />
+      <ToolTape />
+      <Pricing />
+      <BottomCTA />
       <Footer />
     </div>
   );
 }
 
-/* ── Intersection Observer hook for scroll animations ───────────────── */
+/* ── Intersection observer ──────────────────────────────────────────── */
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -153,32 +131,7 @@ const SUPPORTED_MODELS = [
   { name: "Gemini", color: "text-blue-400" },
 ];
 
-function ModelSlideBadge() {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-neon-400/20 bg-neon-400/5 px-4 py-1.5 mb-8 fade-in-up-slow">
-      <div className="h-1.5 w-1.5 rounded-full bg-neon-400 status-pulse" />
-      <span className="text-xs font-medium text-zinc-500">Powered by</span>
-      <div className="h-[20px] overflow-hidden">
-        <div className="model-slider-track">
-          {SUPPORTED_MODELS.map((model) => (
-            <div
-              key={model.name}
-              className="h-[20px] flex items-center"
-            >
-              <span
-                className={`text-xs font-semibold whitespace-nowrap ${model.color}`}
-              >
-                {model.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Landing Nav ────────────────────────────────────────────────────── */
+/* ── Nav ────────────────────────────────────────────────────────────── */
 function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
 
@@ -190,1055 +143,709 @@ function LandingNav() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-zinc-950/80 backdrop-blur-2xl border-b border-zinc-800/50"
+          ? "bg-zinc-950/90 backdrop-blur-2xl border-b border-zinc-800/40"
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-zinc-100"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon-400/10 ring-1 ring-neon-400/20 overflow-hidden">
-            <img
-              src="/logo.png"
-              alt="HiGantic"
-              className="h-6 w-6 object-contain"
-            />
+      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+          <div className="h-7 w-7 rounded-md bg-neon-400/10 ring-1 ring-neon-400/20 overflow-hidden flex items-center justify-center">
+            <img src="/logo.png" alt="HiGantic" className="h-5 w-5 object-contain" />
           </div>
-          HiGantic
+          <span>HiGantic</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
-          <a
-            href="#features"
-            className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            Features
-          </a>
-          <a
-            href="#how-it-works"
-            className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            How it works
-          </a>
-          <a
-            href="#capabilities"
-            className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            Capabilities
-          </a>
-          <a
-            href="#pricing"
-            className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            Pricing
-          </a>
-          <Link
-            to="/docs"
-            className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            Docs
-          </Link>
+        <div className="hidden md:flex items-center gap-6 text-[13px] text-zinc-500">
+          <a href="#what" className="hover:text-zinc-200 transition-colors">Product</a>
+          <a href="#how" className="hover:text-zinc-200 transition-colors">How it works</a>
+          <a href="#pricing" className="hover:text-zinc-200 transition-colors">Pricing</a>
+          <Link to="/docs" className="hover:text-zinc-200 transition-colors">Docs</Link>
         </div>
 
-        <div className="flex items-center gap-3">
-          <SignInButton mode="modal">
-            <button className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors hidden sm:block">
-              Sign in
-            </button>
-          </SignInButton>
-          <SignInButton mode="modal">
-            <button className="rounded-lg bg-neon-400 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon-sm">
-              Get Started Free
-            </button>
-          </SignInButton>
-        </div>
+        <SignInButton mode="modal">
+          <button className="text-[13px] font-medium bg-zinc-100 text-zinc-900 px-4 py-1.5 rounded-lg hover:bg-white transition-colors">
+            Sign in
+          </button>
+        </SignInButton>
       </div>
     </nav>
   );
 }
 
-/* ── Hero Section ───────────────────────────────────────────────────── */
-function HeroSection() {
+/* ── Hero ────────────────────────────────────────────────────────────── */
+function Hero() {
   return (
-    <section className="relative pt-32 pb-24 md:pt-44 md:pb-32 overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Central hero glow */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-neon-400/[0.07] blur-[150px] hero-glow-pulse" />
-        {/* Side orbs */}
-        <div className="absolute top-1/4 left-[10%] w-72 h-72 rounded-full bg-neon-400/[0.04] blur-[100px] float-orb" />
-        <div className="absolute bottom-1/4 right-[10%] w-96 h-96 rounded-full bg-emerald-500/[0.03] blur-[120px] float-orb-alt" />
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(52,211,153,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(52,211,153,0.3) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-        {/* Radial fade on the grid */}
-        <div className="absolute inset-0 bg-radial-[ellipse_at_center] from-transparent via-zinc-950/80 to-zinc-950" />
-      </div>
+    <section className="relative pt-28 pb-0 md:pt-36">
+      {/* Single subtle glow — not blobs everywhere */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-neon-400/[0.04] blur-[180px] rounded-full pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto px-6 text-center">
-        {/* Badge — sliding model showcase */}
-        <ModelSlideBadge />
-
-        {/* Headline */}
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.05] fade-in-up-slow" style={{ animationDelay: "0.1s" }}>
-          <span className="bg-gradient-to-b from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
-            Build AI Agents
-          </span>
-          <br />
-          <span className="bg-gradient-to-r from-neon-300 via-neon-400 to-emerald-400 bg-clip-text text-transparent">
-            That Actually Work
-          </span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="mt-6 md:mt-8 text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed fade-in-up-slow" style={{ animationDelay: "0.2s" }}>
-          Create autonomous AI agents with persistent memory, custom tools,
-          real-time collaboration, and powerful automations.{" "}
-          <span className="text-zinc-300">No code required.</span>
-        </p>
-
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10 fade-in-up-slow" style={{ animationDelay: "0.3s" }}>
-          <SignInButton mode="modal">
-            <button className="group relative rounded-xl bg-gradient-to-r from-neon-500 to-neon-400 px-8 py-4 text-base font-semibold text-zinc-950 hover:from-neon-400 hover:to-neon-300 transition-all glow-neon hover:shadow-xl hover:shadow-neon-400/25 w-full sm:w-auto">
-              Start Building Free
-              <ArrowRight className="inline-block ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </SignInButton>
-          <Link
-            to="/docs"
-            className="group flex items-center gap-2 rounded-xl border border-zinc-700/60 bg-zinc-900/40 px-8 py-4 text-base font-medium text-zinc-300 hover:border-zinc-600 hover:text-white hover:bg-zinc-800/40 transition-all w-full sm:w-auto justify-center"
-          >
-            View Documentation
-            <ChevronRight className="h-4 w-4 text-zinc-500 group-hover:text-zinc-300 group-hover:translate-x-0.5 transition-all" />
-          </Link>
-        </div>
-
-        {/* Hero visual — Mock agent workspace */}
-        <div className="relative mt-20 max-w-5xl mx-auto fade-in-up-slow" style={{ animationDelay: "0.45s" }}>
-          <div className="relative rounded-2xl border border-zinc-800/60 bg-zinc-900/40 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/40 text-left">
-            {/* Window chrome */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60 bg-zinc-900/60">
-              <div className="flex gap-1.5">
-                <div className="h-3 w-3 rounded-full bg-zinc-700/60" />
-                <div className="h-3 w-3 rounded-full bg-zinc-700/60" />
-                <div className="h-3 w-3 rounded-full bg-zinc-700/60" />
-              </div>
-              <div className="flex-1 flex justify-center">
-                <div className="flex items-center gap-2 rounded-lg bg-zinc-800/60 px-3 py-1">
-                  <div className="h-3 w-3 rounded bg-neon-400/30" />
-                  <span className="text-xs text-zinc-500">
-                    Research Assistant
-                  </span>
-                  <span className="text-[10px] text-neon-400/50 bg-neon-400/10 px-1.5 py-0.5 rounded">
-                    active
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Mock workspace layout */}
-            <div className="flex min-h-[340px] md:min-h-[420px]">
-              {/* Sidebar */}
-              <div className="hidden md:block w-56 border-r border-zinc-800/60 bg-zinc-950/40 p-3 space-y-1">
-                <div className="text-[10px] text-zinc-600 uppercase tracking-wider px-2 mb-2">
-                  Conversations
-                </div>
-                {[
-                  "Market analysis Q1",
-                  "Competitor research",
-                  "Product roadmap ideas",
-                ].map((name, i) => (
-                  <div
-                    key={name}
-                    className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${
-                      i === 0
-                        ? "bg-zinc-800/60 text-zinc-200"
-                        : "text-zinc-500 hover:bg-zinc-800/30"
-                    }`}
-                  >
-                    <MessageSquare className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{name}</span>
+      <div className="relative max-w-6xl mx-auto px-6">
+        {/* Tight editorial layout — left aligned, not centered */}
+        <div className="max-w-3xl">
+          {/* Model badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800/80 bg-zinc-900/60 px-3 py-1 mb-6 fade-in-up-slow">
+            <div className="h-1.5 w-1.5 rounded-full bg-neon-400 status-pulse" />
+            <span className="text-[11px] text-zinc-500">Powered by</span>
+            <div className="h-[16px] overflow-hidden">
+              <div className="model-slider-track">
+                {SUPPORTED_MODELS.map((m) => (
+                  <div key={m.name} className="h-[16px] flex items-center">
+                    <span className={`text-[11px] font-semibold ${m.color}`}>{m.name}</span>
                   </div>
                 ))}
-                <div className="border-t border-zinc-800/40 my-3" />
-                <div className="text-[10px] text-zinc-600 uppercase tracking-wider px-2 mb-2">
-                  Pages
-                </div>
-                {[
-                  { icon: FileText, name: "Notes", color: "text-blue-400" },
-                  { icon: Table2, name: "Tasks", color: "text-amber-400" },
-                  { icon: Database, name: "Data", color: "text-purple-400" },
-                ].map(({ icon: Icon, name, color }) => (
-                  <div
-                    key={name}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-zinc-500 hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <Icon className={`h-3 w-3 shrink-0 ${color}`} />
-                    <span>{name}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Chat area */}
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 p-4 md:p-6 space-y-4 overflow-hidden">
-                  {/* User message */}
-                  <div className="flex justify-end">
-                    <div className="max-w-xs md:max-w-sm rounded-2xl rounded-br-md bg-neon-400/10 border border-neon-400/20 px-4 py-2.5 text-sm text-zinc-200">
-                      Research the latest trends in AI agent frameworks
-                    </div>
-                  </div>
-                  {/* Agent message */}
-                  <div className="flex gap-3">
-                    <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-neon-400/20 to-emerald-400/20 ring-1 ring-neon-400/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <Bot className="h-3.5 w-3.5 text-neon-400" />
-                    </div>
-                    <div className="space-y-3 max-w-sm md:max-w-lg">
-                      <div className="rounded-2xl rounded-bl-md bg-zinc-800/50 border border-zinc-700/40 px-4 py-2.5 text-sm text-zinc-300 leading-relaxed">
-                        I found several key trends. Let me organize my findings
-                        into your research notes...
-                      </div>
-                      {/* Tool use indicator */}
-                      <div className="flex items-center gap-2 text-xs text-zinc-500">
-                        <div className="flex items-center gap-1.5 rounded-full bg-zinc-800/50 border border-zinc-700/30 px-2.5 py-1">
-                          <Globe className="h-3 w-3 text-neon-400" />
-                          <span>web_search</span>
-                          <Check className="h-3 w-3 text-neon-400" />
-                        </div>
-                        <div className="flex items-center gap-1.5 rounded-full bg-zinc-800/50 border border-zinc-700/30 px-2.5 py-1">
-                          <Brain className="h-3 w-3 text-purple-400" />
-                          <span>store_memory</span>
-                          <Check className="h-3 w-3 text-neon-400" />
-                        </div>
-                        <div className="flex items-center gap-1.5 rounded-full bg-zinc-800/50 border border-zinc-700/30 px-2.5 py-1">
-                          <FileText className="h-3 w-3 text-blue-400" />
-                          <span>save_note</span>
-                          <Check className="h-3 w-3 text-neon-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* Input */}
-                <div className="p-4 border-t border-zinc-800/60">
-                  <div className="flex items-center gap-2 rounded-xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-3">
-                    <span className="text-sm text-zinc-600 flex-1">
-                      Ask your agent anything...
-                    </span>
-                    <div className="h-7 w-7 rounded-lg bg-neon-400/20 flex items-center justify-center">
-                      <ArrowRight className="h-3.5 w-3.5 text-neon-400" />
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Glow under the hero card */}
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-neon-400/[0.06] blur-[80px] rounded-full" />
-        </div>
-      </div>
-    </section>
-  );
-}
+          <h1 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.08] tracking-tight fade-in-up-slow" style={{ animationDelay: "0.08s" }}>
+            Your ideas deserve
+            <br />
+            <span className="text-neon-400">agents that ship.</span>
+          </h1>
 
-/* ── Social Proof Bar ───────────────────────────────────────────────── */
-function SocialProofBar() {
-  const { ref, inView } = useInView(0.3);
-
-  const stats = [
-    { value: "10k+", label: "Agents Created" },
-    { value: "50+", label: "Built-in Tools" },
-    { value: "17+", label: "Integrations" },
-    { value: "99.9%", label: "Uptime" },
-  ];
-
-  return (
-    <section ref={ref} className="relative border-y border-zinc-800/40 bg-zinc-950/50">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, i) => (
-            <div
-              key={stat.label}
-              className={`text-center transition-all duration-700 ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              }`}
-              style={{ transitionDelay: `${i * 100}ms` }}
-            >
-              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-                {stat.value}
-              </div>
-              <div className="mt-1 text-sm text-zinc-500">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Features Section ───────────────────────────────────────────────── */
-function FeaturesSection() {
-  const { ref, inView } = useInView();
-
-  const features = [
-    {
-      icon: MessageSquare,
-      title: "Conversational AI Chat",
-      desc: "Natural language interface with real-time streaming, suggestions, and multi-turn conversations that feel alive.",
-      color: "from-neon-400/20 to-emerald-400/20",
-      iconColor: "text-neon-400",
-      borderColor: "group-hover:border-neon-400/30",
-    },
-    {
-      icon: Brain,
-      title: "Persistent Memory",
-      desc: "Your agents remember everything. Store, recall, and search across conversations with intelligent categorization.",
-      color: "from-purple-400/20 to-violet-400/20",
-      iconColor: "text-purple-400",
-      borderColor: "group-hover:border-purple-400/30",
-    },
-    {
-      icon: Layers,
-      title: "Workspace Pages",
-      desc: "Tasks with Kanban boards, notes with markdown, spreadsheets, data tables — all managed by your agent.",
-      color: "from-blue-400/20 to-cyan-400/20",
-      iconColor: "text-blue-400",
-      borderColor: "group-hover:border-blue-400/30",
-    },
-    {
-      icon: Workflow,
-      title: "Automations & Schedules",
-      desc: "Event-driven workflows and cron-based scheduled actions. Your agents work autonomously around the clock.",
-      color: "from-amber-400/20 to-orange-400/20",
-      iconColor: "text-amber-400",
-      borderColor: "group-hover:border-amber-400/30",
-    },
-    {
-      icon: Globe,
-      title: "Web Search & RAG",
-      desc: "Search the internet, fetch web pages, and retrieve from uploaded documents with vector-powered RAG.",
-      color: "from-cyan-400/20 to-teal-400/20",
-      iconColor: "text-cyan-400",
-      borderColor: "group-hover:border-cyan-400/30",
-    },
-    {
-      icon: Puzzle,
-      title: "Custom Tools & APIs",
-      desc: "Define custom HTTP tools, expose agents as REST endpoints, or connect to any external API with ease.",
-      color: "from-rose-400/20 to-pink-400/20",
-      iconColor: "text-rose-400",
-      borderColor: "group-hover:border-rose-400/30",
-    },
-  ];
-
-  return (
-    <section id="features" ref={ref} className="relative py-24 md:py-32">
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-neon-400/[0.02] blur-[200px]" />
-
-      <div className="relative max-w-7xl mx-auto px-6">
-        {/* Section header */}
-        <div className="text-center mb-16">
-          <div
-            className={`inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-1.5 mb-6 transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-neon-400" />
-            <span className="text-xs font-medium text-zinc-400">
-              Everything your agents need
-            </span>
-          </div>
-          <h2
-            className={`text-3xl md:text-5xl font-bold tracking-tight transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-            style={{ transitionDelay: "100ms" }}
-          >
-            <span className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-              Powerful Features,
-            </span>{" "}
-            <span className="bg-gradient-to-r from-neon-300 to-emerald-400 bg-clip-text text-transparent">
-              Zero Complexity
-            </span>
-          </h2>
-          <p
-            className={`mt-4 text-lg text-zinc-500 max-w-2xl mx-auto transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-            style={{ transitionDelay: "200ms" }}
-          >
-            Each agent comes equipped with a complete workspace — from chat and
-            memory to tasks, notes, and automations.
+          <p className="mt-5 text-base md:text-lg text-zinc-400 leading-relaxed max-w-xl fade-in-up-slow" style={{ animationDelay: "0.16s" }}>
+            HiGantic lets you build AI agents that remember context, use tools,
+            browse the web, manage tasks, and run automations — all through conversation.
           </p>
-        </div>
 
-        {/* Feature cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((feature, i) => (
-            <div
-              key={feature.title}
-              className={`group relative rounded-2xl border border-zinc-800/60 bg-zinc-900/30 p-6 hover:bg-zinc-900/50 transition-all duration-500 hover-lift ${feature.borderColor} ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
-              }`}
-              style={{ transitionDelay: `${200 + i * 80}ms` }}
-            >
-              {/* Icon */}
-              <div
-                className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.color} ring-1 ring-white/5 mb-4`}
-              >
-                <feature.icon className={`h-5.5 w-5.5 ${feature.iconColor}`} />
-              </div>
-
-              <h3 className="text-lg font-semibold text-zinc-100 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                {feature.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── How It Works Section ───────────────────────────────────────────── */
-function HowItWorksSection() {
-  const { ref, inView } = useInView();
-
-  const steps = [
-    {
-      step: "01",
-      title: "Describe Your Agent",
-      desc: "Tell our AI creator what you want — a research assistant, project manager, journal companion, or anything you can imagine.",
-      icon: MessageSquare,
-      visual: (
-        <div className="space-y-2.5">
-          <div className="flex gap-2 items-center">
-            <div className="h-6 w-6 rounded-md bg-neon-400/20 flex items-center justify-center">
-              <Bot className="h-3 w-3 text-neon-400" />
-            </div>
-            <span className="text-xs text-zinc-500">
-              What kind of agent would you like?
-            </span>
-          </div>
-          <div className="ml-8 rounded-lg bg-zinc-800/40 border border-zinc-700/30 px-3 py-2 text-xs text-zinc-300">
-            I need a research assistant that can search the web, take notes, and
-            remember key findings
-          </div>
-          <div className="ml-8 flex items-center gap-1.5 text-[10px] text-neon-400/70">
-            <Check className="h-3 w-3" /> Understanding your needs...
-          </div>
-        </div>
-      ),
-    },
-    {
-      step: "02",
-      title: "Configure & Customize",
-      desc: "Choose models, enable tools, set up pages and automations. Our guided creator handles the complexity for you.",
-      icon: Cpu,
-      visual: (
-        <div className="space-y-2">
-          {[
-            { label: "Memory & Context", active: true },
-            { label: "Web Search", active: true },
-            { label: "Task Management", active: true },
-            { label: "Email Integration", active: false },
-          ].map((tool) => (
-            <div
-              key={tool.label}
-              className="flex items-center justify-between rounded-lg bg-zinc-800/30 border border-zinc-700/20 px-3 py-1.5"
-            >
-              <span className="text-xs text-zinc-400">{tool.label}</span>
-              <div
-                className={`h-4 w-8 rounded-full transition-colors ${
-                  tool.active ? "bg-neon-400/30" : "bg-zinc-700/50"
-                }`}
-              >
-                <div
-                  className={`h-3 w-3 rounded-full mt-0.5 transition-all ${
-                    tool.active
-                      ? "ml-[18px] bg-neon-400"
-                      : "ml-0.5 bg-zinc-500"
-                  }`}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      step: "03",
-      title: "Deploy & Interact",
-      desc: "Your agent is live instantly. Chat naturally, watch it use tools autonomously, and let automations handle the rest.",
-      icon: Rocket,
-      visual: (
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-2 rounded-lg bg-neon-400/5 border border-neon-400/20 px-3 py-2">
-            <div className="h-2 w-2 rounded-full bg-neon-400 status-pulse" />
-            <span className="text-xs text-neon-400">
-              Agent active & ready
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {["Memory", "Search", "Notes"].map((t) => (
-              <div
-                key={t}
-                className="rounded bg-zinc-800/40 border border-zinc-700/20 px-2 py-1.5 text-center text-[10px] text-zinc-500"
-              >
-                {t}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-zinc-500">
-            <Clock className="h-3 w-3" /> Next scheduled action in 2h 14m
-          </div>
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <section
-      id="how-it-works"
-      ref={ref}
-      className="relative py-24 md:py-32 border-t border-zinc-800/40"
-    >
-      <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-zinc-900/20 to-zinc-950 pointer-events-none" />
-
-      <div className="relative max-w-7xl mx-auto px-6">
-        {/* Section header */}
-        <div className="text-center mb-16">
-          <div
-            className={`inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-1.5 mb-6 transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-          >
-            <Rocket className="h-3.5 w-3.5 text-neon-400" />
-            <span className="text-xs font-medium text-zinc-400">
-              Up and running in minutes
-            </span>
-          </div>
-          <h2
-            className={`text-3xl md:text-5xl font-bold tracking-tight transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-            style={{ transitionDelay: "100ms" }}
-          >
-            <span className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-              Three Steps to
-            </span>{" "}
-            <span className="bg-gradient-to-r from-neon-300 to-emerald-400 bg-clip-text text-transparent">
-              Your AI Workforce
-            </span>
-          </h2>
-        </div>
-
-        {/* Steps */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {steps.map((step, i) => (
-            <div
-              key={step.step}
-              className={`relative group transition-all duration-700 ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
-              }`}
-              style={{ transitionDelay: `${200 + i * 150}ms` }}
-            >
-              {/* Connector line (desktop) */}
-              {i < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-12 -right-4 w-8 border-t border-dashed border-zinc-700/50 z-10" />
-              )}
-
-              <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/30 p-6 h-full hover:border-zinc-700/60 transition-all">
-                {/* Step number */}
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="text-3xl font-bold text-neon-400/20">
-                    {step.step}
-                  </span>
-                  <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
-                </div>
-
-                <h3 className="text-xl font-semibold text-zinc-100 mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-sm text-zinc-500 leading-relaxed mb-5">
-                  {step.desc}
-                </p>
-
-                {/* Visual */}
-                <div className="rounded-xl border border-zinc-800/40 bg-zinc-950/40 p-3">
-                  {step.visual}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Capabilities Deep Dive ─────────────────────────────────────────── */
-function CapabilitiesSection() {
-  const { ref, inView } = useInView();
-
-  const capabilities = [
-    {
-      icon: Terminal,
-      label: "17+ Tool Sets",
-      desc: "Memory, web search, pages, RAG, email, schedules, webhooks, and more",
-    },
-    {
-      icon: Users,
-      label: "Multi-Agent Coordination",
-      desc: "Agents can delegate tasks and communicate with each other",
-    },
-    {
-      icon: Code2,
-      label: "REST API Exposure",
-      desc: "Expose any agent as an API endpoint for external integration",
-    },
-    {
-      icon: Shield,
-      label: "Encrypted Credentials",
-      desc: "AES-256-GCM encrypted credential vault for all integrations",
-    },
-    {
-      icon: Webhook,
-      label: "Webhooks & Events",
-      desc: "Incoming and outgoing webhooks with a full event bus system",
-    },
-    {
-      icon: Database,
-      label: "Document RAG",
-      desc: "Upload PDFs, docs, and text files for vector-powered retrieval",
-    },
-    {
-      icon: Clock,
-      label: "Cron Scheduling",
-      desc: "Interval-based and cron-based recurring actions and reports",
-    },
-    {
-      icon: Cpu,
-      label: "Multiple AI Models",
-      desc: "Claude Sonnet, Opus, Haiku, and Gemini — pick the right brain",
-    },
-  ];
-
-  return (
-    <section
-      id="capabilities"
-      ref={ref}
-      className="relative py-24 md:py-32 border-t border-zinc-800/40"
-    >
-      <div className="relative max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left — text */}
-          <div>
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-1.5 mb-6 transition-all duration-700 ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              }`}
-            >
-              <Zap className="h-3.5 w-3.5 text-neon-400" />
-              <span className="text-xs font-medium text-zinc-400">
-                Built for power users
-              </span>
-            </div>
-            <h2
-              className={`text-3xl md:text-4xl font-bold tracking-tight mb-4 transition-all duration-700 ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              }`}
-              style={{ transitionDelay: "100ms" }}
-            >
-              <span className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-                Everything Under
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-neon-300 to-emerald-400 bg-clip-text text-transparent">
-                One Roof
-              </span>
-            </h2>
-            <p
-              className={`text-zinc-500 leading-relaxed mb-8 transition-all duration-700 ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              }`}
-              style={{ transitionDelay: "200ms" }}
-            >
-              From simple chat assistants to complex autonomous workflows — Agent
-              Maker gives you the building blocks to create agents that truly
-              work for you. No coding required, but developers will love the API.
-            </p>
-
+          <div className="flex items-center gap-3 mt-8 fade-in-up-slow" style={{ animationDelay: "0.24s" }}>
             <SignInButton mode="modal">
-              <button
-                className={`group flex items-center gap-2 rounded-xl bg-gradient-to-r from-neon-500 to-neon-400 px-6 py-3 text-sm font-semibold text-zinc-950 hover:from-neon-400 hover:to-neon-300 transition-all glow-neon-sm ${
-                  inView
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
-                style={{ transitionDelay: "300ms" }}
-              >
-                Explore All Features
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <button className="group text-sm font-medium bg-neon-400 text-zinc-950 px-5 py-2.5 rounded-lg hover:bg-neon-300 transition-all glow-neon-sm">
+                Start building
+                <ArrowRight className="inline ml-1.5 h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </SignInButton>
+            <Link
+              to="/docs"
+              className="text-sm text-zinc-500 hover:text-zinc-200 transition-colors px-4 py-2.5"
+            >
+              Read the docs
+            </Link>
           </div>
+        </div>
 
-          {/* Right — capabilities grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {capabilities.map((cap, i) => (
-              <div
-                key={cap.label}
-                className={`group flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4 hover:bg-zinc-900/50 hover:border-zinc-700/60 transition-all duration-500 ${
-                  inView
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-6"
-                }`}
-                style={{ transitionDelay: `${150 + i * 60}ms` }}
-              >
-                <div className="h-9 w-9 rounded-lg bg-neon-400/10 ring-1 ring-neon-400/10 flex items-center justify-center shrink-0 group-hover:bg-neon-400/15 transition-colors">
-                  <cap.icon className="h-4 w-4 text-neon-400" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-zinc-200">
-                    {cap.label}
-                  </h4>
-                  <p className="text-xs text-zinc-500 leading-relaxed mt-0.5">
-                    {cap.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Hero product shot — the real thing, not a cartoon */}
+        <div className="mt-16 md:mt-20 fade-in-up-slow" style={{ animationDelay: "0.35s" }}>
+          <HeroMockup />
         </div>
       </div>
     </section>
   );
 }
 
-/* ── Integrations Section ───────────────────────────────────────────── */
-function IntegrationsSection() {
-  const { ref, inView } = useInView();
+/* ── Hero Mockup — realistic product preview ────────────────────────── */
+function HeroMockup() {
+  return (
+    <div className="relative">
+      <div className="rounded-xl border border-zinc-800/70 bg-zinc-900/50 backdrop-blur-sm overflow-hidden shadow-2xl shadow-black/50 text-left">
+        {/* Titlebar */}
+        <div className="flex items-center px-3.5 py-2 border-b border-zinc-800/60 bg-zinc-950/60">
+          <div className="flex gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-zinc-700/70" />
+            <div className="h-2.5 w-2.5 rounded-full bg-zinc-700/70" />
+            <div className="h-2.5 w-2.5 rounded-full bg-zinc-700/70" />
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+              <div className="h-2 w-2 rounded-full bg-neon-400/60" />
+              Research Assistant
+            </div>
+          </div>
+        </div>
 
-  const integrations = [
-    { name: "Slack", color: "bg-[#4A154B]/20 text-[#E01E5A]" },
-    { name: "Notion", color: "bg-zinc-800/60 text-zinc-200" },
-    { name: "Google Calendar", color: "bg-blue-500/10 text-blue-400" },
-    { name: "Google Drive", color: "bg-green-500/10 text-green-400" },
-    { name: "Google Sheets", color: "bg-emerald-500/10 text-emerald-400" },
-    { name: "Gmail", color: "bg-red-500/10 text-red-400" },
-    { name: "Resend", color: "bg-zinc-800/60 text-zinc-300" },
-    { name: "Webhooks", color: "bg-orange-500/10 text-orange-400" },
-    { name: "REST APIs", color: "bg-purple-500/10 text-purple-400" },
-    { name: "PostgreSQL", color: "bg-blue-500/10 text-blue-300" },
+        {/* Layout */}
+        <div className="flex min-h-[320px] md:min-h-[380px]">
+          {/* Sidebar */}
+          <div className="hidden md:flex flex-col w-48 border-r border-zinc-800/50 bg-zinc-950/50 p-2.5 text-[11px]">
+            <div className="text-[9px] uppercase tracking-[0.08em] text-zinc-600 px-2 mb-1.5">Chats</div>
+            {["Market analysis Q1", "Competitor deep-dive", "Product roadmap"].map((c, i) => (
+              <div
+                key={c}
+                className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 truncate ${
+                  i === 0 ? "bg-zinc-800/50 text-zinc-200" : "text-zinc-600"
+                }`}
+              >
+                <MessageSquare className="h-3 w-3 shrink-0 opacity-40" />
+                {c}
+              </div>
+            ))}
+
+            <div className="mt-auto border-t border-zinc-800/40 pt-2 space-y-0.5">
+              <div className="text-[9px] uppercase tracking-[0.08em] text-zinc-600 px-2 mb-1">Pages</div>
+              {[
+                { name: "Tasks", color: "text-amber-400/60" },
+                { name: "Notes", color: "text-blue-400/60" },
+                { name: "Data", color: "text-purple-400/60" },
+              ].map((p) => (
+                <div key={p.name} className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-zinc-600">
+                  <div className={`h-1.5 w-1.5 rounded-sm ${p.color} bg-current`} />
+                  {p.name}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Chat */}
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 p-4 md:p-5 space-y-3.5">
+              {/* User */}
+              <div className="flex justify-end">
+                <div className="rounded-xl rounded-br-sm bg-zinc-800/60 border border-zinc-700/30 px-3.5 py-2 text-[13px] text-zinc-300 max-w-xs md:max-w-sm">
+                  Research the latest trends in AI agent frameworks and organize the findings
+                </div>
+              </div>
+
+              {/* Agent */}
+              <div className="flex gap-2.5">
+                <div className="h-6 w-6 rounded-md bg-neon-400/10 ring-1 ring-neon-400/15 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot className="h-3 w-3 text-neon-400" />
+                </div>
+                <div className="space-y-2 max-w-xs md:max-w-md">
+                  {/* Tool calls — the part that makes this product different */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { icon: Globe, name: "web_search", c: "text-neon-400" },
+                      { icon: Brain, name: "store_memory", c: "text-purple-400" },
+                      { icon: FileText, name: "save_note", c: "text-blue-400" },
+                    ].map((t) => (
+                      <div
+                        key={t.name}
+                        className="inline-flex items-center gap-1 rounded-md bg-zinc-800/40 border border-zinc-700/20 px-2 py-0.5 text-[10px] text-zinc-500"
+                      >
+                        <t.icon className={`h-2.5 w-2.5 ${t.c}`} />
+                        {t.name}
+                        <Check className="h-2.5 w-2.5 text-neon-400/70" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-xl rounded-bl-sm bg-zinc-900/60 border border-zinc-800/40 px-3.5 py-2 text-[13px] text-zinc-400 leading-relaxed">
+                    I've found 3 major trends in agent frameworks for 2026. I saved the key findings to your{" "}
+                    <span className="text-blue-400">Research Notes</span> page and stored the important data points in memory for future reference.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Input */}
+            <div className="px-4 pb-3">
+              <div className="flex items-center rounded-lg border border-zinc-800/50 bg-zinc-950/50 px-3.5 py-2.5">
+                <span className="text-[13px] text-zinc-700 flex-1">Message your agent...</span>
+                <div className="h-6 w-6 rounded-md bg-zinc-800 flex items-center justify-center">
+                  <ArrowRight className="h-3 w-3 text-zinc-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Edge glow */}
+      <div className="absolute -bottom-6 left-[10%] right-[10%] h-20 bg-neon-400/[0.03] blur-[60px] rounded-full" />
+    </div>
+  );
+}
+
+/* ── Marquee — scrolling tool names ─────────────────────────────────── */
+function Marquee() {
+  const tools = [
+    "web_search", "store_memory", "recall_memory", "create_task", "save_note",
+    "send_email", "schedule_action", "fire_webhook", "search_documents",
+    "send_slack_message", "create_notion_page", "google_calendar",
+    "image_generation", "write_page", "set_timer", "send_agent_message",
   ];
 
   return (
-    <section
-      ref={ref}
-      className="relative py-24 md:py-32 border-t border-zinc-800/40"
-    >
-      <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-zinc-900/20 to-zinc-950 pointer-events-none" />
-
-      <div className="relative max-w-7xl mx-auto px-6 text-center">
-        <h2
-          className={`text-3xl md:text-5xl font-bold tracking-tight mb-4 transition-all duration-700 ${
-            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-        >
-          <span className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-            Connects to
-          </span>{" "}
-          <span className="bg-gradient-to-r from-neon-300 to-emerald-400 bg-clip-text text-transparent">
-            Your Stack
+    <div className="relative py-8 mt-8 border-y border-zinc-800/30 overflow-hidden">
+      <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-zinc-950 to-transparent z-10" />
+      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-zinc-950 to-transparent z-10" />
+      <div className="flex gap-4 marquee-scroll">
+        {[...tools, ...tools].map((t, i) => (
+          <span
+            key={`${t}-${i}`}
+            className="shrink-0 text-[11px] font-mono text-zinc-700 whitespace-nowrap"
+          >
+            {t}()
           </span>
-        </h2>
-        <p
-          className={`text-zinc-500 max-w-xl mx-auto mb-12 transition-all duration-700 ${
-            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-          style={{ transitionDelay: "100ms" }}
-        >
-          Plug your agents into the tools you already use. Credentials are
-          encrypted and securely stored.
-        </p>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
-          {integrations.map((int, i) => (
-            <div
-              key={int.name}
-              className={`rounded-xl border border-zinc-800/60 ${int.color} px-5 py-3 text-sm font-medium transition-all duration-500 hover:scale-105 hover:border-zinc-700/60 ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-4"
-              }`}
-              style={{ transitionDelay: `${150 + i * 50}ms` }}
-            >
-              {int.name}
-            </div>
-          ))}
-        </div>
+/* ── What It Does — asymmetric feature blocks ───────────────────────── */
+function WhatItDoes() {
+  const { ref, inView } = useInView(0.1);
 
+  return (
+    <section id="what" ref={ref} className="relative max-w-6xl mx-auto px-6 py-24 md:py-32">
+      <div className="mb-16">
         <p
-          className={`mt-8 text-sm text-zinc-600 transition-all duration-700 ${
+          className={`text-[11px] font-mono uppercase tracking-[0.15em] text-neon-400/70 mb-3 transition-all duration-700 ${
             inView ? "opacity-100" : "opacity-0"
           }`}
-          style={{ transitionDelay: "800ms" }}
         >
-          + Custom HTTP tools for any API
+          What HiGantic does
         </p>
+        <h2
+          className={`text-2xl md:text-4xl font-bold tracking-tight leading-tight max-w-lg transition-all duration-700 ${
+            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionDelay: "80ms" }}
+        >
+          Not another chatbot.
+          <br />
+          <span className="text-zinc-500">A workspace that thinks.</span>
+        </h2>
+      </div>
+
+      {/* Bento-ish grid — deliberately asymmetric */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+        {/* Large — Memory */}
+        <FeatureBlock
+          className="md:col-span-7"
+          inView={inView}
+          delay={120}
+          label="Memory"
+          title="Remembers everything, forgets nothing"
+          desc="Agents store facts, preferences, and context across every conversation. They recall what matters, when it matters."
+        >
+          <div className="mt-4 space-y-1.5 font-mono text-[11px]">
+            {[
+              { cat: "preference", val: "User prefers concise bullet points" },
+              { cat: "fact", val: "Q1 revenue target: $2.4M" },
+              { cat: "context", val: "Working on competitor analysis project" },
+            ].map((m, i) => (
+              <div key={i} className="flex gap-2 text-zinc-600">
+                <span className="text-neon-400/50 shrink-0">[{m.cat}]</span>
+                <span className="text-zinc-500">{m.val}</span>
+              </div>
+            ))}
+          </div>
+        </FeatureBlock>
+
+        {/* Small — Tools */}
+        <FeatureBlock
+          className="md:col-span-5"
+          inView={inView}
+          delay={200}
+          label="Tools"
+          title="50+ built-in capabilities"
+          desc="Web search, email, Slack, Notion, Google Workspace, webhooks, scheduled actions, and custom HTTP endpoints."
+        >
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {[
+              { icon: Globe, c: "text-neon-400/50" },
+              { icon: Mail, c: "text-rose-400/50" },
+              { icon: Database, c: "text-purple-400/50" },
+              { icon: Workflow, c: "text-amber-400/50" },
+              { icon: Shield, c: "text-cyan-400/50" },
+              { icon: Webhook, c: "text-orange-400/50" },
+            ].map((t, i) => (
+              <div key={i} className="h-8 w-8 rounded-md border border-zinc-800/50 bg-zinc-900/30 flex items-center justify-center">
+                <t.icon className={`h-3.5 w-3.5 ${t.c}`} />
+              </div>
+            ))}
+          </div>
+        </FeatureBlock>
+
+        {/* Small — Pages */}
+        <FeatureBlock
+          className="md:col-span-5"
+          inView={inView}
+          delay={280}
+          label="Pages"
+          title="A workspace per agent"
+          desc="Kanban tasks, markdown notes, spreadsheets, data tables — agents create and manage them autonomously."
+        >
+          <div className="mt-4 grid grid-cols-3 gap-1.5">
+            {["Tasks", "Notes", "Sheets"].map((p) => (
+              <div key={p} className="rounded-md border border-zinc-800/40 bg-zinc-950/30 px-2 py-3 text-center">
+                <div className="text-[10px] text-zinc-600">{p}</div>
+              </div>
+            ))}
+          </div>
+        </FeatureBlock>
+
+        {/* Large — Automations */}
+        <FeatureBlock
+          className="md:col-span-7"
+          inView={inView}
+          delay={360}
+          label="Automations"
+          title="Runs while you sleep"
+          desc="Event-driven workflows trigger on task creation, email receipt, or any custom event. Cron schedules keep agents working around the clock."
+        >
+          <div className="mt-4 font-mono text-[11px] space-y-1">
+            <div className="text-zinc-600">
+              <span className="text-amber-400/60">on</span> task.created <span className="text-zinc-700">→</span> send_slack_message
+            </div>
+            <div className="text-zinc-600">
+              <span className="text-amber-400/60">on</span> email.received <span className="text-zinc-700">→</span> store_memory → create_task
+            </div>
+            <div className="text-zinc-600">
+              <span className="text-cyan-400/60">cron</span> 0 9 * * 1 <span className="text-zinc-700">→</span> weekly_report
+            </div>
+          </div>
+        </FeatureBlock>
       </div>
     </section>
   );
 }
 
-/* ── Pricing Section ────────────────────────────────────────────────── */
-function PricingSection() {
+function FeatureBlock({
+  className = "",
+  inView,
+  delay,
+  label,
+  title,
+  desc,
+  children,
+}: {
+  className?: string;
+  inView: boolean;
+  delay: number;
+  label: string;
+  title: string;
+  desc: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-xl border border-zinc-800/50 bg-zinc-900/20 p-5 transition-all duration-700 hover:border-zinc-700/50 hover:bg-zinc-900/30 ${className} ${
+        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-neon-400/50 mb-2">{label}</p>
+      <h3 className="text-base font-semibold text-zinc-200 mb-1">{title}</h3>
+      <p className="text-[13px] text-zinc-500 leading-relaxed">{desc}</p>
+      {children}
+    </div>
+  );
+}
+
+/* ── Show Don't Tell — interactive-looking agent flow ───────────────── */
+function ShowDontTell() {
+  const { ref, inView } = useInView(0.1);
+
+  return (
+    <section id="how" ref={ref} className="relative max-w-6xl mx-auto px-6 py-24 md:py-32">
+      <div className="mb-16">
+        <p
+          className={`text-[11px] font-mono uppercase tracking-[0.15em] text-neon-400/70 mb-3 transition-all duration-700 ${
+            inView ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          How it works
+        </p>
+        <h2
+          className={`text-2xl md:text-4xl font-bold tracking-tight leading-tight max-w-lg transition-all duration-700 ${
+            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionDelay: "80ms" }}
+        >
+          Describe it. We build it.
+          <br />
+          <span className="text-zinc-500">You use it.</span>
+        </h2>
+      </div>
+
+      {/* Vertical timeline — not horizontal cards */}
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-neon-400/20 via-zinc-800/40 to-transparent hidden md:block" />
+
+        <div className="space-y-10 md:space-y-14">
+          {[
+            {
+              n: "1",
+              title: "Talk to the creator agent",
+              body: "Describe what you want in plain language. The creator agent asks clarifying questions, suggests tools, and builds your agent's config through conversation.",
+              mono: (
+                <div className="space-y-1 text-[12px] font-mono">
+                  <div><span className="text-zinc-600">you:</span> <span className="text-zinc-400">I need an agent that monitors competitor pricing</span></div>
+                  <div><span className="text-neon-400/60">creator:</span> <span className="text-zinc-500">I'll set up web search, memory, and a daily cron schedule. Should it also post updates to Slack?</span></div>
+                </div>
+              ),
+            },
+            {
+              n: "2",
+              title: "It picks the right tools",
+              body: "Based on your description, the creator selects from 17+ tool sets — memory, web search, pages, email, Slack, Notion, Google, and more.",
+              mono: (
+                <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
+                  {["memory", "web_search", "pages", "slack", "schedules"].map((t) => (
+                    <span key={t} className="text-neon-400/50 border border-neon-400/15 rounded px-1.5 py-0.5 bg-neon-400/5">{t}</span>
+                  ))}
+                </div>
+              ),
+            },
+            {
+              n: "3",
+              title: "Your agent goes live",
+              body: "Instantly deployed with its own workspace, conversation history, memory store, and pages. Chat with it, let it run automations, or expose it as an API.",
+              mono: (
+                <div className="text-[12px] font-mono text-zinc-600">
+                  <span className="text-neon-400/70">status:</span> active &nbsp;
+                  <span className="text-zinc-700">|</span> &nbsp;
+                  <span className="text-zinc-500">3 pages</span> &nbsp;
+                  <span className="text-zinc-700">|</span> &nbsp;
+                  <span className="text-zinc-500">cron: 0 9 * * *</span>
+                </div>
+              ),
+            },
+          ].map((step, i) => (
+            <div
+              key={step.n}
+              className={`flex gap-5 md:gap-8 transition-all duration-700 ${
+                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+              }`}
+              style={{ transitionDelay: `${200 + i * 120}ms` }}
+            >
+              {/* Step marker */}
+              <div className="shrink-0 relative">
+                <div className="h-10 w-10 rounded-lg border border-zinc-800/60 bg-zinc-900/40 flex items-center justify-center text-sm font-bold text-zinc-600">
+                  {step.n}
+                </div>
+              </div>
+
+              <div className="flex-1 pb-2">
+                <h3 className="text-lg font-semibold text-zinc-200 mb-1.5">{step.title}</h3>
+                <p className="text-[13px] text-zinc-500 leading-relaxed mb-3 max-w-lg">{step.body}</p>
+                <div className="rounded-lg border border-zinc-800/40 bg-zinc-950/30 px-4 py-3">
+                  {step.mono}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Tool Tape — horizontal scrolling tool grid ─────────────────────── */
+function ToolTape() {
+  const { ref, inView } = useInView(0.1);
+
+  const tools = [
+    { icon: Brain, name: "Memory", desc: "Store & recall across sessions" },
+    { icon: Globe, name: "Web Search", desc: "Search & fetch live data" },
+    { icon: FileText, name: "Pages", desc: "Notes, tasks, spreadsheets" },
+    { icon: Mail, name: "Email", desc: "Send via Resend or Gmail" },
+    { icon: Clock, name: "Schedules", desc: "Cron & interval triggers" },
+    { icon: Webhook, name: "Webhooks", desc: "Inbound & outbound hooks" },
+    { icon: Users, name: "Multi-Agent", desc: "Agent-to-agent delegation" },
+    { icon: Code2, name: "REST API", desc: "Expose agents as endpoints" },
+    { icon: Shield, name: "Credentials", desc: "AES-256 encrypted vault" },
+    { icon: Database, name: "RAG", desc: "Vector search on documents" },
+    { icon: Puzzle, name: "Custom Tools", desc: "Your own HTTP endpoints" },
+    { icon: Cpu, name: "Multi-Model", desc: "Claude, Gemini & more" },
+  ];
+
+  return (
+    <section ref={ref} className="py-20 md:py-28 border-t border-zinc-800/30">
+      <div className="max-w-6xl mx-auto px-6 mb-10">
+        <p
+          className={`text-[11px] font-mono uppercase tracking-[0.15em] text-neon-400/70 mb-3 transition-all duration-700 ${
+            inView ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          Capabilities
+        </p>
+        <h2
+          className={`text-2xl md:text-3xl font-bold tracking-tight transition-all duration-700 ${
+            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionDelay: "80ms" }}
+        >
+          Everything an agent needs. Nothing it doesn't.
+        </h2>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {tools.map((tool, i) => (
+            <div
+              key={tool.name}
+              className={`group rounded-lg border border-zinc-800/40 bg-zinc-900/20 p-3.5 hover:border-zinc-700/50 hover:bg-zinc-900/40 transition-all duration-500 ${
+                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              }`}
+              style={{ transitionDelay: `${120 + i * 40}ms` }}
+            >
+              <tool.icon className="h-4 w-4 text-zinc-600 group-hover:text-neon-400/70 transition-colors mb-2.5" />
+              <div className="text-[13px] font-medium text-zinc-300">{tool.name}</div>
+              <div className="text-[11px] text-zinc-600 mt-0.5">{tool.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Pricing ────────────────────────────────────────────────────────── */
+function Pricing() {
   const { ref, inView } = useInView();
 
   const plans = [
     {
       name: "Free",
       price: "$0",
-      period: "forever",
-      desc: "Perfect for trying out HiGantic",
-      features: [
-        "Up to 3 agents",
-        "Tasks, Notes & Markdown pages",
-        "Memory & web search",
-        "1 concurrent job",
-        "5 pages per agent",
-        "Community support",
+      note: "No card required",
+      items: [
+        { text: "3 agents", included: true },
+        { text: "Tasks, Notes, Markdown", included: true },
+        { text: "Memory & web search", included: true },
+        { text: "5 pages per agent", included: true },
+        { text: "Spreadsheets & APIs", included: false },
+        { text: "Automations", included: false },
       ],
-      cta: "Get Started Free",
+      cta: "Get started",
       featured: false,
     },
     {
       name: "Pro",
       price: "$29",
-      period: "/month",
-      desc: "For power users and small teams",
-      features: [
-        "Up to 10 agents",
-        "All page types (Spreadsheet, API, Workflow)",
-        "Full automation & scheduling",
-        "5 concurrent jobs",
-        "20 pages per agent",
-        "PostgreSQL connections",
-        "REST API endpoints",
-        "Priority support",
+      note: "/month",
+      items: [
+        { text: "10 agents", included: true },
+        { text: "All page types", included: true },
+        { text: "Full automation & cron", included: true },
+        { text: "20 pages per agent", included: true },
+        { text: "REST API endpoints", included: true },
+        { text: "PostgreSQL connections", included: true },
       ],
-      cta: "Start Pro Trial",
+      cta: "Start trial",
       featured: true,
     },
     {
       name: "Enterprise",
       price: "Custom",
-      period: "",
-      desc: "For organizations at scale",
-      features: [
-        "Up to 100 agents",
-        "All Pro features included",
-        "20 concurrent jobs",
-        "50 pages per agent",
-        "5 PostgreSQL connections",
-        "SSO & team management",
-        "Custom integrations",
-        "Dedicated support & SLA",
+      note: "",
+      items: [
+        { text: "100 agents", included: true },
+        { text: "Everything in Pro", included: true },
+        { text: "20 concurrent jobs", included: true },
+        { text: "SSO & team management", included: true },
+        { text: "Custom integrations", included: true },
+        { text: "Dedicated support & SLA", included: true },
       ],
-      cta: "Contact Sales",
+      cta: "Talk to us",
       featured: false,
     },
   ];
 
   return (
-    <section
-      id="pricing"
-      ref={ref}
-      className="relative py-24 md:py-32 border-t border-zinc-800/40"
-    >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-neon-400/[0.02] blur-[200px] pointer-events-none" />
+    <section id="pricing" ref={ref} className="max-w-6xl mx-auto px-6 py-24 md:py-32">
+      <div className="mb-14">
+        <p
+          className={`text-[11px] font-mono uppercase tracking-[0.15em] text-neon-400/70 mb-3 transition-all duration-700 ${
+            inView ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          Pricing
+        </p>
+        <h2
+          className={`text-2xl md:text-4xl font-bold tracking-tight transition-all duration-700 ${
+            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionDelay: "80ms" }}
+        >
+          Start free. Scale when ready.
+        </h2>
+      </div>
 
-      <div className="relative max-w-7xl mx-auto px-6">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2
-            className={`text-3xl md:text-5xl font-bold tracking-tight mb-4 transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {plans.map((plan, i) => (
+          <div
+            key={plan.name}
+            className={`relative rounded-xl border p-6 transition-all duration-700 ${
+              plan.featured
+                ? "border-neon-400/25 bg-neon-400/[0.03]"
+                : "border-zinc-800/50 bg-zinc-900/20"
+            } ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+            style={{ transitionDelay: `${150 + i * 80}ms` }}
           >
-            <span className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-              Simple, Transparent
-            </span>{" "}
-            <span className="bg-gradient-to-r from-neon-300 to-emerald-400 bg-clip-text text-transparent">
-              Pricing
-            </span>
-          </h2>
-          <p
-            className={`text-zinc-500 max-w-lg mx-auto transition-all duration-700 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-            style={{ transitionDelay: "100ms" }}
-          >
-            Start free, scale when you're ready. No hidden fees.
-          </p>
-        </div>
-
-        {/* Pricing cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {plans.map((plan, i) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-2xl border p-6 md:p-8 transition-all duration-700 ${
-                plan.featured
-                  ? "border-neon-400/30 bg-gradient-to-b from-neon-400/[0.08] via-zinc-900/50 to-zinc-900/30 shadow-xl shadow-neon-400/[0.05] md:scale-105"
-                  : "border-zinc-800/60 bg-zinc-900/30"
-              } ${
-                inView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
-              }`}
-              style={{ transitionDelay: `${200 + i * 100}ms` }}
-            >
-              {/* Popular badge */}
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <div className="flex items-center gap-1.5 rounded-full bg-neon-400 px-4 py-1 text-xs font-semibold text-zinc-950">
-                    <Star className="h-3 w-3" />
-                    Most Popular
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-zinc-200">
-                  {plan.name}
-                </h3>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-sm text-zinc-500">{plan.period}</span>
-                  )}
-                </div>
-                <p className="mt-2 text-sm text-zinc-500">{plan.desc}</p>
+            {plan.featured && (
+              <div className="absolute -top-2.5 left-4">
+                <span className="text-[10px] font-mono uppercase tracking-wider bg-neon-400 text-zinc-950 px-2 py-0.5 rounded font-semibold">
+                  Popular
+                </span>
               </div>
+            )}
 
-              <div className="space-y-3 mb-8">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-start gap-3">
-                    <Check className="h-4 w-4 text-neon-400 shrink-0 mt-0.5" />
-                    <span className="text-sm text-zinc-400">{feature}</span>
-                  </div>
-                ))}
+            <div className="mb-5">
+              <h3 className="text-sm font-medium text-zinc-400">{plan.name}</h3>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-3xl font-bold text-white">{plan.price}</span>
+                {plan.note && <span className="text-xs text-zinc-600">{plan.note}</span>}
               </div>
-
-              <SignInButton mode="modal">
-                <button
-                  className={`w-full rounded-xl py-3 text-sm font-semibold transition-all ${
-                    plan.featured
-                      ? "bg-gradient-to-r from-neon-500 to-neon-400 text-zinc-950 hover:from-neon-400 hover:to-neon-300 glow-neon-sm"
-                      : "border border-zinc-700/60 bg-zinc-800/40 text-zinc-200 hover:bg-zinc-800/60 hover:border-zinc-600"
-                  }`}
-                >
-                  {plan.cta}
-                </button>
-              </SignInButton>
             </div>
-          ))}
-        </div>
+
+            <div className="space-y-2.5 mb-6">
+              {plan.items.map((item) => (
+                <div key={item.text} className="flex items-center gap-2.5 text-[13px]">
+                  {item.included ? (
+                    <Check className="h-3.5 w-3.5 text-neon-400/70 shrink-0" />
+                  ) : (
+                    <Minus className="h-3.5 w-3.5 text-zinc-700 shrink-0" />
+                  )}
+                  <span className={item.included ? "text-zinc-400" : "text-zinc-700"}>
+                    {item.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <SignInButton mode="modal">
+              <button
+                className={`w-full text-[13px] font-medium py-2.5 rounded-lg transition-all ${
+                  plan.featured
+                    ? "bg-neon-400 text-zinc-950 hover:bg-neon-300"
+                    : "border border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:border-zinc-700"
+                }`}
+              >
+                {plan.cta}
+              </button>
+            </SignInButton>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-/* ── Final CTA Section ──────────────────────────────────────────────── */
-function FinalCTASection() {
+/* ── Bottom CTA ─────────────────────────────────────────────────────── */
+function BottomCTA() {
   const { ref, inView } = useInView();
 
   return (
-    <section ref={ref} className="relative py-24 md:py-32 border-t border-zinc-800/40">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-neon-400/[0.06] blur-[150px] hero-glow-pulse" />
-      </div>
-
-      <div className="relative max-w-3xl mx-auto px-6 text-center">
+    <section ref={ref} className="border-t border-zinc-800/30">
+      <div className="max-w-6xl mx-auto px-6 py-24 md:py-32">
         <div
-          className={`relative inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-neon-400/10 ring-1 ring-neon-400/20 shadow-2xl shadow-neon-400/10 overflow-hidden mb-8 transition-all duration-700 ${
-            inView ? "opacity-100 scale-100" : "opacity-0 scale-90"
+          className={`max-w-2xl transition-all duration-700 ${
+            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           }`}
         >
-          <img
-            src="/logo.png"
-            alt="HiGantic"
-            className="h-14 w-14 object-contain"
-          />
+          <h2 className="text-2xl md:text-4xl font-bold tracking-tight mb-4">
+            Stop configuring.
+            <br />
+            <span className="text-neon-400">Start shipping agents.</span>
+          </h2>
+          <p className="text-zinc-500 text-base mb-8 max-w-lg">
+            Free to start. No credit card. Your first agent is a conversation away.
+          </p>
+          <SignInButton mode="modal">
+            <button className="group text-sm font-medium bg-neon-400 text-zinc-950 px-6 py-3 rounded-lg hover:bg-neon-300 transition-all glow-neon-sm">
+              Get started free
+              <ArrowRight className="inline ml-1.5 h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </SignInButton>
         </div>
-
-        <h2
-          className={`text-3xl md:text-5xl font-bold tracking-tight mb-4 transition-all duration-700 ${
-            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-          style={{ transitionDelay: "100ms" }}
-        >
-          <span className="bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-            Ready to Build Your
-          </span>
-          <br />
-          <span className="bg-gradient-to-r from-neon-300 to-emerald-400 bg-clip-text text-transparent">
-            AI Workforce?
-          </span>
-        </h2>
-        <p
-          className={`text-lg text-zinc-500 max-w-xl mx-auto mb-10 transition-all duration-700 ${
-            inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-          style={{ transitionDelay: "200ms" }}
-        >
-          Join thousands of creators building agents that think, remember, and
-          act. Start for free — no credit card required.
-        </p>
-
-        <SignInButton mode="modal">
-          <button
-            className={`group relative rounded-xl bg-gradient-to-r from-neon-500 to-neon-400 px-10 py-4 text-base font-semibold text-zinc-950 hover:from-neon-400 hover:to-neon-300 transition-all glow-neon hover:shadow-xl hover:shadow-neon-400/25 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-            style={{ transitionDelay: "300ms" }}
-          >
-            Get Started Free
-            <ArrowRight className="inline-block ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </SignInButton>
       </div>
     </section>
   );
@@ -1247,100 +854,21 @@ function FinalCTASection() {
 /* ── Footer ─────────────────────────────────────────────────────────── */
 function Footer() {
   return (
-    <footer className="border-t border-zinc-800/40 bg-zinc-950/80">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-base font-semibold text-zinc-100"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neon-400/10 ring-1 ring-neon-400/20 overflow-hidden">
-                <img
-                  src="/logo.png"
-                  alt="HiGantic"
-                  className="h-5 w-5 object-contain"
-                />
-              </div>
-              HiGantic
-            </Link>
-            <p className="mt-3 text-sm text-zinc-600 leading-relaxed">
-              Build AI agents that think, remember, and act autonomously.
-            </p>
-          </div>
-
-          {/* Product */}
-          <div>
-            <h4 className="text-sm font-semibold text-zinc-300 mb-3">
-              Product
-            </h4>
-            <div className="space-y-2">
-              {["Features", "Pricing", "Integrations", "Changelog"].map(
-                (item) => (
-                  <a
-                    key={item}
-                    href={`#${item.toLowerCase()}`}
-                    className="block text-sm text-zinc-600 hover:text-zinc-300 transition-colors"
-                  >
-                    {item}
-                  </a>
-                )
-              )}
+    <footer className="border-t border-zinc-800/30">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-2 text-sm text-zinc-600">
+            <div className="h-5 w-5 rounded bg-neon-400/10 ring-1 ring-neon-400/20 overflow-hidden flex items-center justify-center">
+              <img src="/logo.png" alt="" className="h-3.5 w-3.5 object-contain" />
             </div>
+            <span>&copy; {new Date().getFullYear()} HiGantic</span>
           </div>
 
-          {/* Resources */}
-          <div>
-            <h4 className="text-sm font-semibold text-zinc-300 mb-3">
-              Resources
-            </h4>
-            <div className="space-y-2">
-              {[
-                { label: "Documentation", href: "/docs" },
-                { label: "API Reference", href: "/docs/api" },
-                { label: "Templates", href: "#" },
-                { label: "Blog", href: "#" },
-              ].map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  className="block text-sm text-zinc-600 hover:text-zinc-300 transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="text-sm font-semibold text-zinc-300 mb-3">Legal</h4>
-            <div className="space-y-2">
-              {["Privacy", "Terms", "Security"].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="block text-sm text-zinc-600 hover:text-zinc-300 transition-colors"
-                >
-                  {item}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div className="mt-12 pt-6 border-t border-zinc-800/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-zinc-700">
-            &copy; {new Date().getFullYear()} HiGantic. All rights reserved.
-          </p>
-          <div className="flex items-center gap-1 text-xs text-zinc-700">
-            Built with
-            <span className="text-neon-400 mx-0.5">
-              <Sparkles className="h-3 w-3 inline" />
-            </span>
-            and Claude
+          <div className="flex items-center gap-5 text-[13px] text-zinc-600">
+            <Link to="/docs" className="hover:text-zinc-300 transition-colors">Docs</Link>
+            <a href="#pricing" className="hover:text-zinc-300 transition-colors">Pricing</a>
+            <a href="#" className="hover:text-zinc-300 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-zinc-300 transition-colors">Terms</a>
           </div>
         </div>
       </div>
@@ -1401,9 +929,7 @@ function PlanToggle() {
       >
         <div
           className={`absolute top-0.5 h-3 w-3 rounded-full transition-all ${
-            isPro
-              ? "left-[18px] bg-amber-400"
-              : "left-0.5 bg-zinc-500"
+            isPro ? "left-[18px] bg-amber-400" : "left-0.5 bg-zinc-500"
           }`}
         />
       </div>
@@ -1436,13 +962,10 @@ function DashboardView() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {getGreeting()}
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight">{getGreeting()}</h1>
             <PlanToggle />
           </div>
           {filteredAgents && (
@@ -1465,10 +988,8 @@ function DashboardView() {
         </Link>
       </div>
 
-      {/* Toolbar */}
       {visibleAgents && visibleAgents.length > 0 && (
         <div className="flex items-center gap-3 mb-6">
-          {/* Search */}
           <div className={`relative transition-all duration-300 ${searchFocused ? "flex-1 max-w-sm" : "flex-1 max-w-xs"}`}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
@@ -1481,15 +1002,11 @@ function DashboardView() {
               className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-all"
             />
           </div>
-
-          {/* View toggle */}
           <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-1.5 rounded-md transition-colors ${
-                viewMode === "grid"
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300"
+                viewMode === "grid" ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -1497,9 +1014,7 @@ function DashboardView() {
             <button
               onClick={() => setViewMode("list")}
               className={`p-1.5 rounded-md transition-colors ${
-                viewMode === "list"
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300"
+                viewMode === "list" ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               <List className="h-4 w-4" />
@@ -1508,42 +1023,25 @@ function DashboardView() {
         </div>
       )}
 
-      {/* Content */}
       {filteredAgents === undefined ? (
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-              : "space-y-3"
-          }
-        >
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`rounded-2xl border border-zinc-800/60 bg-zinc-900/30 animate-pulse ${
-                viewMode === "grid" ? "h-40" : "h-20"
-              }`}
-            />
+            <div key={i} className={`rounded-2xl border border-zinc-800/60 bg-zinc-900/30 animate-pulse ${viewMode === "grid" ? "h-40" : "h-20"}`} />
           ))}
         </div>
       ) : filteredAgents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          {/* CSS-art empty state */}
           <div className="relative mb-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800">
               <Bot className="h-8 w-8 text-zinc-700" />
             </div>
-            {/* Decorative dots */}
             <div className="absolute -top-2 -right-2 h-3 w-3 rounded-full bg-neon-400/20" />
             <div className="absolute -bottom-1 -left-3 h-2 w-2 rounded-full bg-zinc-700/40" />
-            <div className="absolute top-1/2 -right-5 h-1.5 w-1.5 rounded-full bg-zinc-600/30" />
           </div>
           {searchQuery ? (
             <>
               <p className="text-zinc-400 font-medium">No agents found</p>
-              <p className="mt-1 text-sm text-zinc-600">
-                Try a different search term
-              </p>
+              <p className="mt-1 text-sm text-zinc-600">Try a different search term</p>
             </>
           ) : (
             <>
@@ -1560,28 +1058,11 @@ function DashboardView() {
           )}
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={filteredAgents.map((a) => a._id)}
-            strategy={rectSortingStrategy}
-          >
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                  : "space-y-3"
-              }
-            >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={filteredAgents.map((a) => a._id)} strategy={rectSortingStrategy}>
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
               {filteredAgents.map((agent) => (
-                <AgentCard
-                  key={agent._id}
-                  agent={agent}
-                  isDraggable={true}
-                />
+                <AgentCard key={agent._id} agent={agent} isDraggable={true} />
               ))}
             </div>
           </SortableContext>

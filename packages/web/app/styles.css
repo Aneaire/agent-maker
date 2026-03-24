@@ -366,16 +366,27 @@
 }
 
 /* ── Model slideshow (vertical slide) ──────────────────────────────── */
-/* 2 models, each 20px tall. Slide by 20px per step. */
+/* 2 models, each 16px tall. Slide by 16px per step. */
 
 @keyframes slide-models {
   0%, 40%   { transform: translateY(0); }
-  50%, 90%  { transform: translateY(-20px); }
+  50%, 90%  { transform: translateY(-16px); }
   100%      { transform: translateY(0); }
 }
 
 .model-slider-track {
   animation: slide-models 6s ease-in-out infinite;
+}
+
+/* ── Marquee scroll ────────────────────────────────────────────────── */
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-scroll {
+  animation: marquee-scroll 30s linear infinite;
 }
 
 /* ── Clerk modal centering ─────────────────────────────────────────── */
