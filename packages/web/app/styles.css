@@ -244,6 +244,127 @@
   50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.15); }
 }
 
+/* ── Landing page animations ───────────────────────────────────────── */
+
+@keyframes fade-in-up-slow {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility fade-in-up-slow {
+  animation: fade-in-up-slow 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@utility hero-glow-pulse {
+  animation: hero-glow-pulse 4s ease-in-out infinite;
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility slide-in-left {
+  animation: slide-in-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility slide-in-right {
+  animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes count-up-line {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@utility count-up-line {
+  animation: count-up-line 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes typing-cursor {
+  0%, 100% { border-color: rgba(52, 211, 153, 0.8); }
+  50% { border-color: transparent; }
+}
+
+@utility typing-cursor {
+  animation: typing-cursor 1s step-end infinite;
+}
+
+@keyframes grid-line-horizontal {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes grid-line-vertical {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(120px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+}
+
+@utility orbit-slow {
+  animation: orbit 20s linear infinite;
+}
+
+@utility orbit-medium {
+  animation: orbit 15s linear infinite reverse;
+}
+
+@utility orbit-fast {
+  animation: orbit 10s linear infinite;
+}
+
+@keyframes draw-border {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@utility shimmer-sweep {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.06), transparent);
+    animation: shimmer-sweep 3s ease-in-out infinite;
+  }
+}
+
 /* ── Scrollbar styling ──────────────────────────────────────────────── */
 
 @layer base {
