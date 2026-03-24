@@ -79,21 +79,32 @@ function formatNextRun(ts: number | undefined): string {
 }
 
 function getEventStyle(eventName: string): string {
-  if (eventName.startsWith("task."))       return "text-blue-400 bg-blue-950/40 ring-blue-800/40";
-  if (eventName.startsWith("email."))      return "text-amber-400 bg-amber-950/40 ring-amber-800/40";
-  if (eventName.startsWith("webhook."))    return "text-purple-400 bg-purple-950/40 ring-purple-800/40";
-  if (eventName.startsWith("schedule."))   return "text-green-400 bg-green-950/40 ring-green-800/40";
-  if (eventName.startsWith("automation.")) return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
+  if (eventName.startsWith("task."))          return "text-blue-400 bg-blue-950/40 ring-blue-800/40";
+  if (eventName.startsWith("note."))          return "text-green-400 bg-green-950/40 ring-green-800/40";
+  if (eventName.startsWith("email."))         return "text-amber-400 bg-amber-950/40 ring-amber-800/40";
+  if (eventName.startsWith("webhook."))       return "text-purple-400 bg-purple-950/40 ring-purple-800/40";
+  if (eventName.startsWith("schedule."))      return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
+  if (eventName.startsWith("timer."))         return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
+  if (eventName.startsWith("memory."))        return "text-pink-400 bg-pink-950/40 ring-pink-800/40";
+  if (eventName.startsWith("document."))      return "text-cyan-400 bg-cyan-950/40 ring-cyan-800/40";
+  if (eventName.startsWith("agent_message.")) return "text-cyan-400 bg-cyan-950/40 ring-cyan-800/40";
+  if (eventName.startsWith("automation."))    return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
   return "text-zinc-400 bg-zinc-800/60 ring-zinc-700/40";
 }
 
 function getSourceStyle(source: string): string {
   const map: Record<string, string> = {
-    page_tools:    "text-zinc-400 bg-zinc-800/40",
-    email_tools:   "text-amber-400/70 bg-amber-950/20",
-    webhook:       "text-purple-400/70 bg-purple-950/20",
-    schedule:      "text-green-400/70 bg-green-950/20",
-    automation:    "text-neon-400/70 bg-neon-950/20",
+    page_tools:          "text-zinc-400 bg-zinc-800/40",
+    email_tools:         "text-amber-400/70 bg-amber-950/20",
+    webhook:             "text-purple-400/70 bg-purple-950/20",
+    webhook_tools:       "text-purple-400/70 bg-purple-950/20",
+    scheduler:           "text-neon-400/70 bg-neon-950/20",
+    schedule:            "text-neon-400/70 bg-neon-950/20",
+    timer:               "text-neon-400/70 bg-neon-950/20",
+    automation:          "text-neon-400/70 bg-neon-950/20",
+    memory_tools:        "text-pink-400/70 bg-pink-950/20",
+    document_processor:  "text-cyan-400/70 bg-cyan-950/20",
+    agent_message_tools: "text-cyan-400/70 bg-cyan-950/20",
   };
   return map[source] ?? "text-zinc-500 bg-zinc-800/30";
 }
@@ -294,10 +305,9 @@ const EVENT_OPTIONS: Array<{
     group: "Tasks",
     groupColor: "text-blue-400",
     events: [
-      { value: "task.created",   description: "A new task was created" },
-      { value: "task.updated",   description: "A task was modified" },
-      { value: "task.completed", description: "A task was marked done" },
-      { value: "task.deleted",   description: "A task was removed" },
+      { value: "task.created", description: "A new task was created" },
+      { value: "task.updated", description: "A task was modified (use filter {status: 'done'} to catch completions)" },
+      { value: "task.deleted", description: "A task was removed" },
     ],
   },
   {
@@ -312,8 +322,8 @@ const EVENT_OPTIONS: Array<{
     group: "Email",
     groupColor: "text-amber-400",
     events: [
-      { value: "email.sent",     description: "An email was sent by the agent" },
-      { value: "email.received", description: "An incoming email arrived" },
+      { value: "email.sent",   description: "An email was sent by the agent" },
+      { value: "email.failed", description: "An email failed to send" },
     ],
   },
   {
@@ -325,18 +335,27 @@ const EVENT_OPTIONS: Array<{
     ],
   },
   {
-    group: "Schedule",
+    group: "Schedule & Timers",
     groupColor: "text-neon-400",
     events: [
       { value: "schedule.fired", description: "A scheduled action executed" },
+      { value: "timer.fired",    description: "A one-time timer fired" },
     ],
   },
   {
-    group: "Conversations",
+    group: "Memory & Documents",
+    groupColor: "text-pink-400",
+    events: [
+      { value: "memory.stored",   description: "A memory was stored by the agent" },
+      { value: "document.ready",  description: "A document finished processing and is indexed" },
+    ],
+  },
+  {
+    group: "Agent Messages",
     groupColor: "text-cyan-400",
     events: [
-      { value: "message.received",      description: "A user sent a message" },
-      { value: "conversation.started",  description: "A new conversation began" },
+      { value: "agent_message.sent",     description: "This agent sent a message to another agent" },
+      { value: "agent_message.received", description: "This agent received a message from another agent" },
     ],
   },
 ];
@@ -613,44 +632,49 @@ function AutomationForm({
 
 const PAYLOAD_VARIABLES: Record<string, Array<{ key: string; description: string }>> = {
   "task.*": [
-    { key: "{{event.payload.title}}",       description: "Task title" },
-    { key: "{{event.payload.status}}",      description: "todo / in_progress / done" },
-    { key: "{{event.payload.priority}}",    description: "low / medium / high" },
-    { key: "{{event.payload.description}}", description: "Task description" },
-    { key: "{{event.payload.tabId}}",       description: "Tab ID" },
+    { key: "{{event.title}}",       description: "Task title" },
+    { key: "{{event.status}}",      description: "todo / in_progress / done" },
+    { key: "{{event.priority}}",    description: "low / medium / high" },
+    { key: "{{event.description}}", description: "Task description" },
+    { key: "{{event.tabId}}",       description: "Tab ID" },
+    { key: "{{event.taskId}}",      description: "Task ID" },
   ],
   "note.*": [
-    { key: "{{event.payload.title}}",   description: "Note title" },
-    { key: "{{event.payload.content}}", description: "Note content" },
+    { key: "{{event.title}}",   description: "Note title" },
+    { key: "{{event.content}}", description: "Note content" },
+    { key: "{{event.noteId}}",  description: "Note ID" },
   ],
   "email.*": [
-    { key: "{{event.payload.to}}",      description: "Recipient(s)" },
-    { key: "{{event.payload.subject}}", description: "Email subject" },
-    { key: "{{event.payload.body}}",    description: "Email body" },
+    { key: "{{event.to}}",      description: "Recipient(s)" },
+    { key: "{{event.subject}}", description: "Email subject" },
+    { key: "{{event.resendId}}", description: "Resend message ID" },
   ],
   "webhook.*": [
-    { key: "{{event.payload.data}}",    description: "Webhook body (JSON)" },
-    { key: "{{event.payload.headers}}", description: "Request headers" },
+    { key: "{{event.webhookId}}", description: "Webhook ID" },
+    { key: "{{event.action}}",   description: "Webhook action" },
   ],
   "schedule.*": [
-    { key: "{{event.payload.actionId}}", description: "Scheduled action ID" },
-    { key: "{{event.payload.name}}",     description: "Schedule name" },
+    { key: "{{event.actionId}}",   description: "Scheduled action ID" },
+    { key: "{{event.actionName}}", description: "Schedule name" },
+    { key: "{{event.success}}",    description: "Whether it succeeded" },
   ],
-  "message.*": [
-    { key: "{{event.payload.content}}",        description: "Message text" },
-    { key: "{{event.payload.conversationId}}", description: "Conversation ID" },
+  "timer.*": [
+    { key: "{{event.timerId}}",    description: "Timer ID" },
+    { key: "{{event.label}}",      description: "Timer label" },
+    { key: "{{event.actionType}}", description: "Action type that fired" },
   ],
-  "conversation.*": [
-    { key: "{{event.payload.conversationId}}", description: "Conversation ID" },
-    { key: "{{event.payload.title}}",          description: "Conversation title" },
+  "memory.*": [
+    { key: "{{event.content}}",  description: "Memory content" },
+    { key: "{{event.category}}", description: "Memory category" },
+  ],
+  "document.*": [
+    { key: "{{event.documentId}}", description: "Document ID" },
+    { key: "{{event.fileName}}",   description: "File name" },
+    { key: "{{event.chunkCount}}", description: "Number of chunks indexed" },
   ],
 };
 
-const ALWAYS_AVAILABLE = [
-  { key: "{{event.event}}",   description: "Event name (e.g. task.created)" },
-  { key: "{{event.source}}",  description: "What triggered the event" },
-  { key: "{{event.agentId}}", description: "Agent ID" },
-];
+const ALWAYS_AVAILABLE: Array<{ key: string; description: string }> = [];
 
 function getPayloadVars(triggerEvent: string) {
   if (!triggerEvent) return ALWAYS_AVAILABLE;

@@ -153,10 +153,18 @@ function createTaskTools(
         .describe("Task priority"),
     },
     async (input) => {
-      await convexClient.createTask(input.tabId, agentId, {
+      const taskId = await convexClient.createTask(input.tabId, agentId, {
         title: input.title,
         description: input.description,
         status: input.status,
+        priority: input.priority,
+      });
+      await convexClient.emitEvent(agentId, "task.created", "page_tools", {
+        taskId,
+        tabId: input.tabId,
+        title: input.title,
+        description: input.description,
+        status: input.status ?? "todo",
         priority: input.priority,
       });
       return {
@@ -179,6 +187,13 @@ function createTaskTools(
     },
     async (input) => {
       await convexClient.updateTask(input.taskId, {
+        title: input.title,
+        description: input.description,
+        status: input.status,
+        priority: input.priority,
+      });
+      await convexClient.emitEvent(agentId, "task.updated", "page_tools", {
+        taskId: input.taskId,
         title: input.title,
         description: input.description,
         status: input.status,
@@ -236,7 +251,13 @@ function createNoteTools(
       content: z.string().optional().describe("Note content (markdown)"),
     },
     async (input) => {
-      await convexClient.createNote(input.tabId, agentId, {
+      const noteId = await convexClient.createNote(input.tabId, agentId, {
+        title: input.title,
+        content: input.content,
+      });
+      await convexClient.emitEvent(agentId, "note.created", "page_tools", {
+        noteId,
+        tabId: input.tabId,
         title: input.title,
         content: input.content,
       });
@@ -258,6 +279,11 @@ function createNoteTools(
     },
     async (input) => {
       await convexClient.updateNote(input.noteId, {
+        title: input.title,
+        content: input.content,
+      });
+      await convexClient.emitEvent(agentId, "note.updated", "page_tools", {
+        noteId: input.noteId,
         title: input.title,
         content: input.content,
       });

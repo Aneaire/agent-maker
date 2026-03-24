@@ -11,6 +11,32 @@ import { AgentConvexClient } from "./convex-client.js";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync } from "fs";
 
+// ── Automation types ──────────────────────────────────────────────────
+
+type AutomationActionType =
+  | "send_email"
+  | "create_task"
+  | "update_task"
+  | "create_note"
+  | "fire_webhook"
+  | "store_memory"
+  | "run_prompt"
+  | "trigger_agent"
+  | "delay";
+
+interface AutomationAction {
+  type: AutomationActionType;
+  config: Record<string, any>;
+}
+
+interface Automation {
+  _id: string;
+  name: string;
+  trigger: { event: string; filter?: Record<string, unknown> };
+  actions: AutomationAction[];
+  isActive: boolean;
+}
+
 const CONVEX_URL = process.env.CONVEX_URL!;
 const SERVER_TOKEN = process.env.AGENT_SERVER_TOKEN!;
 // Fallback poll interval — primary dispatch is push-based via Convex scheduler
@@ -709,13 +735,18 @@ async function executeScheduleAction(runId: string, actionId: string, action: an
     console.error(`[schedule] Action failed:`, err.message);
   }
 
-  await convexClient.emitEvent(action.agentId, "schedule.fired", "scheduler", {
+  const scheduleFiredPayload = {
     actionId,
     actionName: action.name,
     success,
     result: actionResult,
     error: actionError,
-  });
+  };
+
+  await convexClient.emitEvent(action.agentId, "schedule.fired", "scheduler", scheduleFiredPayload);
+
+  // Process automations triggered by schedule.fired
+  processAutomations(convexClient, action.agentId, "schedule.fired", scheduleFiredPayload);
 
   await convex.mutation(api.scheduledActions.completeRun, {
     serverToken: SERVER_TOKEN,
@@ -786,11 +817,16 @@ async function executeTimerAction(convexClient: AgentConvexClient, timer: any) {
         break;
     }
 
-    await convexClient.emitEvent(timer.agentId, "timer.fired", "timer", {
+    const timerFiredPayload = {
       timerId: timer._id,
       label: timer.label,
       actionType: timer.action.type,
-    });
+    };
+
+    await convexClient.emitEvent(timer.agentId, "timer.fired", "timer", timerFiredPayload);
+
+    // Process automations triggered by timer.fired
+    processAutomations(convexClient, timer.agentId, "timer.fired", timerFiredPayload);
 
     console.log(`[timer] Timer "${timer.label}" fired successfully`);
   } catch (err: any) {
@@ -863,12 +899,12 @@ async function processAutomations(
   convexClient: AgentConvexClient,
   agentId: string,
   event: string,
-  payload: any
+  payload: Record<string, any>
 ) {
   try {
     const automations = await convexClient.listAutomations(agentId);
-    const matching = (automations as any[]).filter(
-      (a: any) => a.isActive && a.trigger.event === event
+    const matching = (automations as Automation[]).filter(
+      (a) => a.isActive && a.trigger.event === event
     );
 
     for (const automation of matching) {
@@ -919,6 +955,15 @@ async function processAutomations(
             }
             case "create_task": {
               await convexClient.createTask(config.tabId, agentId, {
+                title: config.title,
+                description: config.description,
+                status: config.status,
+                priority: config.priority,
+              });
+              break;
+            }
+            case "update_task": {
+              await convexClient.updateTask(config.taskId, {
                 title: config.title,
                 description: config.description,
                 status: config.status,

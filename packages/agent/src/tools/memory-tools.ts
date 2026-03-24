@@ -24,6 +24,10 @@ export function createMemoryTools(
     },
     async (input) => {
       await convexClient.storeMemory(agentId, input.content, input.category);
+      await convexClient.emitEvent(agentId, "memory.stored", "memory_tools", {
+        content: input.content,
+        category: input.category,
+      });
       return {
         content: [
           { type: "text" as const, text: `Stored memory: "${input.content}"` },

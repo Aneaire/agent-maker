@@ -30,6 +30,14 @@ Monorepo with 3 packages:
 - **Credentials**: Centralized credential store (`credentials` table) with AES-256-GCM encryption. Linked to agents via `agentCredentialLinks`. Runtime falls back to legacy `agentToolConfigs` if no linked credential exists. Registry in `packages/shared/src/credential-types.ts`.
 - **Models**: Claude (Anthropic) and Gemini (Google) supported. Routed via `isGeminiModel()`.
 
+## TypeScript Guidelines
+
+- **Always attempt proper types first** — define interfaces for API responses, action configs, and structured objects
+- **`any` is acceptable** when: the Convex schema uses `v.any()`, external API responses are untyped, or proper typing would require excessive complexity
+- Prefer `Record<string, any>` over bare `any` for objects with unknown keys
+- Use `as SomeType` casts only when you control the shape (e.g. Convex query results, external JSON responses)
+- Never block a feature on perfect types — a working `any` beats a broken type
+
 ## Key Patterns
 
 - Server-facing mutations use `serverToken` auth via `requireServerAuth()`
@@ -44,7 +52,7 @@ Monorepo with 3 packages:
 
 ## Adding a New Tool Set (Checklist)
 
-When adding a new feature or tool set, **all 6 steps are required** or the agent won't fully know about or use it:
+When adding a new feature or tool set, **all 7 steps are required** or the agent won't fully know about or use it:
 
 1. **Tool file** — Create `packages/agent/src/tools/<name>-tools.ts` exporting `create<Name>Tools()`
 2. **MCP server** — Wire into `packages/agent/src/mcp-server.ts`: import + conditional registration in `buildMcpServer()` and `buildAllowedTools()`
@@ -52,6 +60,7 @@ When adding a new feature or tool set, **all 6 steps are required** or the agent
 4. **UI settings** — Add entry to `TOOL_SET_INFO` in `packages/web/app/routes/agents.$agentId.settings.tsx`
 5. **Schema** — Add any new tables/indexes in `packages/shared/convex/schema.ts`, plus server-facing and user-facing endpoints
 6. **Tool Sets list** — Add the new key to the `enabledToolSets` list in this file (and `AGENTS.md`)
+7. **Event Bus** — Every meaningful tool action must emit an event (see Event Bus Rules below)
 
 > **Critical**: Step 3 is the most commonly missed. Without system prompt updates, the agent has the tool but doesn't know to use it effectively. The `allIntegrations` map is also important — it lets the agent tell users about available integrations they haven't enabled yet.
 
@@ -61,6 +70,29 @@ When adding a new feature or tool set, **all 6 steps are required** or the agent
 2. Add the tool name to `buildAllowedTools()` in `mcp-server.ts`
 3. Update system prompt guidance if the tool introduces new behavior the agent should know about
 4. Add any new Convex endpoints needed
+5. **Emit an event** for every meaningful action (see Event Bus Rules below)
+
+## Event Bus Rules
+
+Every tool action that creates, updates, deletes, or sends something **must** emit an event. This is what powers automations, the event log, and workflow triggers.
+
+**Pattern** (in tool handler, after the action succeeds):
+```ts
+await convexClient.emitEvent(agentId, "category.action", "source_name", {
+  // payload: flat key/value fields relevant to the event
+});
+```
+
+**Naming conventions:**
+- Event name: `<category>.<action>` — e.g. `task.created`, `email.sent`, `slack.message_sent`
+- Source: tool file name without extension — e.g. `page_tools`, `email_tools`, `slack_tools`
+- Payload: flat object with the most useful fields (IDs, names, statuses). No nesting needed.
+
+**After adding new events, also update `WorkflowPage.tsx`:**
+- Add the event to `EVENT_OPTIONS` so it appears in the automation trigger picker
+- Add payload fields to `PAYLOAD_VARIABLES` under the matching `"category.*"` key so users can copy template vars
+
+**When NOT to emit:** read-only tools (list, get, search) do not need events. Only write/send/create/delete actions.
 
 ## Adding a New Workspace Page Type (Checklist)
 

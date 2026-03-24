@@ -8,6 +8,16 @@ interface EmailConfig {
   fromName?: string;
 }
 
+interface ResendSuccessResponse {
+  id: string;
+}
+
+interface ResendErrorResponse {
+  message: string;
+  name?: string;
+  statusCode?: number;
+}
+
 async function sendViaResend(
   config: EmailConfig,
   params: {
@@ -18,7 +28,7 @@ async function sendViaResend(
     bcc?: string[];
     replyTo?: string;
   }
-) {
+): Promise<ResendSuccessResponse> {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -38,13 +48,13 @@ async function sendViaResend(
     }),
   });
 
-  const data = await res.json();
+  const data = (await res.json()) as ResendSuccessResponse | ResendErrorResponse;
 
   if (!res.ok) {
-    throw new Error(data.message || `Resend API error: ${res.status}`);
+    throw new Error((data as ResendErrorResponse).message || `Resend API error: ${res.status}`);
   }
 
-  return data;
+  return data as ResendSuccessResponse;
 }
 
 export function createEmailTools(
@@ -97,6 +107,11 @@ export function createEmailTools(
           status: "sent",
           resendId: result.id,
         });
+        await convexClient.emitEvent(agentId, "email.sent", "email_tools", {
+          to: recipients,
+          subject: input.subject,
+          resendId: result.id,
+        });
 
         return {
           content: [
@@ -113,6 +128,11 @@ export function createEmailTools(
           to: recipients,
           subject: input.subject,
           status: "failed",
+          error: err.message,
+        });
+        await convexClient.emitEvent(agentId, "email.failed", "email_tools", {
+          to: recipients,
+          subject: input.subject,
           error: err.message,
         });
 

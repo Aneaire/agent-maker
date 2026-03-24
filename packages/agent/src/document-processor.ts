@@ -75,6 +75,13 @@ export async function processDocument(params: ProcessDocumentParams) {
     // Update status to ready
     await convexClient.updateDocumentStatus(documentId, "ready", embeddedChunks.length);
 
+    // Emit document.ready event
+    await convexClient.emitEvent(agentId, "document.ready", "document_processor", {
+      documentId,
+      fileName,
+      chunkCount: embeddedChunks.length,
+    });
+
     console.log(
       `[document-processor] Processed "${fileName}": ${embeddedChunks.length} chunks`
     );
