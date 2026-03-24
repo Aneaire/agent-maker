@@ -104,6 +104,52 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    actionId: v.id("scheduledActions"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    schedule: v.optional(v.string()),
+    scheduleType: v.optional(v.union(v.literal("cron"), v.literal("interval"), v.literal("once"))),
+    action: v.optional(v.object({
+      type: v.union(
+        v.literal("send_message"),
+        v.literal("run_prompt"),
+        v.literal("fire_webhook"),
+        v.literal("send_email"),
+        v.literal("create_task"),
+        v.literal("run_automation"),
+      ),
+      config: v.any(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const action = await ctx.db.get(args.actionId);
+    if (!action) throw new Error("Scheduled action not found");
+    const agent = await ctx.db.get(action.agentId);
+    if (!agent || agent.userId !== user._id) throw new Error("Not authorized");
+
+    const { actionId, ...updates } = args;
+    const filtered: Record<string, any> = {};
+    if (updates.name !== undefined) filtered.name = updates.name.substring(0, 200);
+    if (updates.description !== undefined) filtered.description = updates.description?.substring(0, 1000);
+    if (updates.schedule !== undefined) filtered.schedule = updates.schedule;
+    if (updates.scheduleType !== undefined) filtered.scheduleType = updates.scheduleType;
+    if (updates.action !== undefined) filtered.action = updates.action;
+
+    // Recompute next run if schedule changed
+    if (updates.schedule !== undefined || updates.scheduleType !== undefined) {
+      const sched = updates.schedule ?? action.schedule;
+      const schedType = updates.scheduleType ?? action.scheduleType;
+      const now = Date.now();
+      filtered.nextRunAt = computeNextRun(sched, schedType, now);
+    }
+
+    await ctx.db.patch(actionId, filtered);
+  },
+});
+
 export const toggle = mutation({
   args: { actionId: v.id("scheduledActions") },
   handler: async (ctx, args) => {

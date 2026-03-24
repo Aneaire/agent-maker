@@ -176,10 +176,12 @@ function AutomationCard({
   automation,
   onToggle,
   onDelete,
+  onEdit,
 }: {
   automation: Doc<"automations">;
   onToggle: () => void;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -216,6 +218,13 @@ function AutomationCard({
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={onEdit}
+              className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+              title="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
             <button
               onClick={onToggle}
               className={`p-1.5 rounded-lg transition-all ${
@@ -446,6 +455,7 @@ function AutomationForm({
   agentId,
   onCreate,
   onCancel,
+  initialData,
 }: {
   agentId: string;
   onCreate: (data: {
@@ -456,13 +466,20 @@ function AutomationForm({
     actions: Array<{ type: ActionType; config: any }>;
   }) => void;
   onCancel: () => void;
+  initialData?: {
+    name: string;
+    description?: string;
+    trigger: { event: string; filter?: any };
+    actions: Array<{ type: ActionType; config: any }>;
+  };
 }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [triggerEvent, setTriggerEvent] = useState("");
-  const [actions, setActions] = useState<Array<{ type: ActionType; config: any }>>([
-    { type: "run_prompt", config: { prompt: "" } },
-  ]);
+  const isEdit = !!initialData;
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [triggerEvent, setTriggerEvent] = useState(initialData?.trigger.event ?? "");
+  const [actions, setActions] = useState<Array<{ type: ActionType; config: any }>>(
+    initialData?.actions ?? [{ type: "run_prompt", config: { prompt: "" } }]
+  );
 
   function addAction() {
     if (actions.length < 10) {
@@ -490,7 +507,7 @@ function AutomationForm({
 
   return (
     <div className="rounded-xl border border-zinc-700 bg-zinc-900/80 p-5 space-y-4 mb-3">
-      <h4 className="text-sm font-semibold">New Automation</h4>
+      <h4 className="text-sm font-semibold">{isEdit ? "Edit Automation" : "New Automation"}</h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -579,7 +596,7 @@ function AutomationForm({
           disabled={!canSubmit}
           className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
         >
-          Create Automation
+          {isEdit ? "Save Changes" : "Create Automation"}
         </button>
         <button
           onClick={onCancel}
@@ -842,10 +859,12 @@ function ScheduleCard({
   schedule,
   onToggle,
   onDelete,
+  onEdit,
 }: {
   schedule: Doc<"scheduledActions">;
   onToggle: () => void;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
   const statusColor = SCHEDULE_STATUS_COLORS[schedule.status] ?? SCHEDULE_STATUS_COLORS.paused;
   const isToggleable = schedule.status === "active" || schedule.status === "paused";
@@ -883,6 +902,13 @@ function ScheduleCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+            title="Edit"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
           {isToggleable && (
             <button
               onClick={onToggle}
@@ -924,6 +950,7 @@ function ScheduleForm({
   agentId,
   onCreate,
   onCancel,
+  initialData,
 }: {
   agentId: string;
   onCreate: (data: {
@@ -936,19 +963,27 @@ function ScheduleForm({
     maxRuns?: number;
   }) => void;
   onCancel: () => void;
+  initialData?: {
+    name: string;
+    description?: string;
+    schedule: string;
+    scheduleType: "cron" | "interval" | "once";
+    action: { type: ScheduleActionType; config: any };
+  };
 }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [scheduleType, setScheduleType] = useState<"cron" | "interval" | "once">("interval");
-  const [schedule, setSchedule] = useState("every 1h");
-  const [actionType, setActionType] = useState<ScheduleActionType>("run_prompt");
-  const [prompt, setPrompt] = useState("");
+  const isEdit = !!initialData;
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [scheduleType, setScheduleType] = useState<"cron" | "interval" | "once">(initialData?.scheduleType ?? "interval");
+  const [schedule, setSchedule] = useState(initialData?.schedule ?? "every 1h");
+  const [actionType, setActionType] = useState<ScheduleActionType>(initialData?.action.type ?? "run_prompt");
+  const [prompt, setPrompt] = useState(initialData?.action.config?.prompt ?? "");
 
   const canSubmit = name.trim() && (scheduleType === "once" || schedule.trim());
 
   return (
     <div className="rounded-xl border border-zinc-700 bg-zinc-900/80 p-5 space-y-4 mb-3">
-      <h4 className="text-sm font-semibold">New Scheduled Action</h4>
+      <h4 className="text-sm font-semibold">{isEdit ? "Edit Scheduled Action" : "New Scheduled Action"}</h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -1057,7 +1092,7 @@ function ScheduleForm({
           disabled={!canSubmit}
           className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
         >
-          Create Schedule
+          {isEdit ? "Save Changes" : "Create Schedule"}
         </button>
         <button
           onClick={onCancel}
@@ -1179,15 +1214,19 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const webhooks = useQuery(api.webhooks.listByAgent, { agentId });
 
   const createAutomation = useMutation(api.automations.create);
+  const updateAutomation = useMutation(api.automations.update);
   const toggleAutomation = useMutation(api.automations.toggle);
   const removeAutomation = useMutation(api.automations.remove);
 
   const createSchedule = useMutation(api.scheduledActions.create);
+  const updateSchedule = useMutation(api.scheduledActions.update);
   const toggleSchedule = useMutation(api.scheduledActions.toggle);
   const removeSchedule = useMutation(api.scheduledActions.remove);
 
   const [showAutoForm, setShowAutoForm] = useState(false);
   const [showSchedForm, setShowSchedForm] = useState(false);
+  const [editingAutoId, setEditingAutoId] = useState<string | null>(null);
+  const [editingSchedId, setEditingSchedId] = useState<string | null>(null);
   const [eventLimit, setEventLimit] = useState(50);
 
   const shownEvents = events?.slice(0, eventLimit) ?? [];
@@ -1266,14 +1305,42 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
               </div>
             ) : (
               <div className="space-y-2">
-                {automations.map((auto) => (
-                  <AutomationCard
-                    key={auto._id}
-                    automation={auto}
-                    onToggle={() => toggleAutomation({ automationId: auto._id })}
-                    onDelete={() => removeAutomation({ automationId: auto._id })}
-                  />
-                ))}
+                {automations.map((auto) =>
+                  editingAutoId === auto._id ? (
+                    <AutomationForm
+                      key={auto._id}
+                      agentId={agentId as string}
+                      initialData={{
+                        name: auto.name,
+                        description: auto.description,
+                        trigger: auto.trigger,
+                        actions: auto.actions as Array<{ type: ActionType; config: any }>,
+                      }}
+                      onCreate={async (data) => {
+                        await updateAutomation({
+                          automationId: auto._id,
+                          name: data.name,
+                          description: data.description,
+                          trigger: data.trigger,
+                          actions: data.actions,
+                        });
+                        setEditingAutoId(null);
+                      }}
+                      onCancel={() => setEditingAutoId(null)}
+                    />
+                  ) : (
+                    <AutomationCard
+                      key={auto._id}
+                      automation={auto}
+                      onToggle={() => toggleAutomation({ automationId: auto._id })}
+                      onDelete={() => removeAutomation({ automationId: auto._id })}
+                      onEdit={() => {
+                        setEditingAutoId(auto._id);
+                        setShowAutoForm(false);
+                      }}
+                    />
+                  )
+                )}
               </div>
             )}
           </Section>
@@ -1323,14 +1390,44 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
               </div>
             ) : (
               <div className="space-y-2">
-                {schedules.map((sched) => (
-                  <ScheduleCard
-                    key={sched._id}
-                    schedule={sched}
-                    onToggle={() => toggleSchedule({ actionId: sched._id })}
-                    onDelete={() => removeSchedule({ actionId: sched._id })}
-                  />
-                ))}
+                {schedules.map((sched) =>
+                  editingSchedId === sched._id ? (
+                    <ScheduleForm
+                      key={sched._id}
+                      agentId={agentId as string}
+                      initialData={{
+                        name: sched.name,
+                        description: sched.description,
+                        schedule: sched.schedule,
+                        scheduleType: sched.scheduleType as "cron" | "interval" | "once",
+                        action: sched.action as { type: ScheduleActionType; config: any },
+                      }}
+                      onCreate={async (data) => {
+                        await updateSchedule({
+                          actionId: sched._id,
+                          name: data.name,
+                          description: data.description,
+                          schedule: data.schedule,
+                          scheduleType: data.scheduleType,
+                          action: data.action,
+                        });
+                        setEditingSchedId(null);
+                      }}
+                      onCancel={() => setEditingSchedId(null)}
+                    />
+                  ) : (
+                    <ScheduleCard
+                      key={sched._id}
+                      schedule={sched}
+                      onToggle={() => toggleSchedule({ actionId: sched._id })}
+                      onDelete={() => removeSchedule({ actionId: sched._id })}
+                      onEdit={() => {
+                        setEditingSchedId(sched._id);
+                        setShowSchedForm(false);
+                      }}
+                    />
+                  )
+                )}
               </div>
             )}
           </Section>
