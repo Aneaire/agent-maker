@@ -16,16 +16,16 @@ This file is the primary context source for AI coding agents. Keep it optimized:
 ## Project Structure
 
 Monorepo with 3 packages:
-- `packages/agent/` — Agent execution server (Hono + Claude SDK). Runs tools, processes jobs, handles webhooks/cron/timers.
-- `packages/shared/` — Convex backend (schema, queries, mutations, actions). Shared between agent server and web UI.
+- `packages/agent/` — Agent execution server (Hono + Claude SDK). Runs tools, processes jobs. Has fallback polling for jobs/schedules/timers.
+- `packages/shared/` — Convex backend (schema, queries, mutations, actions). Includes `processAutomation.ts` for native automation/schedule/timer execution. Shared between agent server and web UI.
 - `packages/web/` — React Router web UI (agent management, chat, settings, pages).
 
 ## Architecture (Summary)
 
-- **Job System**: Polling-based. Server polls `agentJobs.listPending` every 2s, claims jobs atomically, runs agent via Claude SDK.
+- **Job System**: Push-based. `dispatch.notifyJobCreated` sends HTTP to agent server on job creation; server claims + runs via Claude SDK. Fallback poll every 30s.
 - **Tool System**: MCP servers with dynamic tool registration. Tools gated by `enabledToolSets` array on agent config.
 - **Event Bus**: All tool actions emit events to `agentEvents` table. Automations subscribe to events.
-- **Scheduling**: Server polls `scheduledActions` every 10s and `agentTimers` every 5s for due items.
+- **Automation/Schedule/Timer Execution**: Runs **natively inside Convex** via `processAutomation.ts` — no HTTP to agent server needed. Agent server has a 30s fallback poll as safety net.
 - **Auth**: Clerk for users, `serverToken` for server-to-Convex auth.
 - **Credentials**: Centralized credential store (`credentials` table) with AES-256-GCM encryption. Linked to agents via `agentCredentialLinks`. Runtime falls back to legacy `agentToolConfigs` if no linked credential exists. Registry in `packages/shared/src/credential-types.ts`.
 - **Models**: Claude (Anthropic) and Gemini (Google) supported. Routed via `isGeminiModel()`.
@@ -61,7 +61,7 @@ When adding a new feature or tool set, **all 8 steps are required** or the agent
 5. **Schema** — Add any new tables/indexes in `packages/shared/convex/schema.ts`, plus server-facing and user-facing endpoints
 6. **Tool Sets list** — Add the new key to the `enabledToolSets` list in this file (and `AGENTS.md`)
 7. **Event Bus** — Every meaningful tool action must emit an event (see Event Bus Rules below)
-8. **Sandbox seed** — Add a seeder function in `packages/shared/convex/seed/toolset-seeders.ts` and register it in `seed/registry.ts` → `TOOLSET_SEEDERS` (see Sandbox Seed System below)
+8. **Sandbox seed** — Add a seeder function in `packages/shared/convex/seed/toolsetSeeders.ts` and register it in `seed/registry.ts` → `TOOLSET_SEEDERS` (see Sandbox Seed System below)
 
 > **Critical**: Step 3 is the most commonly missed. Without system prompt updates, the agent has the tool but doesn't know to use it effectively. The `allIntegrations` map is also important — it lets the agent tell users about available integrations they haven't enabled yet.
 
@@ -81,6 +81,7 @@ When adding support for a new AI model, **all 4 steps are required**:
 3. Update system prompt guidance if the tool introduces new behavior the agent should know about
 4. Add any new Convex endpoints needed
 5. **Emit an event** for every meaningful action (see Event Bus Rules below)
+6. If the tool's UI mutation should trigger automations, call `internal.processAutomation.processEvent` (see Dispatch Architecture below)
 
 ## Event Bus Rules
 
@@ -104,6 +105,32 @@ await convexClient.emitEvent(agentId, "category.action", "source_name", {
 
 **When NOT to emit:** read-only tools (list, get, search) do not need events. Only write/send/create/delete actions.
 
+## Dispatch Architecture (processAutomation.ts)
+
+All automations, schedules, and timers execute **natively inside Convex** — no HTTP calls to the agent server. This is critical because Convex cloud `internalAction`s cannot reach `localhost` during development.
+
+**Key file:** `packages/shared/convex/processAutomation.ts`
+
+**What it handles:**
+- `processEvent` — Matches automations by event, applies filters, executes actions (create_note, create_task, store_memory, run_prompt, etc.)
+- `fireSchedule` — Executes scheduled actions at their `nextRunAt` time, tracks runs, schedules next occurrence
+- `fireTimer` — Fires timers at their `fireAt` time, executes the timer's action
+
+**Action routing:**
+- **DB-only actions** (`create_note`, `create_task`, `update_task`, `store_memory`) → execute directly in the mutation
+- **`run_prompt`** → creates conversation + job in DB, agent server picks it up via `dispatch.notifyJobCreated` push + 30s fallback poll
+- **HTTP actions** (`send_email`, `fire_webhook`) → delegated to `executeHttpAction` internalAction (calls Resend API / webhook URL directly)
+- **`trigger_agent`** → calls `agentMessages.send` mutation directly (no HTTP needed)
+
+**`dispatch.ts` only exports `notifyJobCreated`** — job processing is the only thing that requires the agent server (Claude SDK runs there). Everything else runs in Convex.
+
+**When adding a new automation action type:**
+1. Add the action type to `actionTypeValidator` in `automations.ts`
+2. Add a `case` in `processAutomation.processEvent` for DB-only actions, OR delegate to `executeHttpAction` for HTTP-requiring actions
+3. Add the same `case` in the agent server's `processAutomations()` function (for fallback compatibility)
+4. Add the action to the schedule executor in `processAutomation.fireSchedule` if it should be available as a schedule action type
+5. Update the UI's action type picker in `WorkflowPage.tsx`
+
 ## Adding a New Workspace Page Type (Checklist)
 
 Workspace pages are tabs in the agent sidebar (tasks, notes, spreadsheet, api, workflow, etc.).
@@ -116,7 +143,7 @@ When adding a new page type, **all 8 steps are required**:
 5. **Route handler** — Add `case "your-type": return <YourPage tab={tab} />;` in `packages/web/app/routes/agents.$agentId.tab.$tabId.tsx`
 6. **`packages/web/app/components/AgentSidebar.tsx`** — Add icon to `TAB_ICONS` record + new entry to `PAGE_TYPES` array with `{ type, label, description, icon }`
 7. **Backend queries** — Add any new Convex queries/mutations the page needs. If querying by agent (not tab), add a `listByAgent` or similar query using the `by_agent` index. If the page stores its own data, add a new table to `schema.ts` and a corresponding `remove` cascade in `sidebarTabs.ts → remove()`
-8. **Sandbox seed** — Add a page seeder function in `packages/shared/convex/seed/page-seeders.ts` and register it in `seed/registry.ts` → `PAGE_SEEDERS` (see Sandbox Seed System below)
+8. **Sandbox seed** — Add a page seeder function in `packages/shared/convex/seed/pageSeeders.ts` and register it in `seed/registry.ts` → `PAGE_SEEDERS` (see Sandbox Seed System below)
 
 > **Note**: Page types gated to `pro`/`enterprise` only need to be added to `allowedPro` (step 3). Free-tier types must also be added to `allowedFree`.
 
@@ -173,15 +200,15 @@ Dynamic test data seeder for the sandbox agent. Registry-based — **add seeders
 **Files:**
 - `packages/shared/convex/seed.ts` — Main entry (`run` + `cleanup` internalMutations). **Do not edit.**
 - `packages/shared/convex/seed/registry.ts` — `TOOLSET_SEEDERS` and `PAGE_SEEDERS` arrays. **Add new entries here.**
-- `packages/shared/convex/seed/toolset-seeders.ts` — Seeder functions for tool sets (memory, automations, schedules, timers)
-- `packages/shared/convex/seed/page-seeders.ts` — Seeder functions for page types (tasks, notes, spreadsheet, markdown, api)
+- `packages/shared/convex/seed/toolsetSeeders.ts` — Seeder functions for tool sets (memory, automations, schedules, timers)
+- `packages/shared/convex/seed/pageSeeders.ts` — Seeder functions for page types (tasks, notes, spreadsheet, markdown, api)
 
 **Adding a tool set seeder:**
-1. Write `export async function seedYourTool({ ctx, agentId }: SeedContext)` in `toolset-seeders.ts`
+1. Write `export async function seedYourTool({ ctx, agentId }: SeedContext)` in `toolsetSeeders.ts`
 2. Add `{ name: "your_tool", seed: seedYourTool }` to `TOOLSET_SEEDERS` in `registry.ts`
 
 **Adding a page type seeder:**
-1. Write `export async function seedYourPage({ ctx, agentId, tabId }: PageSeedContext)` in `page-seeders.ts`
+1. Write `export async function seedYourPage({ ctx, agentId, tabId }: PageSeedContext)` in `pageSeeders.ts`
 2. Add `{ type: "your_type", label: "Your Label", seed: seedYourPage }` to `PAGE_SEEDERS` in `registry.ts`
 
 **Running:**
