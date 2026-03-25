@@ -96,7 +96,7 @@ export const create = mutation({
 
     // Schedule dispatch at nextRunAt
     const delayMs = Math.max(0, nextRunAt - now);
-    await ctx.scheduler.runAfter(delayMs, internal.dispatch.fireSchedule, {
+    await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireSchedule, {
       actionId,
     });
 
@@ -167,7 +167,7 @@ export const toggle = mutation({
       patch.nextRunAt = nextRunAt;
       // Schedule dispatch for resumed schedule
       const delayMs = Math.max(0, nextRunAt - now);
-      await ctx.scheduler.runAfter(delayMs, internal.dispatch.fireSchedule, {
+      await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireSchedule, {
         actionId: args.actionId,
       });
     }
@@ -278,7 +278,7 @@ export const completeRun = mutation({
     // Schedule next dispatch if not complete
     if (!isComplete && nextRunAt) {
       const delayMs = Math.max(0, nextRunAt - now);
-      await ctx.scheduler.runAfter(delayMs, internal.dispatch.fireSchedule, {
+      await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireSchedule, {
         actionId: args.actionId,
       });
     }
@@ -335,7 +335,7 @@ export const createFromAgent = mutation({
 
     // Schedule dispatch at nextRunAt
     const delayMs = Math.max(0, nextRunAt - now);
-    await ctx.scheduler.runAfter(delayMs, internal.dispatch.fireSchedule, {
+    await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireSchedule, {
       actionId,
     });
 
@@ -388,7 +388,7 @@ export const resumeFromAgent = mutation({
 
     // Schedule dispatch for resumed schedule
     const delayMs = Math.max(0, nextRunAt - now);
-    await ctx.scheduler.runAfter(delayMs, internal.dispatch.fireSchedule, {
+    await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireSchedule, {
       actionId: args.actionId,
     });
   },

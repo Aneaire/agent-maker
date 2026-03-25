@@ -54,7 +54,7 @@ export const create = mutation({
 
     // Schedule dispatch at exact fire time
     const delayMs = Math.max(0, fireAt - now);
-    await ctx.scheduler.runAfter(delayMs, internal.dispatch.fireTimer, {
+    await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireTimer, {
       timerId,
     });
 

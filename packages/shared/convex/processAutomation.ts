@@ -334,6 +334,307 @@ export const processEvent = internalMutation({
   },
 });
 
+// ── Schedule executor (Convex-native, replaces dispatch.fireSchedule) ────
+
+function parseIntervalMs(interval: string): number {
+  const match = interval.match(/^every\s+(\d+)\s*(s|m|h|d)$/i);
+  if (!match) throw new Error(`Invalid interval: "${interval}"`);
+  const value = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  const multipliers: Record<string, number> = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
+  return value * (multipliers[unit] ?? 60000);
+}
+
+function computeNextRun(schedule: string, scheduleType: string, now: number): number {
+  if (scheduleType === "interval") return now + parseIntervalMs(schedule);
+  if (scheduleType === "once") return now;
+  return now + 60000; // basic cron fallback
+}
+
+export const fireSchedule = internalMutation({
+  args: { actionId: v.id("scheduledActions") },
+  handler: async (ctx, args) => {
+    const action = await ctx.db.get(args.actionId);
+    if (!action || action.status !== "active") return;
+
+    const now = Date.now();
+
+    // Create run record
+    const runId = await ctx.db.insert("scheduledActionRuns", {
+      actionId: args.actionId,
+      agentId: action.agentId,
+      status: "running",
+      startedAt: now,
+    });
+
+    let success = true;
+    let actionResult = "";
+    let actionError: string | undefined;
+
+    try {
+      const config = (action.action.config ?? {}) as Record<string, any>;
+
+      switch (action.action.type) {
+        case "run_prompt": {
+          const agent = await ctx.db.get(action.agentId);
+          if (!agent) throw new Error("Agent not found");
+
+          const conversationId = await ctx.db.insert("conversations", {
+            agentId: action.agentId,
+            userId: agent.userId,
+            title: `Schedule: ${action.name}`,
+          });
+
+          await ctx.db.insert("messages", {
+            conversationId,
+            role: "user",
+            content: config.prompt ?? "No prompt provided",
+            status: "done",
+          });
+
+          const assistantMessageId = await ctx.db.insert("messages", {
+            conversationId,
+            role: "assistant",
+            content: "",
+            status: "pending",
+          });
+
+          const jobId = await ctx.db.insert("agentJobs", {
+            agentId: action.agentId,
+            conversationId,
+            messageId: assistantMessageId,
+            userId: agent.userId,
+            status: "pending",
+          });
+
+          await ctx.scheduler.runAfter(0, internal.dispatch.notifyJobCreated, { jobId });
+          actionResult = `Prompt dispatched: ${config.prompt?.substring(0, 100) ?? "N/A"}`;
+          break;
+        }
+
+        case "create_task": {
+          let taskTabId = config.tabId;
+          if (!taskTabId) {
+            const tabs = await ctx.db
+              .query("sidebarTabs")
+              .withIndex("by_agent", (q) => q.eq("agentId", action.agentId))
+              .collect();
+            const tasksTab = tabs.find((t) => t.type === "tasks");
+            taskTabId = tasksTab?._id;
+          }
+          if (taskTabId) {
+            const existing = await ctx.db
+              .query("tabTasks")
+              .withIndex("by_tab", (q) => q.eq("tabId", taskTabId))
+              .collect();
+            const maxOrder = existing.reduce((max, t) => Math.max(max, t.sortOrder), -1);
+            await ctx.db.insert("tabTasks", {
+              tabId: taskTabId,
+              agentId: action.agentId,
+              title: (config.title ?? "Scheduled Task").substring(0, 500),
+              description: config.description?.substring(0, 5000),
+              status: config.status ?? "todo",
+              priority: config.priority,
+              sortOrder: maxOrder + 1,
+            });
+            actionResult = `Task "${config.title}" created`;
+          } else {
+            throw new Error("No tasks tab found");
+          }
+          break;
+        }
+
+        case "send_email":
+        case "fire_webhook": {
+          // Delegate HTTP actions to internalAction
+          await ctx.scheduler.runAfter(0, internal.processAutomation.executeHttpAction, {
+            agentId: action.agentId,
+            automationName: action.name,
+            actionType: action.action.type,
+            config,
+            event: "schedule.fired",
+            payload: { scheduleName: action.name, scheduleId: args.actionId },
+          });
+          actionResult = `${action.action.type} delegated to HTTP executor`;
+          break;
+        }
+
+        default:
+          actionResult = `Unknown action type: ${action.action.type}`;
+      }
+    } catch (err: any) {
+      success = false;
+      actionError = err.message;
+      console.error(`[schedule] Action "${action.name}" failed:`, err.message);
+    }
+
+    // Complete the run
+    await ctx.db.patch(runId, {
+      status: success ? "completed" : "failed",
+      result: actionResult,
+      error: actionError,
+      completedAt: Date.now(),
+      duration: Date.now() - now,
+    });
+
+    // Update schedule run count and compute next run
+    const newRunCount = action.runCount + 1;
+    const isComplete =
+      action.scheduleType === "once" ||
+      (action.maxRuns !== undefined && newRunCount >= action.maxRuns);
+
+    const nextRunAt = isComplete
+      ? undefined
+      : computeNextRun(action.schedule, action.scheduleType, Date.now());
+
+    await ctx.db.patch(args.actionId, {
+      lastRunAt: Date.now(),
+      runCount: newRunCount,
+      status: isComplete ? "completed" : action.status,
+      nextRunAt,
+    });
+
+    // Emit schedule.fired event
+    await ctx.db.insert("agentEvents", {
+      agentId: action.agentId,
+      event: "schedule.fired",
+      source: "scheduler",
+      payload: {
+        actionId: args.actionId,
+        actionName: action.name,
+        actionType: action.action.type,
+        success,
+        result: actionResult,
+        error: actionError,
+      },
+      createdAt: Date.now(),
+    });
+
+    // Schedule next run if not complete
+    if (!isComplete && nextRunAt) {
+      const delayMs = Math.max(0, nextRunAt - Date.now());
+      await ctx.scheduler.runAfter(delayMs, internal.processAutomation.fireSchedule, {
+        actionId: args.actionId,
+      });
+    }
+
+    console.log(
+      `[schedule] "${action.name}" ${success ? "completed" : "failed"}${
+        isComplete ? " (final run)" : ` (next in ${nextRunAt ? Math.round((nextRunAt - Date.now()) / 1000) : "?"}s)`
+      }`
+    );
+  },
+});
+
+// ── Timer executor (Convex-native, replaces dispatch.fireTimer) ─────
+
+export const fireTimer = internalMutation({
+  args: { timerId: v.id("agentTimers") },
+  handler: async (ctx, args) => {
+    const timer = await ctx.db.get(args.timerId);
+    if (!timer || timer.status !== "waiting") return;
+
+    // Mark as fired
+    await ctx.db.patch(args.timerId, {
+      status: "fired",
+      firedAt: Date.now(),
+    });
+
+    const agent = await ctx.db.get(timer.agentId);
+    if (!agent) return;
+
+    // Execute the timer action based on type
+    const config = (timer.action.config ?? {}) as Record<string, any>;
+    const actionType = timer.action.type;
+    let result = "";
+
+    try {
+      switch (actionType) {
+        case "run_prompt": {
+          const prompt = config.prompt ?? "Timer fired";
+          const conversationId = await ctx.db.insert("conversations", {
+            agentId: timer.agentId,
+            userId: agent.userId,
+            title: `Timer: ${timer.label ?? "Unnamed"}`,
+          });
+
+          await ctx.db.insert("messages", {
+            conversationId,
+            role: "user",
+            content: prompt,
+            status: "done",
+          });
+
+          const assistantMessageId = await ctx.db.insert("messages", {
+            conversationId,
+            role: "assistant",
+            content: "",
+            status: "pending",
+          });
+
+          const jobId = await ctx.db.insert("agentJobs", {
+            agentId: timer.agentId,
+            conversationId,
+            messageId: assistantMessageId,
+            userId: agent.userId,
+            status: "pending",
+          });
+
+          await ctx.scheduler.runAfter(0, internal.dispatch.notifyJobCreated, { jobId });
+          result = `Prompt dispatched: ${prompt.substring(0, 100)}`;
+          break;
+        }
+
+        case "create_task": {
+          const tabs = await ctx.db
+            .query("sidebarTabs")
+            .withIndex("by_agent", (q) => q.eq("agentId", timer.agentId))
+            .collect();
+          const tasksTab = tabs.find((t) => t.type === "tasks");
+          if (tasksTab) {
+            const existing = await ctx.db
+              .query("tabTasks")
+              .withIndex("by_tab", (q) => q.eq("tabId", tasksTab._id))
+              .collect();
+            const maxOrder = existing.reduce((max, t) => Math.max(max, t.sortOrder), -1);
+            await ctx.db.insert("tabTasks", {
+              tabId: tasksTab._id,
+              agentId: timer.agentId,
+              title: (config.title ?? `Timer: ${timer.label}`).substring(0, 500),
+              description: config.description,
+              status: "todo",
+              sortOrder: maxOrder + 1,
+            });
+            result = `Task created: ${config.title}`;
+          }
+          break;
+        }
+
+        default:
+          result = `Timer action ${actionType} not handled natively`;
+      }
+    } catch (err: any) {
+      console.error(`[timer] "${timer.label}" failed:`, err.message);
+    }
+
+    // Emit timer.fired event
+    await ctx.db.insert("agentEvents", {
+      agentId: timer.agentId,
+      event: "timer.fired",
+      source: "timer",
+      payload: {
+        timerId: args.timerId,
+        label: timer.label,
+        actionType,
+        result,
+      },
+      createdAt: Date.now(),
+    });
+
+    console.log(`[timer] "${timer.label}" fired — ${result}`);
+  },
+});
+
 // ── HTTP action executor (for send_email, fire_webhook, trigger_agent) ──
 
 export const executeHttpAction = internalAction({

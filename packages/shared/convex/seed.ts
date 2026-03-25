@@ -253,6 +253,181 @@ export const verifyAutomationResults = internalQuery({
   },
 });
 
+/**
+ * Test scheduled action execution.
+ * Creates a "once" schedule with run_prompt, verifies it fires.
+ */
+export const testSchedule = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const allUsers = await ctx.db.query("users").collect();
+    let user = allUsers.find((u) => u.email === args.email);
+    if (!user) user = allUsers.find((u) => u.plan === "pro") ?? allUsers[0];
+    if (!user) throw new Error("No users found");
+
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q) => q.eq("slug", SANDBOX_SLUG))
+      .collect();
+    const agent = agents.find((a) => a.userId === user!._id);
+    if (!agent) throw new Error("Sandbox agent not found. Run seed:run first.");
+
+    // Count schedules, runs, and events BEFORE
+    const schedulesBefore = await ctx.db
+      .query("scheduledActions")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+    const runsBefore = await ctx.db
+      .query("scheduledActionRuns")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+    const eventsBefore = await ctx.db
+      .query("agentEvents")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+    const conversationsBefore = await ctx.db
+      .query("conversations")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+
+    // Create a "once" schedule with run_prompt that fires immediately
+    const now = Date.now();
+    const actionId = await ctx.db.insert("scheduledActions", {
+      agentId: agent._id,
+      name: "TEST: Immediate Prompt Schedule",
+      description: "Created by testSchedule to verify schedule execution works",
+      schedule: "",
+      scheduleType: "once",
+      action: {
+        type: "run_prompt",
+        config: {
+          prompt: "This is a test prompt from the schedule system. Please confirm you received this by saying 'Schedule test received'.",
+        },
+      },
+      status: "active",
+      nextRunAt: now,
+      runCount: 0,
+      createdAt: now,
+    });
+
+    // Fire it via the Convex-native schedule executor
+    await ctx.scheduler.runAfter(0, internal.processAutomation.fireSchedule, {
+      actionId,
+    });
+
+    return {
+      status: "dispatched",
+      actionId,
+      agentId: agent._id,
+      before: {
+        schedules: schedulesBefore.length,
+        runs: runsBefore.length,
+        events: eventsBefore.length,
+        conversations: conversationsBefore.length,
+      },
+      message: "Schedule created and dispatched. Run seed:verifyScheduleResults in ~5 seconds to check.",
+    };
+  },
+});
+
+/**
+ * Verify schedule test results.
+ */
+export const verifyScheduleResults = internalQuery({
+  args: {
+    schedulesCountBefore: v.optional(v.number()),
+    runsCountBefore: v.optional(v.number()),
+    eventsCountBefore: v.optional(v.number()),
+    conversationsCountBefore: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q) => q.eq("slug", SANDBOX_SLUG))
+      .collect();
+    const agent = agents[0];
+    if (!agent) return { error: "Sandbox agent not found." };
+
+    // Check schedule was marked completed
+    const schedules = await ctx.db
+      .query("scheduledActions")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+    const testSchedule = schedules.find((s) => s.name === "TEST: Immediate Prompt Schedule");
+
+    // Check run record was created
+    const runs = await ctx.db
+      .query("scheduledActionRuns")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+
+    // Check schedule.fired event was emitted
+    const events = await ctx.db
+      .query("agentEvents")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+    const scheduleFiredEvents = events.filter((e) => e.event === "schedule.fired");
+
+    // Check conversation was created by run_prompt
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+    const scheduleConvo = conversations.find((c) =>
+      c.title?.includes("Schedule: TEST: Immediate Prompt Schedule")
+    );
+
+    // Check job was created
+    const jobs = await ctx.db
+      .query("agentJobs")
+      .withIndex("by_agent", (q) => q.eq("agentId", agent._id))
+      .collect();
+
+    return {
+      scheduleCompleted: testSchedule
+        ? {
+            pass: testSchedule.status === "completed",
+            status: testSchedule.status,
+            runCount: testSchedule.runCount,
+            lastRunAt: testSchedule.lastRunAt,
+          }
+        : { pass: false, message: "Test schedule not found" },
+
+      runRecordCreated: {
+        pass: runs.length > (args.runsCountBefore ?? 0),
+        totalRuns: runs.length,
+        latestRun: runs.length > 0
+          ? { status: runs[runs.length - 1].status, result: runs[runs.length - 1].result }
+          : null,
+      },
+
+      eventEmitted: {
+        pass: scheduleFiredEvents.length > 0,
+        scheduleFiredCount: scheduleFiredEvents.length,
+        latestEvent: scheduleFiredEvents.length > 0
+          ? scheduleFiredEvents[scheduleFiredEvents.length - 1].payload
+          : null,
+      },
+
+      conversationCreated: scheduleConvo
+        ? { pass: true, title: scheduleConvo.title }
+        : { pass: false, message: "No conversation with 'Schedule:' prefix found" },
+
+      jobCreated: {
+        pass: jobs.length > 0,
+        totalJobs: jobs.length,
+      },
+
+      totals: {
+        schedules: schedules.length,
+        runs: runs.length,
+        events: events.length,
+        conversations: conversations.length,
+      },
+    };
+  },
+});
+
 // ── Main seed ────────────────────────────────────────────────────────────
 
 export const run = internalMutation({
