@@ -163,7 +163,8 @@ app.post("/dispatch/job", async (c) => {
   }
 });
 
-// Timer dispatch: Convex calls this at the exact fireAt time
+// Timer dispatch: LEGACY — Convex now uses processAutomation.fireTimer natively.
+// Kept for backwards compatibility / manual testing only.
 app.post("/dispatch/timer", async (c) => {
   if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
   const { timerId } = await c.req.json<{ timerId: string }>();
@@ -189,7 +190,8 @@ app.post("/dispatch/timer", async (c) => {
   }
 });
 
-// Event dispatch: Convex calls this when a task/note is created/updated/deleted from the UI
+// Event dispatch: LEGACY — Convex now uses processAutomation.processEvent natively.
+// Kept for backwards compatibility / manual testing only.
 app.post("/dispatch/event", async (c) => {
   if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
   const { agentId, event, payload } = await c.req.json<{
@@ -213,7 +215,8 @@ app.post("/dispatch/event", async (c) => {
   }
 });
 
-// Schedule dispatch: Convex calls this at the exact nextRunAt time
+// Schedule dispatch: LEGACY — Convex now uses processAutomation.fireSchedule natively.
+// Kept for backwards compatibility / manual testing only.
 app.post("/dispatch/schedule", async (c) => {
   if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
   const { actionId } = await c.req.json<{ actionId: string }>();

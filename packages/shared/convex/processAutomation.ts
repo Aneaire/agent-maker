@@ -1,5 +1,5 @@
-import { internalMutation, internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { internal, api } from "./_generated/api";
 import { v } from "convex/values";
 
 /**
@@ -635,7 +635,23 @@ export const fireTimer = internalMutation({
   },
 });
 
-// ── HTTP action executor (for send_email, fire_webhook, trigger_agent) ──
+// ── Internal query: get tool config for an agent ────────────────────
+
+export const getToolConfig = internalQuery({
+  args: { agentId: v.id("agents"), toolSetName: v.string() },
+  handler: async (ctx, args) => {
+    const configs = await ctx.db
+      .query("agentToolConfigs")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    const match = configs.find((c) => c.toolSetName === args.toolSetName);
+    return match?.config ?? null;
+  },
+});
+
+// ── HTTP action executor (for send_email, fire_webhook) ─────────────
+// These actions require external HTTP calls (Resend API, webhook URLs).
+// trigger_agent is handled as a Convex mutation instead.
 
 export const executeHttpAction = internalAction({
   args: {
@@ -646,43 +662,52 @@ export const executeHttpAction = internalAction({
     event: v.string(),
     payload: v.any(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const config = args.config as Record<string, any>;
-    const AGENT_SERVER_TOKEN = process.env.AGENT_SERVER_TOKEN ?? "";
-    const AGENT_SERVER_URL =
-      process.env.AGENT_SERVER_URL ?? "http://localhost:3001";
 
     try {
       switch (args.actionType) {
         case "send_email": {
-          // For email, we need to call the agent server which has the Resend config
-          const res = await fetch(`${AGENT_SERVER_URL}/dispatch/event`, {
+          // Get email config from DB (Resend API key, from address)
+          const emailConfig = await ctx.runQuery(
+            internal.processAutomation.getToolConfig,
+            { agentId: args.agentId as any, toolSetName: "email" }
+          );
+
+          if (!emailConfig || !(emailConfig as any).resendApiKey) {
+            console.error(`[automation] send_email: No email config for agent ${args.agentId}`);
+            break;
+          }
+
+          const ec = emailConfig as any;
+          const res = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
+              Authorization: `Bearer ${ec.resendApiKey}`,
               "Content-Type": "application/json",
-              Authorization: `Bearer ${AGENT_SERVER_TOKEN}`,
             },
             body: JSON.stringify({
-              agentId: args.agentId,
-              event: args.event,
-              payload: args.payload,
-              singleAction: {
-                type: "send_email",
-                config,
-              },
+              from: ec.fromName
+                ? `${ec.fromName} <${ec.fromEmail}>`
+                : ec.fromEmail,
+              to: Array.isArray(config.to) ? config.to : [config.to],
+              subject: config.subject,
+              html: config.body,
             }),
             signal: AbortSignal.timeout(15000),
           });
+
           if (!res.ok) {
-            console.error(
-              `[automation] send_email HTTP failed: ${res.status}`
-            );
+            const errText = await res.text().catch(() => "");
+            console.error(`[automation] Resend API error: ${res.status} ${errText}`);
+          } else {
+            console.log(`[automation] Email sent to ${config.to}`);
           }
           break;
         }
 
         case "fire_webhook": {
-          await fetch(config.url, {
+          const res = await fetch(config.url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -692,33 +717,23 @@ export const executeHttpAction = internalAction({
             }),
             signal: AbortSignal.timeout(15000),
           });
+          if (!res.ok) {
+            console.error(`[automation] Webhook to ${config.url} failed: ${res.status}`);
+          }
           break;
         }
 
         case "trigger_agent": {
-          // Send agent message via agent server
-          const res = await fetch(`${AGENT_SERVER_URL}/dispatch/event`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${AGENT_SERVER_TOKEN}`,
-            },
-            body: JSON.stringify({
-              agentId: args.agentId,
-              event: args.event,
-              payload: args.payload,
-              singleAction: {
-                type: "trigger_agent",
-                config,
-              },
-            }),
-            signal: AbortSignal.timeout(15000),
+          // Use Convex mutation directly — no need for HTTP to agent server
+          const SERVER_TOKEN = process.env.AGENT_SERVER_TOKEN ?? "";
+          await ctx.runMutation(api.agentMessages.send, {
+            serverToken: SERVER_TOKEN,
+            fromAgentId: args.agentId as any,
+            toAgentId: config.agentId as any,
+            content: config.message ?? `Triggered by ${args.event}`,
+            context: { triggeredBy: args.event, payload: args.payload },
           });
-          if (!res.ok) {
-            console.error(
-              `[automation] trigger_agent HTTP failed: ${res.status}`
-            );
-          }
+          console.log(`[automation] Agent message sent from ${args.agentId} to ${config.agentId}`);
           break;
         }
       }
