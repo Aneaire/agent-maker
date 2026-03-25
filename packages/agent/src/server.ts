@@ -189,6 +189,30 @@ app.post("/dispatch/timer", async (c) => {
   }
 });
 
+// Event dispatch: Convex calls this when a task/note is created/updated/deleted from the UI
+app.post("/dispatch/event", async (c) => {
+  if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
+  const { agentId, event, payload } = await c.req.json<{
+    agentId: string;
+    event: string;
+    payload: Record<string, any>;
+  }>();
+
+  try {
+    const convexClient = new AgentConvexClient(CONVEX_URL, SERVER_TOKEN);
+
+    // Event is already emitted directly in Convex via emitInternal.
+    // Here we only need to process automations.
+    await processAutomations(convexClient, agentId, event, payload);
+
+    console.log(`[dispatch] Event "${event}" — automations processed for agent ${agentId}`);
+    return c.json({ ok: true });
+  } catch (err: any) {
+    console.error(`[dispatch] Event dispatch error:`, err.message);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
 // Schedule dispatch: Convex calls this at the exact nextRunAt time
 app.post("/dispatch/schedule", async (c) => {
   if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
@@ -567,10 +591,12 @@ app.post("/webhook/:secret", async (c) => {
       // Emit task.created event
       const taskPayload = {
         taskId,
+        tabId: webhook.tabId,
         title: body.title,
         description: body.description,
         status: body.status ?? "todo",
         priority: body.priority,
+        tags: body.tags,
       };
 
       await convexClient.emitEvent(webhook.agentId, "task.created", "webhook", taskPayload);
@@ -598,10 +624,12 @@ app.post("/webhook/:secret", async (c) => {
 
       const updatePayload = {
         taskId: body.taskId,
+        tabId: webhook.tabId,
         title: body.title,
         description: body.description,
         status: body.status,
         priority: body.priority,
+        tags: body.tags,
       };
 
       // Emit task.updated event
@@ -738,6 +766,8 @@ async function executeScheduleAction(runId: string, actionId: string, action: an
   const scheduleFiredPayload = {
     actionId,
     actionName: action.name,
+    actionType: action.action?.type,
+    cronExpression: action.cronExpression,
     success,
     result: actionResult,
     error: actionError,
@@ -821,6 +851,7 @@ async function executeTimerAction(convexClient: AgentConvexClient, timer: any) {
       timerId: timer._id,
       label: timer.label,
       actionType: timer.action.type,
+      actionConfig: timer.action.config,
     };
 
     await convexClient.emitEvent(timer.agentId, "timer.fired", "timer", timerFiredPayload);

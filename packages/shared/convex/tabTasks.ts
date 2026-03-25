@@ -79,18 +79,35 @@ export const create = mutation({
       sortOrder: maxOrder + 1,
     });
 
+    const eventPayload = {
+      taskId,
+      title: args.title,
+      description: args.description,
+      status: args.status ?? "todo",
+      priority: args.priority,
+      tags: args.tags,
+    };
+
     // Fire outgoing webhooks
     await ctx.scheduler.runAfter(0, internal.webhookFire.fire, {
       tabId: args.tabId,
       event: "task.created",
-      payload: {
-        taskId,
-        title: args.title,
-        description: args.description,
-        status: args.status ?? "todo",
-        priority: args.priority,
-        tags: args.tags,
-      },
+      payload: eventPayload,
+    });
+
+    // Emit event directly to event bus (shows in workflow page)
+    await ctx.scheduler.runAfter(0, internal.agentEvents.emitInternal, {
+      agentId: tab.agentId,
+      event: "task.created",
+      source: "ui",
+      payload: eventPayload,
+    });
+
+    // Dispatch to agent server for automation processing
+    await ctx.scheduler.runAfter(0, internal.dispatch.notifyEvent, {
+      agentId: tab.agentId,
+      event: "task.created",
+      payload: eventPayload,
     });
 
     return taskId;
@@ -121,14 +138,38 @@ export const update = mutation({
 
     await ctx.db.patch(taskId, filtered);
 
+    // Full task data after the update — so automations can read all fields
+    const eventPayload = {
+      taskId: args.taskId,
+      title: (filtered.title as string) ?? task.title,
+      description: (filtered.description as string) ?? task.description,
+      status: (filtered.status as string) ?? task.status,
+      priority: (filtered.priority as string) ?? task.priority,
+      tags: (filtered.tags as string[]) ?? task.tags,
+      tabId: task.tabId,
+      changed: Object.keys(filtered),
+    };
+
     // Fire outgoing webhooks
     await ctx.scheduler.runAfter(0, internal.webhookFire.fire, {
       tabId: task.tabId,
       event: "task.updated",
-      payload: {
-        taskId: args.taskId,
-        ...filtered,
-      },
+      payload: eventPayload,
+    });
+
+    // Emit event directly to event bus (shows in workflow page)
+    await ctx.scheduler.runAfter(0, internal.agentEvents.emitInternal, {
+      agentId: task.agentId,
+      event: "task.updated",
+      source: "ui",
+      payload: eventPayload,
+    });
+
+    // Dispatch to agent server for automation processing
+    await ctx.scheduler.runAfter(0, internal.dispatch.notifyEvent, {
+      agentId: task.agentId,
+      event: "task.updated",
+      payload: eventPayload,
     });
   },
 });
@@ -141,14 +182,37 @@ export const remove = mutation({
     await requireTabAccess(ctx, task.tabId);
     await ctx.db.delete(args.taskId);
 
+    // Full task data before deletion — so automations can read all fields
+    const eventPayload = {
+      taskId: args.taskId,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      tags: task.tags,
+      tabId: task.tabId,
+    };
+
     // Fire outgoing webhooks
     await ctx.scheduler.runAfter(0, internal.webhookFire.fire, {
       tabId: task.tabId,
       event: "task.deleted",
-      payload: {
-        taskId: args.taskId,
-        title: task.title,
-      },
+      payload: eventPayload,
+    });
+
+    // Emit event directly to event bus (shows in workflow page)
+    await ctx.scheduler.runAfter(0, internal.agentEvents.emitInternal, {
+      agentId: task.agentId,
+      event: "task.deleted",
+      source: "ui",
+      payload: eventPayload,
+    });
+
+    // Dispatch to agent server for automation processing
+    await ctx.scheduler.runAfter(0, internal.dispatch.notifyEvent, {
+      agentId: task.agentId,
+      event: "task.deleted",
+      payload: eventPayload,
     });
   },
 });

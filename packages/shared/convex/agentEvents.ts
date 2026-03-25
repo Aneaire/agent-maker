@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuthUser } from "./auth";
 import { requireServerAuth } from "./serverAuth";
@@ -6,6 +6,26 @@ import { requireServerAuth } from "./serverAuth";
 // ── Event Bus ────────────────────────────────────────────────────────
 // Unified event system. Every tool action emits events here.
 // Automations subscribe to events and trigger actions.
+
+// Internal: emit an event from other Convex functions (no auth needed)
+export const emitInternal = internalMutation({
+  args: {
+    agentId: v.id("agents"),
+    event: v.string(),
+    source: v.string(),
+    payload: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const eventId = await ctx.db.insert("agentEvents", {
+      agentId: args.agentId,
+      event: args.event,
+      source: args.source,
+      payload: args.payload,
+      createdAt: Date.now(),
+    });
+    return eventId;
+  },
+});
 
 // Server-facing: emit an event (called by agent tools)
 export const emit = mutation({

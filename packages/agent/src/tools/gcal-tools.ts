@@ -261,6 +261,12 @@ export function createGCalTools(
             title: input.title,
             start: input.start,
             end: input.end,
+            description: input.description,
+            location: input.location,
+            attendees: input.attendees,
+            timezone: input.timezone,
+            meetLink: created.hangoutLink,
+            htmlLink: created.htmlLink,
           }
         );
 
@@ -345,7 +351,14 @@ export function createGCalTools(
           "gcal_tools",
           {
             eventId: input.event_id,
-            updatedFields: Object.keys(patch),
+            title: input.title ?? updated.summary,
+            start: input.start,
+            end: input.end,
+            description: input.description,
+            location: input.location,
+            attendees: input.attendees,
+            htmlLink: updated.htmlLink,
+            changed: Object.keys(patch),
           }
         );
 
@@ -391,7 +404,10 @@ export function createGCalTools(
           agentId,
           "gcal.event_deleted",
           "gcal_tools",
-          { eventId: input.event_id }
+          {
+            eventId: input.event_id,
+            calendarId: input.calendar_id ?? "primary",
+          }
         );
 
         return {

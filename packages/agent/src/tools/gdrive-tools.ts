@@ -366,6 +366,9 @@ export function createGDriveTools(
             fileId: created.id,
             name: input.name,
             type: input.type,
+            mimeType: created.mimeType,
+            parentId: input.parent_id,
+            webViewLink: created.webViewLink,
           }
         );
 

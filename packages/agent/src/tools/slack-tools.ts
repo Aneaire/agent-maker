@@ -61,6 +61,7 @@ export function createSlackTools(
 
         await convexClient.emitEvent(agentId, "slack.message_sent", "slack_tools", {
           channel: input.channel,
+          text: input.text,
           ts: result.ts,
           threadTs: input.thread_ts,
         });

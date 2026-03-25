@@ -302,6 +302,10 @@ export function createNotionTools(
           pageId: page.id,
           title: input.title,
           parentType: input.parent_type,
+          parentId: input.parent_id,
+          content: input.content,
+          properties: input.properties,
+          url: page.url,
         });
 
         return {
@@ -343,7 +347,9 @@ export function createNotionTools(
 
         await convexClient.emitEvent(agentId, "notion.page_updated", "notion_tools", {
           pageId: page.id,
-          updatedProperties: Object.keys(input.properties),
+          properties: input.properties,
+          url: page.url,
+          changed: Object.keys(input.properties),
         });
 
         return {

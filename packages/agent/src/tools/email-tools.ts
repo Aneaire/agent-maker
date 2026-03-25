@@ -110,6 +110,10 @@ export function createEmailTools(
         await convexClient.emitEvent(agentId, "email.sent", "email_tools", {
           to: recipients,
           subject: input.subject,
+          body: input.body,
+          cc: input.cc,
+          bcc: input.bcc,
+          replyTo: input.reply_to,
           resendId: result.id,
         });
 

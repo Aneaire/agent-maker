@@ -66,6 +66,41 @@ export const fireTimer = internalAction({
   },
 });
 
+// ── Event Dispatch ──────────────────────────────────────────────────
+// Called when a task/note is created/updated/deleted from the UI
+// so the agent server can emit events and process automations
+
+export const notifyEvent = internalAction({
+  args: {
+    agentId: v.string(),
+    event: v.string(),
+    payload: v.any(),
+  },
+  handler: async (_ctx, args) => {
+    try {
+      const res = await fetch(`${AGENT_SERVER_URL}/dispatch/event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${AGENT_SERVER_TOKEN}`,
+        },
+        body: JSON.stringify({
+          agentId: args.agentId,
+          event: args.event,
+          payload: args.payload,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) {
+        console.error(`[dispatch] Event notify failed: ${res.status}`);
+      }
+    } catch (err: any) {
+      // Non-fatal — event will still be in logs
+      console.error(`[dispatch] Event notify error: ${err.message}`);
+    }
+  },
+});
+
 // ── Schedule Dispatch ───────────────────────────────────────────────
 // Scheduled at nextRunAt time when a schedule is created or completed
 

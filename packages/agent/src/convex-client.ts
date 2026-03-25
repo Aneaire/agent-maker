@@ -158,6 +158,20 @@ export class AgentConvexClient {
     });
   }
 
+  async getTask(taskId: string) {
+    return this.client.query(api.agentApi.getTask, {
+      serverToken: this.serverToken,
+      taskId: taskId as any,
+    });
+  }
+
+  async getNote(noteId: string) {
+    return this.client.query(api.agentApi.getNote, {
+      serverToken: this.serverToken,
+      noteId: noteId as any,
+    });
+  }
+
   async updateTask(taskId: string, data: {
     title?: string;
     description?: string;

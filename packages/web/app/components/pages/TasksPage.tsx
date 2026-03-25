@@ -125,6 +125,7 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [showWebhooks, setShowWebhooks] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<Doc<"tabTasks"> | null>(null);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
 
   // Local columns state for instant UI updates (optimistic)
@@ -348,11 +349,34 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
 
       {/* Create Task Dialog */}
       {showCreateDialog && (
-        <CreateTaskDialog
+        <TaskDialog
+          mode="create"
           status={showCreateDialog}
           columns={columns}
           onClose={() => setShowCreateDialog(null)}
-          onCreate={handleCreateRich}
+          onSubmit={handleCreateRich}
+        />
+      )}
+
+      {/* Edit Task Dialog */}
+      {editingTask && (
+        <TaskDialog
+          mode="edit"
+          task={editingTask}
+          status={editingTask.status}
+          columns={columns}
+          onClose={() => setEditingTask(null)}
+          onSubmit={(data) => {
+            updateTask({
+              taskId: editingTask._id,
+              title: data.title,
+              description: data.description,
+              priority: data.priority,
+              tags: data.tags,
+              status: data.status,
+            });
+            setEditingTask(null);
+          }}
         />
       )}
 
@@ -392,6 +416,7 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                     onDelete={(taskId) => removeTask({ taskId })}
                     onToggleExpand={(taskId) => setExpandedTask(expandedTask === taskId ? null : taskId)}
                     onUpdateTask={updateTask}
+                    onEditTask={(task) => setEditingTask(task)}
                     onRemoveColumn={() => handleRemoveColumn(col.key)}
                     onRenameColumn={(name) => handleRenameColumn(col.key, name)}
                     onRecolorColumn={(color) => handleRecolorColumn(col.key, color)}
@@ -517,6 +542,7 @@ function SortableColumn(props: {
   onOpenCreateDialog: () => void;
   onTitleChange: (v: string) => void;
   onConfirmAdd: () => void;
+  onEditTask: (task: Doc<"tabTasks">) => void;
   onCancelAdd: () => void;
   onDelete: (taskId: any) => void;
   onToggleExpand: (taskId: string) => void;
@@ -570,6 +596,7 @@ function KanbanColumn({
   onDelete,
   onToggleExpand,
   onUpdateTask,
+  onEditTask,
   onRemoveColumn,
   onRenameColumn,
   onRecolorColumn,
@@ -589,6 +616,7 @@ function KanbanColumn({
   onDelete: (taskId: any) => void;
   onToggleExpand: (taskId: string) => void;
   onUpdateTask: (args: any) => void;
+  onEditTask: (task: Doc<"tabTasks">) => void;
   onRemoveColumn: () => void;
   onRenameColumn: (name: string) => void;
   onRecolorColumn: (color: string) => void;
@@ -793,6 +821,7 @@ function KanbanColumn({
               onToggleExpand={() => onToggleExpand(task._id)}
               onDelete={() => onDelete(task._id)}
               onUpdate={onUpdateTask}
+              onEdit={() => onEditTask(task)}
             />
           ))}
         </SortableContext>
@@ -821,12 +850,14 @@ function SortableTaskCard({
   onToggleExpand,
   onDelete,
   onUpdate,
+  onEdit,
 }: {
   task: Doc<"tabTasks">;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onDelete: () => void;
   onUpdate: (args: any) => void;
+  onEdit: () => void;
 }) {
   const {
     attributes,
@@ -911,6 +942,13 @@ function SortableTaskCard({
               </button>
             )}
             <button
+              onClick={onEdit}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-zinc-600 hover:text-blue-400 hover:bg-blue-950/30 transition-all shrink-0"
+              title="Edit task"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+            <button
               onClick={onDelete}
               className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
             >
@@ -934,16 +972,20 @@ function SortableTaskCard({
 
 // ── Create Task Dialog ──────────────────────────────────────────────
 
-function CreateTaskDialog({
+function TaskDialog({
+  mode,
+  task,
   status,
   columns,
   onClose,
-  onCreate,
+  onSubmit,
 }: {
+  mode: "create" | "edit";
+  task?: Doc<"tabTasks">;
   status: string;
   columns: ColumnConfig[];
   onClose: () => void;
-  onCreate: (data: {
+  onSubmit: (data: {
     title: string;
     description?: string;
     priority?: "low" | "medium" | "high";
@@ -951,14 +993,16 @@ function CreateTaskDialog({
     status: string;
   }) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
+  const [title, setTitle] = useState(task?.title ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+  const [priority, setPriority] = useState<"low" | "medium" | "high" | "">(task?.priority ?? "");
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState(status);
+  const [tags, setTags] = useState<string[]>(task?.tags ?? []);
+  const [selectedStatus, setSelectedStatus] = useState(task?.status ?? status);
   const [showPreview, setShowPreview] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+
+  const isEdit = mode === "edit";
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -978,7 +1022,7 @@ function CreateTaskDialog({
 
   function handleSubmit() {
     if (!title.trim()) return;
-    onCreate({
+    onSubmit({
       title: title.trim(),
       description: description.trim() || undefined,
       priority: priority || undefined,
@@ -993,13 +1037,17 @@ function CreateTaskDialog({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-600/20 to-cyan-600/20 ring-1 ring-emerald-500/20">
-              <Plus className="h-4 w-4 text-emerald-400" />
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ${
+              isEdit
+                ? "bg-gradient-to-br from-blue-600/20 to-indigo-600/20 ring-blue-500/20"
+                : "bg-gradient-to-br from-emerald-600/20 to-cyan-600/20 ring-emerald-500/20"
+            }`}>
+              {isEdit ? <Pencil className="h-4 w-4 text-blue-400" /> : <Plus className="h-4 w-4 text-emerald-400" />}
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-zinc-100">New Task</h2>
+              <h2 className="text-sm font-semibold text-zinc-100">{isEdit ? "Edit Task" : "New Task"}</h2>
               <p className="text-[11px] text-zinc-500">
-                Add a task with description, tags & priority
+                {isEdit ? "Update task details" : "Add a task with description, tags & priority"}
               </p>
             </div>
           </div>
@@ -1196,7 +1244,7 @@ function CreateTaskDialog({
             disabled={!title.trim()}
             className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
           >
-            Create Task
+            {isEdit ? "Save Changes" : "Create Task"}
           </button>
         </div>
       </div>

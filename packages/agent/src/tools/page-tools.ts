@@ -186,18 +186,24 @@ function createTaskTools(
       priority: z.enum(["low", "medium", "high"]).optional(),
     },
     async (input) => {
+      // Fetch full task before update so we can include all fields in the event
+      const taskBefore = await convexClient.getTask(input.taskId);
       await convexClient.updateTask(input.taskId, {
         title: input.title,
         description: input.description,
         status: input.status,
         priority: input.priority,
       });
+      const changed = Object.keys(input).filter((k) => k !== "taskId" && (input as any)[k] !== undefined);
       await convexClient.emitEvent(agentId, "task.updated", "page_tools", {
         taskId: input.taskId,
-        title: input.title,
-        description: input.description,
-        status: input.status,
-        priority: input.priority,
+        title: input.title ?? taskBefore?.title,
+        description: input.description ?? taskBefore?.description,
+        status: input.status ?? taskBefore?.status,
+        priority: input.priority ?? taskBefore?.priority,
+        tags: taskBefore?.tags,
+        tabId: taskBefore?.tabId,
+        changed,
       });
       return {
         content: [
@@ -278,14 +284,18 @@ function createNoteTools(
       content: z.string().optional().describe("New content (markdown)"),
     },
     async (input) => {
+      const noteBefore = await convexClient.getNote(input.noteId);
       await convexClient.updateNote(input.noteId, {
         title: input.title,
         content: input.content,
       });
+      const changed = Object.keys(input).filter((k) => k !== "noteId" && (input as any)[k] !== undefined);
       await convexClient.emitEvent(agentId, "note.updated", "page_tools", {
         noteId: input.noteId,
-        title: input.title,
-        content: input.content,
+        title: input.title ?? noteBefore?.title,
+        content: input.content ?? noteBefore?.content,
+        tabId: noteBefore?.tabId,
+        changed,
       });
       return {
         content: [

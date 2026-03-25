@@ -65,6 +65,8 @@ Example: Send a support ticket summary to a "Support Triage" agent, or ask a "Da
         // Emit event
         await convexClient.emitEvent(agentId, "agent_message.sent", "agent_message_tools", {
           toAgentId: input.target_agent_id,
+          message: input.message,
+          context: input.context,
           messageId: msgId,
         });
 

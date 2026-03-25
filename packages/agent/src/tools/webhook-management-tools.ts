@@ -35,6 +35,7 @@ Useful for integrating with external services (Slack, Discord, Zapier, n8n, etc.
         await convexClient.emitEvent(agentId, "webhook.fired", "webhook_tools", {
           url: input.url,
           event: input.event_name,
+          payload: input.payload,
           status: res.status,
         });
 

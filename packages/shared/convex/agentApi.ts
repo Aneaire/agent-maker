@@ -260,6 +260,32 @@ export const createTask = mutation({
   },
 });
 
+export const getTask = query({
+  args: {
+    serverToken: v.string(),
+    taskId: v.id("tabTasks"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const task = await ctx.db.get(args.taskId);
+    if (!task) return null;
+    return task;
+  },
+});
+
+export const getNote = query({
+  args: {
+    serverToken: v.string(),
+    noteId: v.id("tabNotes"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const note = await ctx.db.get(args.noteId);
+    if (!note) return null;
+    return note;
+  },
+});
+
 export const updateTask = mutation({
   args: {
     serverToken: v.string(),

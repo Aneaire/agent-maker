@@ -319,6 +319,7 @@ export function createGSheetsTools(
           "gsheets_tools",
           {
             spreadsheetId: input.spreadsheet_id,
+            sheet: input.sheet,
             rowCount: input.rows.length,
           }
         );
