@@ -112,8 +112,8 @@ const INTEGRATION_CATEGORIES: ToolSetCategory[] = [
 
 const AGENT_SERVER_URL =
   typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:3001`
-    : "http://localhost:3001";
+    ? (import.meta.env.VITE_AGENT_SERVER_URL ?? `${window.location.protocol}//${window.location.hostname}:3001`)
+    : (import.meta.env.VITE_AGENT_SERVER_URL ?? "http://localhost:3001");
 
 const SECTION_TITLES: Record<string, string> = {
   general: "General",

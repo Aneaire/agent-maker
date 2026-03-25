@@ -42,8 +42,8 @@ export function ApiPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
 
   const baseUrl =
     typeof window !== "undefined"
-      ? `${window.location.protocol}//${window.location.hostname}:3001`
-      : "http://localhost:3001";
+      ? (import.meta.env.VITE_AGENT_SERVER_URL ?? `${window.location.protocol}//${window.location.hostname}:3001`)
+      : (import.meta.env.VITE_AGENT_SERVER_URL ?? "http://localhost:3001");
 
   return (
     <div className="flex-1 flex flex-col min-h-0">

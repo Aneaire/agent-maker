@@ -103,8 +103,8 @@ export const create = mutation({
       payload: eventPayload,
     });
 
-    // Dispatch to agent server for automation processing
-    await ctx.scheduler.runAfter(0, internal.dispatch.notifyEvent, {
+    // Process automations natively in Convex (no HTTP to agent server needed)
+    await ctx.scheduler.runAfter(0, internal.processAutomation.processEvent, {
       agentId: tab.agentId,
       event: "task.created",
       payload: eventPayload,
@@ -165,8 +165,8 @@ export const update = mutation({
       payload: eventPayload,
     });
 
-    // Dispatch to agent server for automation processing
-    await ctx.scheduler.runAfter(0, internal.dispatch.notifyEvent, {
+    // Process automations natively in Convex (no HTTP to agent server needed)
+    await ctx.scheduler.runAfter(0, internal.processAutomation.processEvent, {
       agentId: task.agentId,
       event: "task.updated",
       payload: eventPayload,
@@ -208,8 +208,8 @@ export const remove = mutation({
       payload: eventPayload,
     });
 
-    // Dispatch to agent server for automation processing
-    await ctx.scheduler.runAfter(0, internal.dispatch.notifyEvent, {
+    // Process automations natively in Convex (no HTTP to agent server needed)
+    await ctx.scheduler.runAfter(0, internal.processAutomation.processEvent, {
       agentId: task.agentId,
       event: "task.deleted",
       payload: eventPayload,

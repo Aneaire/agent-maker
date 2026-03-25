@@ -21,6 +21,13 @@ import {
   ChevronRight,
   Webhook,
   X,
+  History,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Filter,
+  ArrowRight,
+  Timer,
 } from "lucide-react";
 import { useState } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -1227,7 +1234,359 @@ function EventLogEntry({ event }: { event: Doc<"agentEvents"> }) {
   );
 }
 
+// ── Execution status helpers ──────────────────────────────────────────
+
+const EXEC_STATUS_META: Record<string, { icon: React.FC<any>; colorClass: string; bgClass: string; label: string }> = {
+  running:   { icon: Loader2,      colorClass: "text-blue-400",  bgClass: "bg-blue-950/30 ring-blue-800/40",  label: "Running" },
+  completed: { icon: CheckCircle2, colorClass: "text-neon-400",  bgClass: "bg-neon-950/30 ring-neon-800/40",  label: "Completed" },
+  failed:    { icon: XCircle,      colorClass: "text-red-400",   bgClass: "bg-red-950/30 ring-red-800/40",    label: "Failed" },
+};
+
+function formatDuration(ms: number | undefined): string {
+  if (!ms) return "—";
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+}
+
+function formatTimestamp(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  if (isToday) return `Today ${time}`;
+  if (isYesterday) return `Yesterday ${time}`;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+}
+
+// ── Execution card ──────────────────────────────────────────────────
+
+function ExecutionCard({ execution }: { execution: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const statusMeta = EXEC_STATUS_META[execution.status] ?? EXEC_STATUS_META.completed;
+  const StatusIcon = statusMeta.icon;
+
+  return (
+    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden transition-all hover:border-zinc-700/60">
+      {/* Header */}
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+            >
+              {expanded ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            <StatusIcon
+              className={`h-4 w-4 shrink-0 ${statusMeta.colorClass} ${
+                execution.status === "running" ? "animate-spin" : ""
+              }`}
+            />
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold truncate">{execution.name}</span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full ring-1 font-medium ${statusMeta.bgClass} ${statusMeta.colorClass}`}
+                >
+                  {statusMeta.label}
+                </span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    execution.kind === "automation"
+                      ? "text-neon-400 bg-neon-950/30"
+                      : "text-blue-400 bg-blue-950/30"
+                  }`}
+                >
+                  {execution.kind === "automation" ? "Automation" : "Schedule"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 text-[11px] text-zinc-500">
+            {execution.duration !== undefined && (
+              <span className="flex items-center gap-1">
+                <Timer className="h-3 w-3" />
+                {formatDuration(execution.duration)}
+              </span>
+            )}
+            <span className="tabular-nums">{formatTimestamp(execution.startedAt)}</span>
+          </div>
+        </div>
+
+        {/* Quick info row */}
+        <div className="flex items-center gap-3 mt-1.5 ml-9 flex-wrap">
+          {execution.triggerEvent && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
+              <Zap className="h-2.5 w-2.5 text-neon-400" />
+              {execution.triggerEvent}
+            </span>
+          )}
+          {execution.scheduleType && (
+            <span className="text-[10px] text-zinc-500 font-mono">
+              {execution.schedule}
+            </span>
+          )}
+          {execution.actionType && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
+              <ArrowRight className="h-2.5 w-2.5" />
+              {execution.actionType}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="border-t border-zinc-800/40 px-4 py-3 space-y-3">
+          {/* Actions executed (automation runs) */}
+          {execution.actionsExecuted && execution.actionsExecuted.length > 0 && (
+            <div>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold mb-2">
+                Actions Executed
+              </p>
+              <div className="space-y-1.5">
+                {execution.actionsExecuted.map((action: any, i: number) => {
+                  const actionStatus = EXEC_STATUS_META[action.status] ?? EXEC_STATUS_META.completed;
+                  const ActionStatusIcon = actionStatus.icon;
+                  const actionMeta = ACTION_META[action.type as ActionType];
+                  const ActionIcon = actionMeta?.icon;
+
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2.5 rounded-lg bg-zinc-800/30 px-3 py-2"
+                    >
+                      <span className="text-[10px] text-zinc-600 font-mono w-4 text-right mt-0.5 shrink-0">
+                        {i + 1}
+                      </span>
+                      {ActionIcon && (
+                        <ActionIcon
+                          className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${
+                            actionMeta?.colorClass ?? "text-zinc-400"
+                          }`}
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">
+                            {actionMeta?.label ?? action.type}
+                          </span>
+                          <ActionStatusIcon
+                            className={`h-3 w-3 ${actionStatus.colorClass} ${
+                              action.status === "running" ? "animate-spin" : ""
+                            }`}
+                          />
+                          {action.duration !== undefined && (
+                            <span className="text-[10px] text-zinc-600">
+                              {formatDuration(action.duration)}
+                            </span>
+                          )}
+                        </div>
+                        {action.result && (
+                          <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+                            {action.result}
+                          </p>
+                        )}
+                        {action.error && (
+                          <p className="text-[11px] text-red-400/80 mt-0.5">
+                            {action.error}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Result / Error */}
+          {execution.result && (
+            <div>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold mb-1">
+                Result
+              </p>
+              <pre className="text-[11px] text-zinc-400 font-mono bg-zinc-950/60 rounded-lg p-2.5 overflow-x-auto border border-zinc-800/40 whitespace-pre-wrap">
+                {execution.result}
+              </pre>
+            </div>
+          )}
+
+          {execution.error && (
+            <div>
+              <p className="text-[10px] text-red-400/70 uppercase tracking-wider font-semibold mb-1">
+                Error
+              </p>
+              <pre className="text-[11px] text-red-400/80 font-mono bg-red-950/20 rounded-lg p-2.5 overflow-x-auto border border-red-900/30 whitespace-pre-wrap">
+                {execution.error}
+              </pre>
+            </div>
+          )}
+
+          {/* Trigger payload (automation) */}
+          {execution.triggerPayload &&
+            Object.keys(execution.triggerPayload).length > 0 && (
+              <div>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold mb-1">
+                  Trigger Payload
+                </p>
+                <pre className="text-[10px] text-zinc-500 font-mono bg-zinc-950/60 rounded-lg p-2.5 overflow-x-auto border border-zinc-800/40">
+                  {JSON.stringify(execution.triggerPayload, null, 2)}
+                </pre>
+              </div>
+            )}
+
+          {/* Timing */}
+          <div className="flex items-center gap-4 text-[10px] text-zinc-600">
+            <span>Started: {new Date(execution.startedAt).toLocaleString()}</span>
+            {execution.completedAt && (
+              <span>
+                Completed: {new Date(execution.completedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Executions View ─────────────────────────────────────────────────
+
+function ExecutionsView({ agentId }: { agentId: string }) {
+  const [kindFilter, setKindFilter] = useState<"all" | "automation" | "schedule">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "running" | "completed" | "failed">("all");
+  const [limit, setLimit] = useState(50);
+
+  const executions = useQuery(api.executions.list, {
+    agentId: agentId as any,
+    limit,
+    filter: kindFilter,
+    status: statusFilter,
+  });
+
+  const stats = useQuery(api.executions.stats, { agentId: agentId as any });
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-5">
+      {/* Stats bar */}
+      {stats && (
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: "Total", value: stats.total, color: "text-zinc-300", bg: "bg-zinc-800/60" },
+            { label: "Completed", value: stats.completed, color: "text-neon-400", bg: "bg-neon-950/30" },
+            { label: "Failed", value: stats.failed, color: "text-red-400", bg: "bg-red-950/30" },
+            { label: "Running", value: stats.running, color: "text-blue-400", bg: "bg-blue-950/30" },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className={`rounded-xl border border-zinc-800/60 ${stat.bg} px-4 py-3 text-center`}
+            >
+              <p className={`text-lg font-bold tabular-nums ${stat.color}`}>{stat.value}</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <Filter className="h-3 w-3 text-zinc-600" />
+          <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">
+            Filter
+          </span>
+        </div>
+
+        <div className="flex items-center rounded-lg border border-zinc-800 overflow-hidden">
+          {(["all", "automation", "schedule"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setKindFilter(f)}
+              className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                kindFilter === f
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+              }`}
+            >
+              {f === "all" ? "All" : f === "automation" ? "Automations" : "Schedules"}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center rounded-lg border border-zinc-800 overflow-hidden">
+          {(["all", "running", "completed", "failed"] as const).map((s) => {
+            const meta = s !== "all" ? EXEC_STATUS_META[s] : null;
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  statusFilter === s
+                    ? "bg-zinc-800 text-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                }`}
+              >
+                {s === "all" ? "All" : meta?.label ?? s}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Execution list */}
+      {executions === undefined ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 rounded-xl bg-zinc-800/20 animate-pulse" />
+          ))}
+        </div>
+      ) : executions.length === 0 ? (
+        <div className="text-center py-16">
+          <History className="h-10 w-10 text-zinc-800 mx-auto mb-3" />
+          <p className="text-sm text-zinc-500 font-medium">No executions yet</p>
+          <p className="text-xs text-zinc-600 mt-1">
+            {kindFilter !== "all" || statusFilter !== "all"
+              ? "Try changing your filters"
+              : "Executions will appear here when automations or schedules run"}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            {executions.map((exec: any) => (
+              <ExecutionCard key={exec._id} execution={exec} />
+            ))}
+          </div>
+          {executions.length >= limit && (
+            <button
+              onClick={() => setLimit((l) => l + 50)}
+              className="w-full text-xs text-zinc-600 hover:text-zinc-400 py-2.5 hover:bg-zinc-800/40 rounded-xl transition-colors"
+            >
+              Load more
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main WorkflowPage ─────────────────────────────────────────────────
+
+type WorkflowTab = "workflow" | "executions";
 
 export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const agentId = tab.agentId;
@@ -1247,6 +1606,7 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const toggleSchedule = useMutation(api.scheduledActions.toggle);
   const removeSchedule = useMutation(api.scheduledActions.remove);
 
+  const [activeTab, setActiveTab] = useState<WorkflowTab>("workflow");
   const [showAutoForm, setShowAutoForm] = useState(false);
   const [showSchedForm, setShowSchedForm] = useState(false);
   const [editingAutoId, setEditingAutoId] = useState<string | null>(null);
@@ -1258,30 +1618,61 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="border-b border-zinc-800/60 px-6 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
-            <GitBranch className="h-4 w-4 text-zinc-300" />
+      <div className="border-b border-zinc-800/60 px-6 py-4 shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
+              <GitBranch className="h-4 w-4 text-zinc-300" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold">{tab.label}</h2>
+              <p className="text-xs text-zinc-500">
+                {automations !== undefined && schedules !== undefined
+                  ? `${automations.length} automation${automations.length !== 1 ? "s" : ""} · ${schedules.length} schedule${schedules.length !== 1 ? "s" : ""}`
+                  : "Automations & pipelines"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-semibold">{tab.label}</h2>
-            <p className="text-xs text-zinc-500">
-              {automations !== undefined && schedules !== undefined
-                ? `${automations.length} automation${automations.length !== 1 ? "s" : ""} · ${schedules.length} schedule${schedules.length !== 1 ? "s" : ""}`
-                : "Automations & pipelines"}
-            </p>
+
+          {/* Live indicator */}
+          <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-neon-400 status-pulse" />
+            live
           </div>
         </div>
 
-        {/* Live indicator */}
-        <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
-          <span className="h-1.5 w-1.5 rounded-full bg-neon-400 status-pulse" />
-          live
+        {/* Tab switcher */}
+        <div className="flex items-center gap-1 rounded-lg bg-zinc-900/80 border border-zinc-800/60 p-0.5 w-fit">
+          <button
+            onClick={() => setActiveTab("workflow")}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              activeTab === "workflow"
+                ? "bg-zinc-800 text-zinc-200 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <GitBranch className="h-3 w-3" />
+            Workflow
+          </button>
+          <button
+            onClick={() => setActiveTab("executions")}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              activeTab === "executions"
+                ? "bg-zinc-800 text-zinc-200 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <History className="h-3 w-3" />
+            Executions
+          </button>
         </div>
       </div>
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-6">
+        {activeTab === "executions" ? (
+          <ExecutionsView agentId={agentId as string} />
+        ) : (
         <div className="max-w-2xl mx-auto space-y-6">
 
           {/* ── Automations ── */}
@@ -1516,6 +1907,7 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           </Section>
 
         </div>
+        )}
       </div>
     </div>
   );

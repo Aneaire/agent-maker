@@ -52,7 +52,7 @@ Monorepo with 3 packages:
 
 ## Adding a New Tool Set (Checklist)
 
-When adding a new feature or tool set, **all 7 steps are required** or the agent won't fully know about or use it:
+When adding a new feature or tool set, **all 8 steps are required** or the agent won't fully know about or use it:
 
 1. **Tool file** — Create `packages/agent/src/tools/<name>-tools.ts` exporting `create<Name>Tools()`
 2. **MCP server** — Wire into `packages/agent/src/mcp-server.ts`: import + conditional registration in `buildMcpServer()` and `buildAllowedTools()`
@@ -61,6 +61,7 @@ When adding a new feature or tool set, **all 7 steps are required** or the agent
 5. **Schema** — Add any new tables/indexes in `packages/shared/convex/schema.ts`, plus server-facing and user-facing endpoints
 6. **Tool Sets list** — Add the new key to the `enabledToolSets` list in this file (and `AGENTS.md`)
 7. **Event Bus** — Every meaningful tool action must emit an event (see Event Bus Rules below)
+8. **Sandbox seed** — Add a seeder function in `packages/shared/convex/seed/toolset-seeders.ts` and register it in `seed/registry.ts` → `TOOLSET_SEEDERS` (see Sandbox Seed System below)
 
 > **Critical**: Step 3 is the most commonly missed. Without system prompt updates, the agent has the tool but doesn't know to use it effectively. The `allIntegrations` map is also important — it lets the agent tell users about available integrations they haven't enabled yet.
 
@@ -106,7 +107,7 @@ await convexClient.emitEvent(agentId, "category.action", "source_name", {
 ## Adding a New Workspace Page Type (Checklist)
 
 Workspace pages are tabs in the agent sidebar (tasks, notes, spreadsheet, api, workflow, etc.).
-When adding a new page type, **all 7 steps are required**:
+When adding a new page type, **all 8 steps are required**:
 
 1. **`packages/shared/src/types/index.ts`** — Add the string to the `TabType` union AND to `PLAN_LIMITS.allowedPageTypes` for the appropriate plan tiers (free / pro / enterprise)
 2. **`packages/shared/convex/schema.ts`** — Add `v.literal("your-type")` to the `sidebarTabs.type` union validator
@@ -115,6 +116,7 @@ When adding a new page type, **all 7 steps are required**:
 5. **Route handler** — Add `case "your-type": return <YourPage tab={tab} />;` in `packages/web/app/routes/agents.$agentId.tab.$tabId.tsx`
 6. **`packages/web/app/components/AgentSidebar.tsx`** — Add icon to `TAB_ICONS` record + new entry to `PAGE_TYPES` array with `{ type, label, description, icon }`
 7. **Backend queries** — Add any new Convex queries/mutations the page needs. If querying by agent (not tab), add a `listByAgent` or similar query using the `by_agent` index. If the page stores its own data, add a new table to `schema.ts` and a corresponding `remove` cascade in `sidebarTabs.ts → remove()`
+8. **Sandbox seed** — Add a page seeder function in `packages/shared/convex/seed/page-seeders.ts` and register it in `seed/registry.ts` → `PAGE_SEEDERS` (see Sandbox Seed System below)
 
 > **Note**: Page types gated to `pro`/`enterprise` only need to be added to `allowedPro` (step 3). Free-tier types must also be added to `allowedFree`.
 
@@ -164,6 +166,30 @@ When adding a new tool set, you must add it to **both**:
 1. The `capabilities` array (conditional on `has(enabled, "key")`)
 2. The `allIntegrations` map (always present, used to compute disabled integrations)
 
+## Sandbox Seed System
+
+Dynamic test data seeder for the sandbox agent. Registry-based — **add seeders, never edit `seed.ts`**.
+
+**Files:**
+- `packages/shared/convex/seed.ts` — Main entry (`run` + `cleanup` internalMutations). **Do not edit.**
+- `packages/shared/convex/seed/registry.ts` — `TOOLSET_SEEDERS` and `PAGE_SEEDERS` arrays. **Add new entries here.**
+- `packages/shared/convex/seed/toolset-seeders.ts` — Seeder functions for tool sets (memory, automations, schedules, timers)
+- `packages/shared/convex/seed/page-seeders.ts` — Seeder functions for page types (tasks, notes, spreadsheet, markdown, api)
+
+**Adding a tool set seeder:**
+1. Write `export async function seedYourTool({ ctx, agentId }: SeedContext)` in `toolset-seeders.ts`
+2. Add `{ name: "your_tool", seed: seedYourTool }` to `TOOLSET_SEEDERS` in `registry.ts`
+
+**Adding a page type seeder:**
+1. Write `export async function seedYourPage({ ctx, agentId, tabId }: PageSeedContext)` in `page-seeders.ts`
+2. Add `{ type: "your_type", label: "Your Label", seed: seedYourPage }` to `PAGE_SEEDERS` in `registry.ts`
+
+**Running:**
+```bash
+npx convex run seed:run '{"email":"aneaire010@gmail.com","force":true}'   # Create/recreate sandbox
+npx convex run seed:cleanup '{"email":"aneaire010@gmail.com"}'            # Remove sandbox
+```
+
 ## Dev Commands
 
 ```bash
@@ -183,4 +209,5 @@ Detailed documentation lives in `docs/`. Refer to these when you need deeper con
 - **`docs/reference/env-vars.md`** — Environment variable reference
 - **`docs/tools/`** — Per-tool-set detailed docs (one file per integration)
 - **`docs/advanced/rest-api.md`** — REST API endpoint system
+- **`docs/advanced/deployment.md`** — Production deployment guide (agent server, Convex, web UI, env vars)
 - **`docs/advanced/adding-features.md`** — Checklists for adding automation actions, event types, etc.

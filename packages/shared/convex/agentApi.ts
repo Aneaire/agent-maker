@@ -968,3 +968,59 @@ export const updateConversationTitle = mutation({
     });
   },
 });
+
+// ── Run Prompt (server-facing: creates conversation + job) ──────────
+
+export const runPrompt = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    prompt: v.string(),
+    title: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    // Create a new conversation for this prompt
+    const conversationId = await ctx.db.insert("conversations", {
+      agentId: args.agentId,
+      userId: agent.userId,
+      title: args.title ?? "Automation Prompt",
+    });
+
+    // Create user message with the prompt
+    await ctx.db.insert("messages", {
+      conversationId,
+      role: "user",
+      content: args.prompt,
+      status: "done",
+    });
+
+    // Create placeholder assistant message
+    const assistantMessageId = await ctx.db.insert("messages", {
+      conversationId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+    });
+
+    // Create job
+    const jobId = await ctx.db.insert("agentJobs", {
+      agentId: args.agentId,
+      conversationId,
+      messageId: assistantMessageId,
+      userId: agent.userId,
+      status: "pending",
+    });
+
+    // Push-based dispatch
+    await ctx.scheduler.runAfter(0, internal.dispatch.notifyJobCreated, {
+      jobId,
+    });
+
+    return { conversationId, assistantMessageId, jobId };
+  },
+});

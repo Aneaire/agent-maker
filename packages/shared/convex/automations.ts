@@ -189,7 +189,7 @@ export const deleteFromAgent = mutation({
   },
 });
 
-// Server-facing: record that an automation ran
+// Server-facing: record that an automation ran (creates detailed run entry)
 export const recordRun = mutation({
   args: { serverToken: v.string(), automationId: v.id("automations") },
   handler: async (ctx, args) => {
@@ -200,5 +200,94 @@ export const recordRun = mutation({
       runCount: automation.runCount + 1,
       lastRunAt: Date.now(),
     });
+  },
+});
+
+// Server-facing: start an automation run (returns runId for tracking)
+export const startRun = mutation({
+  args: {
+    serverToken: v.string(),
+    automationId: v.id("automations"),
+    triggerEvent: v.string(),
+    triggerPayload: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const automation = await ctx.db.get(args.automationId);
+    if (!automation) return null;
+
+    const runId = await ctx.db.insert("automationRuns", {
+      automationId: args.automationId,
+      agentId: automation.agentId,
+      status: "running",
+      triggerEvent: args.triggerEvent,
+      triggerPayload: args.triggerPayload,
+      startedAt: Date.now(),
+    });
+
+    return { runId, automation };
+  },
+});
+
+// Server-facing: complete an automation run
+export const completeRun = mutation({
+  args: {
+    serverToken: v.string(),
+    runId: v.id("automationRuns"),
+    automationId: v.id("automations"),
+    success: v.boolean(),
+    result: v.optional(v.string()),
+    error: v.optional(v.string()),
+    actionsExecuted: v.optional(v.array(v.object({
+      type: v.string(),
+      status: v.union(v.literal("completed"), v.literal("failed"), v.literal("skipped")),
+      result: v.optional(v.string()),
+      error: v.optional(v.string()),
+      duration: v.optional(v.number()),
+    }))),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const now = Date.now();
+    const run = await ctx.db.get(args.runId);
+    if (run) {
+      await ctx.db.patch(args.runId, {
+        status: args.success ? "completed" : "failed",
+        result: args.result,
+        error: args.error,
+        actionsExecuted: args.actionsExecuted,
+        completedAt: now,
+        duration: now - run.startedAt,
+      });
+    }
+
+    // Also update the automation's runCount/lastRunAt
+    const automation = await ctx.db.get(args.automationId);
+    if (automation) {
+      await ctx.db.patch(args.automationId, {
+        runCount: automation.runCount + 1,
+        lastRunAt: now,
+      });
+    }
+  },
+});
+
+// User-facing: list runs for a specific automation
+export const listRuns = query({
+  args: {
+    automationId: v.id("automations"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const automation = await ctx.db.get(args.automationId);
+    if (!automation) return [];
+    const agent = await ctx.db.get(automation.agentId);
+    if (!agent || agent.userId !== user._id) return [];
+    return await ctx.db
+      .query("automationRuns")
+      .withIndex("by_automation", (q) => q.eq("automationId", args.automationId))
+      .order("desc")
+      .take(args.limit ?? 50);
   },
 });

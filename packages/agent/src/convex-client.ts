@@ -472,6 +472,13 @@ export class AgentConvexClient {
     });
   }
 
+  async recordAutomationRun(automationId: string) {
+    return this.client.mutation(api.automations.recordRun, {
+      serverToken: this.serverToken,
+      automationId: automationId as any,
+    });
+  }
+
   async deleteAutomation(automationId: string) {
     return this.client.mutation(api.automations.deleteFromAgent, {
       serverToken: this.serverToken,
@@ -563,6 +570,17 @@ export class AgentConvexClient {
       serverToken: this.serverToken,
       messageId: messageId as any,
       response,
+    });
+  }
+
+  // ── Run Prompt (creates conversation + job) ─────────────────────────
+
+  async runPrompt(agentId: string, prompt: string, title?: string) {
+    return this.client.mutation(api.agentApi.runPrompt, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      prompt,
+      title,
     });
   }
 

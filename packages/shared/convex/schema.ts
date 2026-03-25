@@ -387,6 +387,35 @@ export default defineSchema({
     .index("by_action", ["actionId"])
     .index("by_agent", ["agentId"]),
 
+  // ── Automation Runs (execution history for automations) ─────────────
+
+  automationRuns: defineTable({
+    automationId: v.id("automations"),
+    agentId: v.id("agents"),
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    triggerEvent: v.string(),
+    triggerPayload: v.optional(v.any()),
+    actionsExecuted: v.optional(v.array(v.object({
+      type: v.string(),
+      status: v.union(v.literal("completed"), v.literal("failed"), v.literal("skipped")),
+      result: v.optional(v.string()),
+      error: v.optional(v.string()),
+      duration: v.optional(v.number()),
+    }))),
+    result: v.optional(v.string()),
+    error: v.optional(v.string()),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    duration: v.optional(v.number()),
+  })
+    .index("by_automation", ["automationId"])
+    .index("by_agent", ["agentId"])
+    .index("by_agent_started", ["agentId", "startedAt"]),
+
   // ── Event Bus ───────────────────────────────────────────────────────
 
   agentEvents: defineTable({

@@ -696,7 +696,12 @@ async function executeScheduleAction(runId: string, actionId: string, action: an
     switch (action.action.type) {
       case "run_prompt": {
         const config = action.action.config;
-        actionResult = `Prompt scheduled: ${config.prompt?.substring(0, 100) ?? "N/A"}`;
+        await convexClient.runPrompt(
+          action.agentId,
+          config.prompt ?? "No prompt provided",
+          `Schedule: ${action.name}`
+        );
+        actionResult = `Prompt dispatched: ${config.prompt?.substring(0, 100) ?? "N/A"}`;
         break;
       }
       case "send_email": {
@@ -843,8 +848,16 @@ async function executeTimerAction(convexClient: AgentConvexClient, timer: any) {
         break;
       }
       case "send_message":
-      case "run_prompt":
         break;
+      case "run_prompt": {
+        const rpConfig = timer.action.config;
+        await convexClient.runPrompt(
+          timer.agentId,
+          rpConfig.prompt ?? "No prompt provided",
+          `Timer: ${timer.label}`
+        );
+        break;
+      }
     }
 
     const timerFiredPayload = {
@@ -1003,10 +1016,21 @@ async function processAutomations(
               break;
             }
             case "create_note": {
-              await convexClient.createNote(config.tabId, agentId, {
-                title: config.title,
-                content: config.content,
-              });
+              // Auto-resolve tabId: use config.tabId, or find the first notes tab
+              let noteTabId = config.tabId;
+              if (!noteTabId) {
+                const allTabs = await convexClient.listTabs(agentId);
+                const notesTab = (allTabs as any[]).find((t: any) => t.type === "notes");
+                noteTabId = notesTab?._id;
+              }
+              if (noteTabId) {
+                await convexClient.createNote(noteTabId, agentId, {
+                  title: config.title,
+                  content: config.content,
+                });
+              } else {
+                console.error("[automation] create_note: No notes tab found for agent");
+              }
               break;
             }
             case "fire_webhook": {
@@ -1024,6 +1048,15 @@ async function processAutomations(
             }
             case "store_memory": {
               await convexClient.storeMemory(agentId, config.content, config.category);
+              break;
+            }
+            case "run_prompt": {
+              await convexClient.runPrompt(
+                agentId,
+                config.prompt ?? "No prompt provided",
+                `Automation: ${automation.name}`
+              );
+              console.log(`[automation] run_prompt dispatched for agent ${agentId}`);
               break;
             }
             case "trigger_agent": {
@@ -1044,6 +1077,13 @@ async function processAutomations(
         } catch (err: any) {
           console.error(`[automation] Action ${action.type} failed:`, err.message);
         }
+      }
+
+      // Record that this automation ran
+      try {
+        await convexClient.recordAutomationRun(automation._id);
+      } catch (err: any) {
+        console.error(`[automation] Failed to record run for "${automation.name}":`, err.message);
       }
     }
   } catch (err: any) {
