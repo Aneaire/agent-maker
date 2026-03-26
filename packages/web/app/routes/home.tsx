@@ -35,7 +35,7 @@ import {
   Minus,
 } from "lucide-react";
 import { Link } from "react-router";
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -49,11 +49,6 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { Route } from "./+types/home";
-
-/* ── Lazy-loaded 3D scenes (code-split for performance) ───────────── */
-const HeroScene = lazy(() => import("~/components/three/HeroScene"));
-const AgentForge = lazy(() => import("~/components/three/AgentForge"));
-const CTAScene = lazy(() => import("~/components/three/CTAScene"));
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -92,10 +87,6 @@ function LandingPage() {
       <Hero />
       <Marquee />
       <WhatItDoes />
-      {/* 3D Transition: Ideas → Agents */}
-      <Suspense fallback={null}>
-        <AgentForge />
-      </Suspense>
       <ShowDontTell />
       <ToolTape />
       <Pricing />
@@ -186,16 +177,9 @@ function LandingNav() {
 /* ── Hero ────────────────────────────────────────────────────────────── */
 function Hero() {
   return (
-    <section className="relative pt-28 pb-0 md:pt-36 min-h-[90vh]">
-      {/* 3D Neural Network Scene — the "spark" */}
-      <Suspense fallback={null}>
-        <div className="absolute inset-0 top-0 h-[90vh]">
-          <HeroScene />
-        </div>
-      </Suspense>
-
-      {/* Gradient overlay so text is readable */}
-      <div className="absolute inset-0 h-[90vh] bg-gradient-to-b from-zinc-950/40 via-transparent to-zinc-950 pointer-events-none" />
+    <section className="relative pt-28 pb-0 md:pt-36">
+      {/* Single subtle glow — not blobs everywhere */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-neon-400/[0.04] blur-[180px] rounded-full pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-6">
         {/* Tight editorial layout — left aligned, not centered */}
@@ -840,13 +824,8 @@ function BottomCTA() {
   const { ref, inView } = useInView();
 
   return (
-    <section ref={ref} className="relative border-t border-zinc-800/30 overflow-hidden">
-      {/* 3D star field background — "your agent is waiting" */}
-      <Suspense fallback={null}>
-        <CTAScene />
-      </Suspense>
-
-      <div className="relative max-w-6xl mx-auto px-6 py-24 md:py-32">
+    <section ref={ref} className="border-t border-zinc-800/30">
+      <div className="max-w-6xl mx-auto px-6 py-24 md:py-32">
         <div
           className={`max-w-2xl transition-all duration-700 ${
             inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"

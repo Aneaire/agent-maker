@@ -389,32 +389,6 @@
   animation: marquee-scroll 30s linear infinite;
 }
 
-/* ── Three.js canvas transitions ──────────────────────────────────── */
-
-.three-canvas-container {
-  transition: opacity 0.8s ease-out;
-}
-
-.three-canvas-container canvas {
-  touch-action: none;
-}
-
-/* ── Gradient text for 3D sections ────────────────────────────────── */
-
-@utility text-gradient-neon {
-  background: linear-gradient(135deg, #34d399 0%, #60a5fa 50%, #34d399 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 6s ease-in-out infinite;
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
 /* ── Clerk modal centering ─────────────────────────────────────────── */
 
 .cl-modalBackdrop {
