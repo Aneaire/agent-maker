@@ -20,6 +20,7 @@ import {
   Layers,
   Shield,
   Settings,
+  Plug,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -49,11 +50,16 @@ const SECTIONS: DocSection[] = [
         title: "Quick Start Guide",
         content: <QuickStartContent />,
       },
+      {
+        id: "templates",
+        title: "Agent Templates",
+        content: <TemplatesContent />,
+      },
     ],
   },
   {
     id: "tools",
-    title: "Tool Sets",
+    title: "Tools",
     icon: <Wrench className="h-4 w-4" />,
     pages: [
       { id: "memory", title: "Memory", content: <MemoryContent /> },
@@ -83,6 +89,28 @@ const SECTIONS: DocSection[] = [
         title: "Inter-Agent Messaging",
         content: <AgentMessagesContent />,
       },
+      {
+        id: "image-generation",
+        title: "Image Generation",
+        content: <ImageGenContent />,
+      },
+      {
+        id: "postgres",
+        title: "PostgreSQL",
+        content: <PostgresContent />,
+      },
+      {
+        id: "assets",
+        title: "Asset Management",
+        content: <AssetsContent />,
+      },
+    ],
+  },
+  {
+    id: "integrations",
+    title: "Integrations",
+    icon: <Plug className="h-4 w-4" />,
+    pages: [
       {
         id: "notion",
         title: "Notion",
@@ -448,7 +476,7 @@ function QuickStartContent() {
         In your agent's <strong className="text-zinc-200">Settings</strong> page, toggle the capabilities you need.
       </DocP>
       <DocTable
-        headers={["Tool Set", "What It Does"]}
+        headers={["Tool", "What It Does"]}
         rows={[
           ["Memory", "Remember information across conversations"],
           ["Web Search", "Search the internet for current info"],
@@ -461,6 +489,18 @@ function QuickStartContent() {
           ["Timers", "Delayed actions and reminders"],
           ["Webhooks", "Send/receive webhooks"],
           ["Inter-Agent Messaging", "Agents talk to each other"],
+          ["Image Generation", "Generate images from text prompts (Gemini, Nano Banana)"],
+          ["PostgreSQL", "Connect to external databases (Pro+)"],
+        ]}
+      />
+
+      <DocH3>Integrations</DocH3>
+      <DocP>
+        Connect your agent to third-party services for even more power.
+      </DocP>
+      <DocTable
+        headers={["Integration", "What It Does"]}
+        rows={[
           ["Notion", "Search, read, create & update Notion pages/databases"],
           ["Slack", "Send messages, read channels, search & react in Slack"],
           ["Google Calendar", "List events, schedule meetings, check availability"],
@@ -1204,7 +1244,7 @@ function GCalContent() {
 
       <DocH2>Integration Ideas</DocH2>
       <DocP>
-        Combine with <AppLink to="/docs/tools/slack">Slack</AppLink> to post daily agenda summaries. Use with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> for "every morning, check my calendar and brief me." Pair with <AppLink to="/docs/tools/timers">Timers</AppLink> for pre-meeting reminders.
+        Combine with <AppLink to="/docs/integrations/slack">Slack</AppLink> to post daily agenda summaries. Use with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> for "every morning, check my calendar and brief me." Pair with <AppLink to="/docs/tools/timers">Timers</AppLink> for pre-meeting reminders.
       </DocP>
     </div>
   );
@@ -1265,7 +1305,7 @@ function GDriveContent() {
 
       <DocH2>Integration Ideas</DocH2>
       <DocP>
-        Pair with <AppLink to="/docs/tools/google-sheets">Google Sheets</AppLink> for data workflows. Use with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> to generate weekly report documents. Combine with <AppLink to="/docs/tools/slack">Slack</AppLink> to share Drive links in channels.
+        Pair with <AppLink to="/docs/integrations/google-sheets">Google Sheets</AppLink> for data workflows. Use with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> to generate weekly report documents. Combine with <AppLink to="/docs/integrations/slack">Slack</AppLink> to share Drive links in channels.
       </DocP>
     </div>
   );
@@ -1441,6 +1481,7 @@ function ToolSetsRefContent() {
           ["Timers & Delays", "timers", "Disabled", "All"],
           ["Webhooks", "webhooks", "Disabled", "All"],
           ["Inter-Agent Messaging", "agent_messages", "Disabled", "All"],
+          ["Image Generation", "image_generation", "Disabled", "All"],
           ["Notion", "notion", "Disabled", "All"],
           ["Slack", "slack", "Disabled", "All"],
           ["Google Calendar", "google_calendar", "Disabled", "All"],
@@ -1493,12 +1534,237 @@ function EventTypesContent() {
           ["gsheets.spreadsheet_created", "spreadsheetId, title"],
           ["gsheets.data_written", "spreadsheetId, range, rowCount"],
           ["gsheets.rows_appended", "spreadsheetId, rowCount"],
+          ["image.generated", "assetId, name, provider, model, prompt"],
         ]}
       />
 
       <DocH2>Template Variables</DocH2>
       <DocP>
         Access payload fields in automation configs: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.title}}"}</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.status}}"}</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.taskId}}"}</code>, etc.
+      </DocP>
+    </div>
+  );
+}
+
+function ImageGenContent() {
+  return (
+    <div>
+      <DocH1>Image Generation</DocH1>
+      <div className="flex gap-2 mb-4">
+        <DocBadge>Tool set: image_generation</DocBadge>
+        <DocBadge>Default: Disabled</DocBadge>
+        <DocBadge>Requires: API key</DocBadge>
+      </div>
+      <DocP>
+        Generate images from text prompts using AI. Your agent can create illustrations, diagrams, logos, and more — all saved automatically to the <AppLink to="/docs/tools/assets">Asset Library</AppLink>.
+      </DocP>
+
+      <DocH2>Setup</DocH2>
+      <DocP>
+        Enable <strong className="text-zinc-200">Image Generation</strong> in your agent's Settings. Then add a provider credential:
+      </DocP>
+      <DocTable
+        headers={["Provider", "Credential", "Notes"]}
+        rows={[
+          ["Gemini Imagen", "Gemini API key", "High-quality output, supports aspect ratios"],
+          ["Nano Banana", "Nano Banana API key", "Multiple model tiers (generate, generate-2, generate-pro)"],
+        ]}
+      />
+      <DocP>
+        You can select your preferred provider and model in the chat interface using the model selector.
+      </DocP>
+
+      <DocH2>Tools</DocH2>
+      <DocTable
+        headers={["Tool", "Description"]}
+        rows={[
+          ["generate_image", "Generate an image from a text prompt and save it to assets"],
+          ["list_assets", "List all generated images and files in the asset library"],
+        ]}
+      />
+
+      <DocH2>Parameters</DocH2>
+      <DocH3>generate_image</DocH3>
+      <DocTable
+        headers={["Parameter", "Type", "Required"]}
+        rows={[
+          ["prompt", "string", "Yes"],
+          ["name", "string", "Yes"],
+          ["provider", '"gemini" | "nano_banana"', "No"],
+          ["width", "number", "No (default: 1024)"],
+          ["height", "number", "No (default: 1024)"],
+          ["folder_id", "string", "No"],
+        ]}
+      />
+
+      <DocH3>Nano Banana Models</DocH3>
+      <DocTable
+        headers={["Model", "Resolution", "Default Size"]}
+        rows={[
+          ["generate", "Basic", "1024×1024"],
+          ["generate-2", "Custom resolution & format", "1024×1024"],
+          ["generate-pro", "High resolution", "2048×2048"],
+        ]}
+      />
+
+      <DocH2>Supported Aspect Ratios</DocH2>
+      <DocP>When using Gemini, dimensions are automatically converted to aspect ratios: 16:9, 3:2, 4:3, 1:1, 3:4, 2:3, 9:16.</DocP>
+
+      <DocH2>Example</DocH2>
+      <DocP>
+        <strong className="text-zinc-200">User:</strong> "Generate a logo for my coffee shop called Bean There"
+      </DocP>
+      <DocP>
+        <strong className="text-zinc-200">Agent:</strong> Generates image → saves to assets → returns preview with download link
+      </DocP>
+
+      <DocH2>Integration</DocH2>
+      <DocP>
+        Generated images are stored in the <AppLink to="/docs/tools/assets">Asset Library</AppLink> with full metadata (prompt, provider, model, dimensions). Combine with <AppLink to="/docs/tools/automations">Automations</AppLink> for workflows like "when a task is created → generate a thumbnail."
+      </DocP>
+    </div>
+  );
+}
+
+function PostgresContent() {
+  return (
+    <div>
+      <DocH1>PostgreSQL</DocH1>
+      <div className="flex gap-2 mb-4">
+        <DocBadge>Page type: postgres</DocBadge>
+        <DocBadge>Default: Disabled</DocBadge>
+        <DocBadge>Plan: Pro+</DocBadge>
+      </div>
+      <DocP>
+        Connect your agent to an external PostgreSQL database. Create a PostgreSQL page to let your agent query and display live data from your database.
+      </DocP>
+
+      <DocH2>Setup</DocH2>
+      <DocP>
+        1. Create a new page and select <strong className="text-zinc-200">PostgreSQL</strong> as the page type (requires Pro or Enterprise plan).
+      </DocP>
+      <DocP>
+        2. Enter your connection string in the page settings. The connection is tested and stored securely (encrypted at rest).
+      </DocP>
+
+      <DocH2>Features</DocH2>
+      <DocTable
+        headers={["Feature", "Description"]}
+        rows={[
+          ["Live connection", "Connect to any PostgreSQL database via connection string"],
+          ["Status monitoring", "Track connection status (connected / disconnected / error)"],
+          ["Query interface", "Read-only query interface for exploring data"],
+          ["Encrypted storage", "Connection credentials are encrypted at rest"],
+        ]}
+      />
+
+      <DocH2>Limits</DocH2>
+      <DocTable
+        headers={["Plan", "Max Connections"]}
+        rows={[
+          ["Free", "—"],
+          ["Pro", "1 per agent"],
+          ["Enterprise", "5 per agent"],
+        ]}
+      />
+
+      <DocH2>Example</DocH2>
+      <DocP>
+        <strong className="text-zinc-200">User:</strong> "Show me all orders from the last 7 days"
+      </DocP>
+      <DocP>
+        <strong className="text-zinc-200">Agent:</strong> Queries the connected database and displays results in a formatted table.
+      </DocP>
+    </div>
+  );
+}
+
+function AssetsContent() {
+  return (
+    <div>
+      <DocH1>Asset Management</DocH1>
+      <DocP>
+        The Asset Library is where your agent stores generated images and files. Access it from the <strong className="text-zinc-200">Assets</strong> tab in any agent.
+      </DocP>
+
+      <DocH2>Features</DocH2>
+      <DocTable
+        headers={["Feature", "Description"]}
+        rows={[
+          ["Grid & list views", "Browse assets visually or in a detailed list"],
+          ["Folder organization", "Create nested folders to keep assets organized"],
+          ["Image previews", "Full-size previews for generated images"],
+          ["Metadata tracking", "Each asset stores its prompt, provider, model, and dimensions"],
+          ["Rename & move", "Reorganize assets between folders"],
+          ["Download", "Download any asset directly"],
+        ]}
+      />
+
+      <DocH2>Asset Types</DocH2>
+      <DocTable
+        headers={["Type", "Source"]}
+        rows={[
+          ["image", "Generated via Image Generation tools"],
+          ["file", "Uploaded or created by the agent"],
+        ]}
+      />
+
+      <DocH2>How It Works</DocH2>
+      <DocP>
+        When your agent uses the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">generate_image</code> tool, the resulting image is automatically saved to the Asset Library with full generation metadata. Use the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">list_assets</code> tool to let your agent reference previously generated content.
+      </DocP>
+
+      <DocH2>Integration</DocH2>
+      <DocP>
+        Works hand-in-hand with <AppLink to="/docs/tools/image-generation">Image Generation</AppLink>. Generated assets can be referenced in <AppLink to="/docs/tools/pages">Pages</AppLink>, shared via <AppLink to="/docs/tools/email">Email</AppLink>, or posted to <AppLink to="/docs/integrations/slack">Slack</AppLink>.
+      </DocP>
+    </div>
+  );
+}
+
+function TemplatesContent() {
+  return (
+    <div>
+      <DocH1>Agent Templates</DocH1>
+      <DocP>
+        Templates give you a head start when creating a new agent. Each template comes pre-configured with a system prompt, enabled tools, and starter pages — ready to use out of the box.
+      </DocP>
+
+      <DocH2>Available Templates</DocH2>
+      <DocTable
+        headers={["Template", "Description", "Key Tools"]}
+        rows={[
+          ["Personal Assistant", "Daily planning, tasks, and reminders", "Memory, Pages, Schedules, Timers"],
+          ["Journal & Reflection", "Guided journaling and mood tracking", "Memory, Pages"],
+          ["Study Buddy", "Learning notes, Q&A practice, goal tracking", "Memory, Pages, Web Search"],
+          ["Budget & Finance", "Budget tracking, expense analysis", "Memory, Pages"],
+          ["Customer Support", "Support ticket workflow with escalation", "Memory, Pages, Custom HTTP, Webhooks"],
+          ["Research Assistant", "Topic research and information organization", "Memory, Pages, Web Search, RAG"],
+          ["Project Manager", "Task breakdown, progress tracking, team coordination", "Memory, Pages, Email, Schedules"],
+          ["Writing Assistant", "Drafting, editing, and content creation", "Memory, Pages"],
+          ["API Service Agent", "Expose your agent as REST API endpoints", "Pages, REST API, Custom HTTP"],
+        ]}
+      />
+
+      <DocH2>How to Use</DocH2>
+      <DocP>
+        When creating a new agent via the <AppLink to="/agents/new">Creator</AppLink>, you can choose a template or build from scratch. The Creator Agent will walk you through customizing the template to your needs.
+      </DocP>
+
+      <DocH2>What Templates Include</DocH2>
+      <DocTable
+        headers={["Component", "Description"]}
+        rows={[
+          ["System prompt", "Pre-written personality and behavior guidelines"],
+          ["Model selection", "Optimal Claude model for the use case"],
+          ["Enabled tools", "Pre-configured tool sets relevant to the template"],
+          ["Starter pages", "Initial task boards, notes, or data pages"],
+          ["API endpoints", "Pre-defined endpoints (API Service template)"],
+        ]}
+      />
+
+      <DocP>
+        After applying a template, everything is fully customizable — change the name, tweak the prompt, add or remove tools, and modify pages as needed.
       </DocP>
     </div>
   );
