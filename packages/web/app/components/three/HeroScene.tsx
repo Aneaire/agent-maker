@@ -76,10 +76,20 @@ function LogoModelInner() {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      // Normalise cursor to -1…+1 across the full window
-      targetRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      targetRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      activeRef.current = true;
+      // Zone: right 60% of screen, top 100vh only
+      const xRatio = e.clientX / window.innerWidth;
+      const inZone = xRatio > 0.4 && e.clientY < window.innerHeight;
+
+      if (inZone) {
+        targetRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+        targetRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        activeRef.current = true;
+      } else {
+        // Outside zone — drift back to center
+        activeRef.current = false;
+        targetRef.current.x = 0;
+        targetRef.current.y = 0;
+      }
     };
     const handleLeave = () => {
       activeRef.current = false;
