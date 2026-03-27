@@ -217,6 +217,44 @@ npx convex run seed:run '{"email":"aneaire010@gmail.com","force":true}'   # Crea
 npx convex run seed:cleanup '{"email":"aneaire010@gmail.com"}'            # Remove sandbox
 ```
 
+## Testing
+
+When asked to test or verify changes, use these in order:
+
+**1. Type checking (always run first):**
+```bash
+npm run typecheck
+```
+
+**2. Sandbox seed — create/recreate full test agent with all features:**
+```bash
+npx convex run seed:run '{"email":"aneaire010@gmail.com","force":true}'
+```
+
+**3. Functional tests — verify end-to-end pipelines:**
+```bash
+# Test: task creation → event → automation pipeline
+npx convex run seed:testCreateTaskAutomation '{}'
+# Wait ~5s, then verify:
+npx convex run seed:verifyAutomationResults '{}'
+
+# Test: schedule creation → fire → conversation pipeline
+npx convex run seed:testSchedule '{"email":"aneaire010@gmail.com"}'
+# Wait ~5s, then verify:
+npx convex run seed:verifyScheduleResults '{}'
+```
+
+**4. Cleanup sandbox:**
+```bash
+npx convex run seed:cleanup '{"email":"aneaire010@gmail.com"}'
+```
+
+**Rules:**
+- Always run `npm run typecheck` before committing
+- Use the sandbox to verify end-to-end flows after changing tool sets, automations, schedules, or event bus logic
+- If a functional test fails, check that the sandbox agent exists first (`seed:run`)
+- No Jest/Vitest — the sandbox seed system IS the test suite
+
 ## Dev Commands
 
 ```bash
