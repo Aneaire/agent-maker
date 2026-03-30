@@ -26,6 +26,8 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const removeNote = useMutation(api.tabNotes.remove);
   const [selectedId, setSelectedId] = useState<Id<"tabNotes"> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isNaming, setIsNaming] = useState(false);
+  const [newNoteName, setNewNoteName] = useState("");
 
   const searchResults = useQuery(
     api.tabNotes.search,
@@ -37,12 +39,25 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const displayNotes = searchQuery.trim() ? searchResults : notes;
   const selectedNote = notes?.find((n) => n._id === selectedId);
 
-  async function handleCreate() {
+  function handleStartCreate() {
+    setIsNaming(true);
+    setNewNoteName("");
+  }
+
+  async function handleConfirmCreate() {
+    const trimmed = newNoteName.trim();
+    if (!trimmed) {
+      setIsNaming(false);
+      setNewNoteName("");
+      return;
+    }
     const id = await createNote({
       tabId: tab._id,
-      title: "Untitled",
+      title: trimmed,
     });
     setSelectedId(id);
+    setIsNaming(false);
+    setNewNoteName("");
   }
 
   return (
@@ -62,7 +77,7 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             )}
           </div>
           <button
-            onClick={handleCreate}
+            onClick={handleStartCreate}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -83,6 +98,36 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 space-y-1">
+          {isNaming && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleConfirmCreate();
+              }}
+              className="rounded-xl bg-zinc-800 px-3.5 py-3 border-l-2 border-neon-400"
+            >
+              <input
+                value={newNoteName}
+                onChange={(e) => setNewNoteName(e.target.value)}
+                onBlur={() => {
+                  setIsNaming(false);
+                  setNewNoteName("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setIsNaming(false);
+                    setNewNoteName("");
+                  }
+                }}
+                placeholder="Note name..."
+                className="w-full bg-transparent text-sm font-medium text-zinc-100 outline-none placeholder-zinc-600"
+                autoFocus
+              />
+              <div className="text-[10px] text-zinc-600 mt-1.5">
+                Enter to create · Esc to cancel
+              </div>
+            </form>
+          )}
           {displayNotes === undefined ? (
             <div className="space-y-1.5 px-1">
               {[1, 2, 3].map((i) => (
@@ -100,7 +145,7 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
               </p>
               {!searchQuery && (
                 <button
-                  onClick={handleCreate}
+                  onClick={handleStartCreate}
                   className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2"
                 >
                   Create one
@@ -207,9 +252,11 @@ function NoteEditor({
   function handleTitleChange(value: string) {
     setLocalTitle(value);
     clearTimeout(titleTimer.current);
-    titleTimer.current = setTimeout(() => {
-      onUpdate({ title: value });
-    }, 500);
+    if (value.trim()) {
+      titleTimer.current = setTimeout(() => {
+        onUpdate({ title: value.trim() });
+      }, 500);
+    }
   }
 
   function handleContentChange(value: string) {
@@ -220,11 +267,15 @@ function NoteEditor({
     }, 500);
   }
 
-  // Flush pending changes on blur
+  // Flush pending changes on blur — revert if empty
   function handleTitleBlur() {
     isTitleFocused.current = false;
     clearTimeout(titleTimer.current);
-    if (localTitle !== note.title) onUpdate({ title: localTitle });
+    if (!localTitle.trim()) {
+      setLocalTitle(note.title);
+    } else if (localTitle.trim() !== note.title) {
+      onUpdate({ title: localTitle.trim() });
+    }
   }
 
   function handleContentBlur() {
