@@ -83,10 +83,13 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const updateTitle = useMutation(api.conversations.updateTitle);
   const removeConversation = useMutation(api.conversations.remove);
   const createTab = useMutation(api.sidebarTabs.create);
+  const removeTab = useMutation(api.sidebarTabs.remove);
   const [showAddPage, setShowAddPage] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTabId, setDeleteTabId] = useState<string | null>(null);
+  const [deleteTabConfirm, setDeleteTabConfirm] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const conversationGroups = useMemo(
@@ -199,20 +202,37 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
             Pages
           </div>
           <div className="space-y-0.5">
-            {tabs.map((tab) => (
-              <Link
-                key={tab._id}
-                to={`/agents/${agent._id}/tab/${tab._id}`}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-all ${
-                  location.pathname.includes(`/tab/${tab._id}`)
-                    ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
-                }`}
-              >
-                {TAB_ICONS[tab.type] ?? <LayoutGrid className="h-4 w-4" />}
-                <span className="truncate">{tab.label}</span>
-              </Link>
-            ))}
+            {tabs.map((tab) => {
+              const isActive = location.pathname.includes(`/tab/${tab._id}`);
+              return (
+                <div
+                  key={tab._id}
+                  className={`group flex items-center rounded-xl text-sm transition-all ${
+                    isActive
+                      ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-0"
+                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
+                  }`}
+                >
+                  <Link
+                    to={`/agents/${agent._id}/tab/${tab._id}`}
+                    className="flex items-center gap-2.5 flex-1 px-3 py-2 min-w-0"
+                  >
+                    {TAB_ICONS[tab.type] ?? <LayoutGrid className="h-4 w-4" />}
+                    <span className="truncate">{tab.label}</span>
+                  </Link>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDeleteTabId(tab._id);
+                      setDeleteTabConfirm("");
+                    }}
+                    className="hidden group-hover:block pr-2"
+                  >
+                    <Trash2 className="h-3 w-3 text-zinc-600 hover:text-red-400 transition-colors" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -449,6 +469,77 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           </div>
         </div>
       )}
+
+      {/* Delete Page Confirmation Dialog */}
+      {deleteTabId && (() => {
+        const tabToDelete = tabs?.find((t) => t._id === deleteTabId);
+        if (!tabToDelete) return null;
+        const confirmMatch = deleteTabConfirm === tabToDelete.label;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-80 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl fade-in-up">
+              <h3 className="text-sm font-semibold text-zinc-100 mb-2">
+                Delete page
+              </h3>
+              <p className="text-xs text-zinc-400 mb-4">
+                This will permanently delete <span className="font-semibold text-zinc-200">{tabToDelete.label}</span> and all its data. This action cannot be undone.
+              </p>
+              <p className="text-xs text-zinc-500 mb-2">
+                Type <span className="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded">{tabToDelete.label}</span> to confirm:
+              </p>
+              <input
+                value={deleteTabConfirm}
+                onChange={(e) => setDeleteTabConfirm(e.target.value)}
+                placeholder={tabToDelete.label}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-red-500/50 focus:outline-none transition-colors mb-4"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setDeleteTabId(null);
+                    setDeleteTabConfirm("");
+                  }
+                  if (e.key === "Enter" && confirmMatch) {
+                    e.preventDefault();
+                    (async () => {
+                      await removeTab({ tabId: deleteTabId as any });
+                      if (location.pathname.includes(`/tab/${deleteTabId}`)) {
+                        navigate(`/agents/${agent._id}`);
+                      }
+                      setDeleteTabId(null);
+                      setDeleteTabConfirm("");
+                    })();
+                  }
+                }}
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setDeleteTabId(null);
+                    setDeleteTabConfirm("");
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-zinc-400 rounded-lg hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={!confirmMatch}
+                  onClick={async () => {
+                    await removeTab({ tabId: deleteTabId as any });
+                    if (location.pathname.includes(`/tab/${deleteTabId}`)) {
+                      navigate(`/agents/${agent._id}`);
+                    }
+                    setDeleteTabId(null);
+                    setDeleteTabConfirm("");
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-500/10"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </aside>
   );
 }
