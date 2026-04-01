@@ -344,6 +344,32 @@ const EVENT_OPTIONS: Array<{
     ],
   },
   {
+    group: "Google Sheets",
+    groupColor: "text-emerald-400",
+    events: [
+      { value: "gsheets.spreadsheet_created", description: "A new spreadsheet was created" },
+      { value: "gsheets.data_written",        description: "Data was written to a range" },
+      { value: "gsheets.rows_appended",       description: "Rows were appended to a sheet" },
+    ],
+  },
+  {
+    group: "Google Drive",
+    groupColor: "text-blue-400",
+    events: [
+      { value: "gdrive.file_created", description: "A file was created in Google Drive" },
+      { value: "gdrive.file_deleted", description: "A file was moved to trash" },
+    ],
+  },
+  {
+    group: "Google Calendar",
+    groupColor: "text-indigo-400",
+    events: [
+      { value: "gcal.event_created", description: "A calendar event was created" },
+      { value: "gcal.event_updated", description: "A calendar event was updated" },
+      { value: "gcal.event_deleted", description: "A calendar event was deleted" },
+    ],
+  },
+  {
     group: "Webhooks",
     groupColor: "text-purple-400",
     events: [
@@ -671,6 +697,27 @@ const PAYLOAD_VARIABLES: Record<string, Array<{ key: string; description: string
     { key: "{{event.subject}}",        description: "Email subject" },
     { key: "{{event.gmailMessageId}}", description: "Gmail message ID" },
     { key: "{{event.threadId}}",       description: "Gmail thread ID" },
+  ],
+  "gsheets.*": [
+    { key: "{{event.spreadsheetId}}", description: "Spreadsheet ID" },
+    { key: "{{event.title}}",         description: "Spreadsheet title (on create)" },
+    { key: "{{event.range}}",         description: "A1 notation range written (on write)" },
+    { key: "{{event.rowCount}}",      description: "Number of rows written/appended" },
+    { key: "{{event.sheet}}",         description: "Sheet/tab name (on append)" },
+  ],
+  "gdrive.*": [
+    { key: "{{event.fileId}}",     description: "Drive file ID" },
+    { key: "{{event.name}}",       description: "File name" },
+    { key: "{{event.type}}",       description: "File type (doc, sheet, folder, text)" },
+    { key: "{{event.mimeType}}",   description: "MIME type" },
+    { key: "{{event.webViewLink}}", description: "Link to open the file" },
+  ],
+  "gcal.*": [
+    { key: "{{event.eventId}}",    description: "Calendar event ID" },
+    { key: "{{event.title}}",      description: "Event title/summary" },
+    { key: "{{event.start}}",      description: "Event start time" },
+    { key: "{{event.end}}",        description: "Event end time" },
+    { key: "{{event.calendarId}}", description: "Calendar ID" },
   ],
   "webhook.*": [
     { key: "{{event.webhookId}}", description: "Webhook ID" },
