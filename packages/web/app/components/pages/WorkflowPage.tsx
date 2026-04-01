@@ -523,6 +523,266 @@ function TemplatesPicker({
   );
 }
 
+// ── Schedule Templates ───────────────────────────────────────────────
+
+type ScheduleTemplate = {
+  name: string;
+  description: string;
+  category: string;
+  categoryColor: string;
+  scheduleType: "cron" | "interval" | "once";
+  schedule: string;
+  action: { type: ScheduleActionType; config: any };
+};
+
+const SCHEDULE_TEMPLATES: ScheduleTemplate[] = [
+  // ── Email polling ──────────────────────────────────────────────────
+  {
+    name: "Poll for unread emails every 15 min",
+    description: "Check Gmail every 15 minutes for new unread emails and create a task for each one found.",
+    category: "Gmail",
+    categoryColor: "text-red-400",
+    scheduleType: "interval",
+    schedule: "every 15m",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "Search Gmail for unread emails received in the last 15 minutes. For each new email found, create a task titled 'Reply to: [subject]' with medium priority and store the sender and subject in memory. If no new emails, do nothing.",
+      },
+    },
+  },
+  {
+    name: "Hourly email digest",
+    description: "Every hour summarize new emails and store the digest in memory for easy review.",
+    category: "Gmail",
+    categoryColor: "text-red-400",
+    scheduleType: "interval",
+    schedule: "every 1h",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "Search Gmail for unread emails from the last hour. Summarize them in a brief digest (sender, subject, one-line summary per email). Store the digest in memory under category 'email-digest'. If no new emails, skip.",
+      },
+    },
+  },
+  {
+    name: "Filter emails from specific sender",
+    description: "Poll every 30 minutes for emails from a specific sender and flag them as high-priority tasks.",
+    category: "Gmail",
+    categoryColor: "text-red-400",
+    scheduleType: "interval",
+    schedule: "every 30m",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "Search Gmail for unread emails from [sender@example.com] received in the last 30 minutes. For each one found, create a high-priority task titled 'Urgent: [subject]' and store the email ID in memory to avoid duplicates next run.",
+      },
+    },
+  },
+  {
+    name: "Morning email briefing",
+    description: "Every weekday morning at 8am, summarize overnight emails and prepare a daily action list.",
+    category: "Gmail",
+    categoryColor: "text-red-400",
+    scheduleType: "cron",
+    schedule: "0 8 * * 1-5",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "Search Gmail for all unread emails. Summarize each one with sender, subject, and urgency level. Create a prioritized action list as a note titled 'Morning Email Briefing - [today's date]'. Mark the most urgent ones as high-priority tasks.",
+      },
+    },
+  },
+  // ── Tasks ──────────────────────────────────────────────────────────
+  {
+    name: "Daily task summary",
+    description: "Every day at 9am generate a summary of open tasks and store it in memory.",
+    category: "Tasks",
+    categoryColor: "text-blue-400",
+    scheduleType: "cron",
+    schedule: "0 9 * * *",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "List all open tasks. Group them by priority (high/medium/low). Write a concise daily briefing with the top 3 most urgent items highlighted. Store it in memory under category 'daily-summary' and create a note with the full summary.",
+      },
+    },
+  },
+  {
+    name: "Weekly cleanup — archive done tasks",
+    description: "Every Sunday night summarize and archive completed tasks from the week.",
+    category: "Tasks",
+    categoryColor: "text-blue-400",
+    scheduleType: "cron",
+    schedule: "0 22 * * 0",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "List all tasks marked as done. Write a weekly accomplishments summary and store it in memory under category 'weekly-review'. Then create a new note titled 'Week in Review' with the summary. Focus on what was completed.",
+      },
+    },
+  },
+  // ── General ────────────────────────────────────────────────────────
+  {
+    name: "Daily memory snapshot",
+    description: "Every day store a snapshot of today's activity summary in memory.",
+    category: "General",
+    categoryColor: "text-zinc-400",
+    scheduleType: "cron",
+    schedule: "0 18 * * *",
+    action: {
+      type: "run_prompt",
+      config: {
+        prompt: "Review today's activity: check recent tasks, notes, and emails. Write a brief end-of-day summary covering what was done, what's still pending, and any important information. Store it in memory under category 'daily-snapshot'.",
+      },
+    },
+  },
+];
+
+const SCHEDULE_TEMPLATE_CATEGORIES = [...new Set(SCHEDULE_TEMPLATES.map((t) => t.category))];
+
+function ScheduleTemplatesPicker({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (template: ScheduleTemplate) => void;
+  onClose: () => void;
+}) {
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [search, setSearch] = useState("");
+  const [showAllTags, setShowAllTags] = useState(false);
+  const allCategories = ["All", ...SCHEDULE_TEMPLATE_CATEGORIES];
+  const visibleCategories = allCategories.slice(0, 5);
+  const hiddenCategories = allCategories.slice(5);
+  const shownCategories = showAllTags
+    ? allCategories
+    : hiddenCategories.includes(activeCategory)
+    ? [...visibleCategories, activeCategory]
+    : visibleCategories;
+
+  const filtered = SCHEDULE_TEMPLATES.filter((t) => {
+    const matchesCategory = activeCategory === "All" || t.category === activeCategory;
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q) ||
+      t.schedule.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="relative w-full max-w-2xl h-[580px] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60 shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-neon-400" />
+            <span className="text-sm font-semibold text-zinc-100">Schedule Templates</span>
+          </div>
+          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-5 py-3 border-b border-zinc-800/40 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600 pointer-events-none" />
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search schedule templates..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl bg-zinc-900 border border-zinc-800 pl-9 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Category tags */}
+        <div className="flex gap-1.5 px-5 py-2.5 border-b border-zinc-800/40 shrink-0 flex-wrap">
+          {shownCategories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                activeCategory === cat
+                  ? "bg-zinc-700 text-zinc-200"
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+          {!showAllTags && hiddenCategories.length > 0 && (
+            <button
+              onClick={() => setShowAllTags(true)}
+              className="px-3 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60 transition-colors"
+            >
+              +{hiddenCategories.length} more
+            </button>
+          )}
+          {showAllTags && (
+            <button
+              onClick={() => setShowAllTags(false)}
+              className="px-3 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60 transition-colors"
+            >
+              Show less
+            </button>
+          )}
+        </div>
+
+        {/* Template grid */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Search className="h-8 w-8 text-zinc-800 mb-2" />
+              <p className="text-sm text-zinc-500 font-medium">No templates found</p>
+              <p className="text-xs text-zinc-600 mt-0.5">Try a different search or category</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filtered.map((tpl, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSelect(tpl)}
+                  className="group text-left rounded-xl border border-zinc-800/60 bg-zinc-900/50 hover:bg-zinc-800/60 hover:border-zinc-700 p-4 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <span className="text-sm font-semibold text-zinc-200 leading-snug group-hover:text-white transition-colors">
+                      {tpl.name}
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 text-zinc-600 group-hover:text-neon-400 shrink-0 mt-0.5 transition-colors" />
+                  </div>
+                  <p className="text-xs text-zinc-500 leading-relaxed mb-3">{tpl.description}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[11px] font-medium ${tpl.categoryColor}`}>{tpl.category}</span>
+                    <span className="text-zinc-700">·</span>
+                    <span className="text-[11px] font-mono text-zinc-600">{tpl.scheduleType} · {tpl.schedule}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function getSourceStyle(source: string): string {
   const map: Record<string, string> = {
     page_tools:          "text-zinc-400 bg-zinc-800/40",
@@ -971,6 +1231,27 @@ function AutomationForm({
   const [actions, setActions] = useState<Array<{ type: ActionType; config: any }>>(
     initialData?.actions ?? [{ type: "run_prompt", config: { prompt: "" } }]
   );
+  const [filterPairs, setFilterPairs] = useState<Array<{ key: string; value: string }>>(
+    initialData?.trigger.filter
+      ? Object.entries(initialData.trigger.filter).map(([k, v]) => ({ key: k, value: String(v) }))
+      : []
+  );
+
+  function addFilter() {
+    setFilterPairs([...filterPairs, { key: "", value: "" }]);
+  }
+  function removeFilter(i: number) {
+    setFilterPairs(filterPairs.filter((_, idx) => idx !== i));
+  }
+  function updateFilter(i: number, field: "key" | "value", val: string) {
+    const updated = [...filterPairs];
+    updated[i] = { ...updated[i], [field]: val };
+    setFilterPairs(updated);
+  }
+  const filterObject =
+    filterPairs.length > 0 && filterPairs.some((p) => p.key.trim())
+      ? Object.fromEntries(filterPairs.filter((p) => p.key.trim()).map((p) => [p.key.trim(), p.value]))
+      : undefined;
 
   function addAction() {
     if (actions.length < 10) {
@@ -1021,6 +1302,55 @@ function AutomationForm({
             onChange={setTriggerEvent}
           />
         </div>
+      </div>
+
+      {/* Filter conditions */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs font-medium text-zinc-400">
+            Filter Conditions
+            <span className="ml-1.5 font-normal text-zinc-600">(optional)</span>
+          </label>
+          <button
+            onClick={addFilter}
+            className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <Plus className="h-3 w-3" /> Add condition
+          </button>
+        </div>
+        {filterPairs.length === 0 ? (
+          <p className="text-[11px] text-zinc-600">
+            Only fire when the event payload matches these key/value pairs. Leave empty to always fire.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {filterPairs.map((pair, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={pair.key}
+                  onChange={(e) => updateFilter(i, "key", e.target.value)}
+                  placeholder="field (e.g. status)"
+                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+                />
+                <span className="text-zinc-600 text-xs shrink-0">=</span>
+                <input
+                  type="text"
+                  value={pair.value}
+                  onChange={(e) => updateFilter(i, "value", e.target.value)}
+                  placeholder="value (e.g. done)"
+                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+                />
+                <button
+                  onClick={() => removeFilter(i)}
+                  className="p-1 text-zinc-600 hover:text-red-400 transition-colors shrink-0"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
@@ -1080,7 +1410,7 @@ function AutomationForm({
               agentId: agentId as any,
               name: name.trim(),
               description: description.trim() || undefined,
-              trigger: { event: triggerEvent.trim() },
+              trigger: { event: triggerEvent.trim(), filter: filterObject },
               actions,
             })
           }
@@ -2103,6 +2433,8 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   const [showSchedForm, setShowSchedForm] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateInitial, setTemplateInitial] = useState<WorkflowTemplate | null>(null);
+  const [showSchedTemplates, setShowSchedTemplates] = useState(false);
+  const [schedTemplateInitial, setSchedTemplateInitial] = useState<ScheduleTemplate | null>(null);
   const [editingAutoId, setEditingAutoId] = useState<string | null>(null);
   const [editingSchedId, setEditingSchedId] = useState<string | null>(null);
   const [eventLimit, setEventLimit] = useState(50);
@@ -2293,16 +2625,37 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             onAction={() => {
               setShowSchedForm(true);
               setShowAutoForm(false);
+              setSchedTemplateInitial(null);
             }}
+            secondaryAction={
+              <button
+                onClick={() => setShowSchedTemplates(true)}
+                className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-neon-400 transition-colors"
+              >
+                <Sparkles className="h-3 w-3" />
+                Templates
+              </button>
+            }
           >
             {showSchedForm && (
               <ScheduleForm
                 agentId={agentId as string}
+                initialData={schedTemplateInitial ? {
+                  name: schedTemplateInitial.name,
+                  description: schedTemplateInitial.description,
+                  scheduleType: schedTemplateInitial.scheduleType,
+                  schedule: schedTemplateInitial.schedule,
+                  action: schedTemplateInitial.action,
+                } : undefined}
                 onCreate={async (data) => {
                   await createSchedule(data);
                   setShowSchedForm(false);
+                  setSchedTemplateInitial(null);
                 }}
-                onCancel={() => setShowSchedForm(false)}
+                onCancel={() => {
+                  setShowSchedForm(false);
+                  setSchedTemplateInitial(null);
+                }}
               />
             )}
 
@@ -2319,12 +2672,20 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 <p className="text-[11px] text-zinc-600 mt-0.5">
                   Run cron jobs, intervals, and one-time tasks
                 </p>
-                <button
-                  onClick={() => setShowSchedForm(true)}
-                  className="mt-3 flex items-center gap-1.5 rounded-xl bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700 transition-colors mx-auto"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Create Schedule
-                </button>
+                <div className="mt-3 flex items-center gap-2 justify-center">
+                  <button
+                    onClick={() => { setShowSchedForm(true); setSchedTemplateInitial(null); }}
+                    className="flex items-center gap-1.5 rounded-xl bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Create Schedule
+                  </button>
+                  <button
+                    onClick={() => setShowSchedTemplates(true)}
+                    className="flex items-center gap-1.5 rounded-xl bg-neon-950/40 border border-neon-800/30 px-3 py-2 text-xs font-medium text-neon-400 hover:bg-neon-950/60 transition-colors"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" /> From Template
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -2441,6 +2802,17 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             setShowAutoForm(true);
           }}
           onClose={() => setShowTemplates(false)}
+        />
+      )}
+
+      {showSchedTemplates && (
+        <ScheduleTemplatesPicker
+          onSelect={(tpl) => {
+            setSchedTemplateInitial(tpl);
+            setShowSchedTemplates(false);
+            setShowSchedForm(true);
+          }}
+          onClose={() => setShowSchedTemplates(false)}
         />
       )}
     </div>
