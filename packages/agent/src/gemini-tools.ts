@@ -1,5 +1,6 @@
 import { SchemaType } from "@google/generative-ai";
 import type { AgentConvexClient } from "./convex-client.js";
+import { embedText } from "./embeddings.js";
 
 interface Tab {
   _id: string;
@@ -23,6 +24,18 @@ interface ImageGenConfig {
   nanoBananaApiKey?: string;
 }
 
+interface GmailConfig {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}
+
+interface GSheetsConfig {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}
+
 interface GeminiToolDeps {
   convexClient: AgentConvexClient;
   agentId: string;
@@ -32,7 +45,72 @@ interface GeminiToolDeps {
   customTools: CustomToolConfig[];
   imageGenConfig?: ImageGenConfig | null;
   imageGenModel?: string;
+  gmailConfig?: GmailConfig | null;
+  gsheetsConfig?: GSheetsConfig | null;
   onToolProgress?: (toolName: string, progress: string) => void;
+}
+
+// ── Google OAuth helper ───────────────────────────────────────────────
+async function getGoogleAccessToken(config: { clientId: string; clientSecret: string; refreshToken: string }): Promise<string> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      refresh_token: config.refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Google OAuth error: ${data.error_description || data.error || res.status}`);
+  return data.access_token;
+}
+
+async function gmailFetch(config: GmailConfig, path: string, method = "GET", body?: any) {
+  const token = await getGoogleAccessToken(config);
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+  if (method === "DELETE" && res.status === 204) return {};
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `Gmail API error: ${res.status}`);
+  return data;
+}
+
+async function sheetsFetch(config: GSheetsConfig, path: string, method = "GET", body?: any) {
+  const token = await getGoogleAccessToken(config);
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `Sheets API error: ${res.status}`);
+  return data;
+}
+
+function buildGmailMime(params: { to: string | string[]; subject: string; body: string; cc?: string[]; bcc?: string[]; replyTo?: string; inReplyTo?: string; references?: string }): string {
+  const to = Array.isArray(params.to) ? params.to.join(", ") : params.to;
+  const lines = [
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(params.subject).toString("base64")}?=`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `MIME-Version: 1.0`,
+  ];
+  if (params.cc?.length) lines.push(`Cc: ${params.cc.join(", ")}`);
+  if (params.bcc?.length) lines.push(`Bcc: ${params.bcc.join(", ")}`);
+  if (params.replyTo) lines.push(`Reply-To: ${params.replyTo}`);
+  if (params.inReplyTo) lines.push(`In-Reply-To: ${params.inReplyTo}`);
+  if (params.references) lines.push(`References: ${params.references}`);
+  lines.push("", params.body);
+  return Buffer.from(lines.join("\r\n")).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function gmailHeader(headers: any[], name: string): string {
+  return headers?.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
 }
 
 export interface GeminiFunctionDeclaration {
@@ -103,7 +181,11 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
       },
     });
     handlers.store_memory = async (args) => {
-      await deps.convexClient.storeMemory(deps.agentId, args.content, args.category);
+      let embedding: number[] | undefined;
+      try {
+        embedding = await embedText(args.content);
+      } catch {}
+      await deps.convexClient.storeMemory(deps.agentId, args.content, args.category, embedding);
       return `Stored memory: "${args.content}"`;
     };
 
@@ -123,7 +205,20 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
       },
     });
     handlers.recall_memory = async (args) => {
-      const memories = await deps.convexClient.searchMemories(deps.agentId, args.query);
+      let memories: any[] | null = null;
+
+      try {
+        const embedding = await embedText(args.query);
+        const results = await deps.convexClient.searchMemoriesVector(deps.agentId, embedding);
+        if (results && results.length > 0) {
+          memories = results;
+        }
+      } catch {}
+
+      if (!memories || memories.length === 0) {
+        memories = await deps.convexClient.searchMemories(deps.agentId, args.query);
+      }
+
       if (!memories || memories.length === 0) return "No relevant memories found.";
       return memories
         .map((m: any) => `- ${m.content}${m.category ? ` [${m.category}]` : ""}`)
@@ -146,7 +241,20 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
     });
     handlers.search_memories = async (args) => {
       if (args.query) {
-        const memories = await deps.convexClient.searchMemories(deps.agentId, args.query);
+        let memories: any[] | null = null;
+
+        try {
+          const embedding = await embedText(args.query);
+          const results = await deps.convexClient.searchMemoriesVector(deps.agentId, embedding);
+          if (results && results.length > 0) {
+            memories = results;
+          }
+        } catch {}
+
+        if (!memories || memories.length === 0) {
+          memories = await deps.convexClient.searchMemories(deps.agentId, args.query);
+        }
+
         if (!memories || memories.length === 0) return "No memories match that search.";
         return memories
           .map((m: any) => `- ${m.content}${m.category ? ` [${m.category}]` : ""}`)
@@ -872,6 +980,367 @@ export function buildGeminiTools(deps: GeminiToolDeps): {
             `- [${a._id}] ${a.name} (${a.type})${a.generatedBy ? ` via ${a.generatedBy}` : ""}${a.resolvedUrl ? ` — ${a.resolvedUrl}` : ""}`
         )
         .join("\n");
+    };
+  }
+
+  // ── Gmail tools ───────────────────────────────────────────────────
+  if (has(enabled, "gmail") && deps.gmailConfig) {
+    const gc = deps.gmailConfig;
+
+    declarations.push({
+      name: "gmail_list_messages",
+      description: "List recent emails from Gmail inbox. Returns message summaries with subject, from, date, and snippet.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          max_results: { type: SchemaType.NUMBER, description: "Max messages to return (default 10, max 50)" },
+          label: { type: SchemaType.STRING, description: "Filter by label (e.g. INBOX, SENT, UNREAD)" },
+        },
+      },
+    });
+    handlers.gmail_list_messages = async (args) => {
+      try {
+        const params = new URLSearchParams({ maxResults: String(Math.min(args.max_results ?? 10, 50)) });
+        if (args.label) params.set("labelIds", args.label);
+        const list = await gmailFetch(gc, `/messages?${params}`);
+        const ids: string[] = (list.messages ?? []).map((m: any) => m.id);
+        if (!ids.length) return "No messages found.";
+        const messages = await Promise.all(ids.slice(0, 10).map((id) =>
+          gmailFetch(gc, `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`)
+        ));
+        return JSON.stringify(messages.map((m) => ({
+          id: m.id, threadId: m.threadId,
+          from: gmailHeader(m.payload?.headers, "From"),
+          subject: gmailHeader(m.payload?.headers, "Subject"),
+          date: gmailHeader(m.payload?.headers, "Date"),
+          snippet: m.snippet,
+          labels: m.labelIds ?? [],
+        })), null, 2);
+      } catch (e: any) { return `Gmail error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gmail_search",
+      description: "Search Gmail using Gmail search syntax (e.g. 'from:alice subject:meeting', 'is:unread').",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          query: { type: SchemaType.STRING, description: "Gmail search query" },
+          max_results: { type: SchemaType.NUMBER, description: "Max results (default 10)" },
+        },
+        required: ["query"],
+      },
+    });
+    handlers.gmail_search = async (args) => {
+      try {
+        const params = new URLSearchParams({ q: args.query, maxResults: String(Math.min(args.max_results ?? 10, 50)) });
+        const list = await gmailFetch(gc, `/messages?${params}`);
+        const ids: string[] = (list.messages ?? []).map((m: any) => m.id);
+        if (!ids.length) return `No messages found for "${args.query}".`;
+        const messages = await Promise.all(ids.slice(0, 10).map((id) =>
+          gmailFetch(gc, `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`)
+        ));
+        return JSON.stringify(messages.map((m) => ({
+          id: m.id, from: gmailHeader(m.payload?.headers, "From"),
+          subject: gmailHeader(m.payload?.headers, "Subject"),
+          date: gmailHeader(m.payload?.headers, "Date"), snippet: m.snippet,
+        })), null, 2);
+      } catch (e: any) { return `Gmail search error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gmail_send",
+      description: "Send an email via Gmail. Supports HTML content, CC, BCC.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          to: { type: SchemaType.STRING, description: "Recipient email address(es), comma-separated" },
+          subject: { type: SchemaType.STRING, description: "Email subject" },
+          body: { type: SchemaType.STRING, description: "Email body (HTML supported)" },
+          cc: { type: SchemaType.STRING, description: "CC recipients, comma-separated" },
+          bcc: { type: SchemaType.STRING, description: "BCC recipients, comma-separated" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    });
+    handlers.gmail_send = async (args) => {
+      try {
+        const raw = buildGmailMime({
+          to: args.to, subject: args.subject, body: args.body,
+          cc: args.cc ? [args.cc] : undefined,
+          bcc: args.bcc ? [args.bcc] : undefined,
+        });
+        const result = await gmailFetch(gc, "/messages/send", "POST", { raw });
+        const recipients = Array.isArray(args.to) ? args.to : [args.to];
+        await deps.convexClient.logEmail(deps.agentId, { to: recipients, subject: args.subject, status: "sent", resendId: result.id });
+        await deps.convexClient.emitEvent(deps.agentId, "gmail.sent", "gmail_tools", { to: recipients, subject: args.subject, gmailMessageId: result.id });
+        return `Email sent to ${args.to}. Subject: "${args.subject}" (Message ID: ${result.id})`;
+      } catch (e: any) {
+        const recipients = Array.isArray(args.to) ? args.to : [args.to];
+        await deps.convexClient.logEmail(deps.agentId, { to: recipients, subject: args.subject, status: "failed", error: e.message });
+        return `Failed to send email: ${e.message}`;
+      }
+    };
+
+    declarations.push({
+      name: "gmail_list_labels",
+      description: "List all Gmail labels/folders in the account.",
+      parameters: { type: SchemaType.OBJECT, properties: {} },
+    });
+    handlers.gmail_list_labels = async () => {
+      try {
+        const data = await gmailFetch(gc, "/labels");
+        return JSON.stringify((data.labels ?? []).map((l: any) => ({ id: l.id, name: l.name, type: l.type, unread: l.messagesUnread })), null, 2);
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gmail_get_message",
+      description: "Get the full content of a specific Gmail message by ID.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: { message_id: { type: SchemaType.STRING, description: "Gmail message ID" } },
+        required: ["message_id"],
+      },
+    });
+    handlers.gmail_get_message = async (args) => {
+      try {
+        const msg = await gmailFetch(gc, `/messages/${args.message_id}?format=full`);
+        const headers = msg.payload?.headers ?? [];
+        return JSON.stringify({
+          id: msg.id, threadId: msg.threadId,
+          from: gmailHeader(headers, "From"), to: gmailHeader(headers, "To"),
+          subject: gmailHeader(headers, "Subject"), date: gmailHeader(headers, "Date"),
+          snippet: msg.snippet, labels: msg.labelIds ?? [],
+        }, null, 2);
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gmail_reply",
+      description: "Reply to an existing Gmail message in the same thread.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          message_id: { type: SchemaType.STRING, description: "Message ID to reply to" },
+          body: { type: SchemaType.STRING, description: "Reply body (HTML supported)" },
+          reply_all: { type: SchemaType.BOOLEAN, description: "Reply to all recipients" },
+        },
+        required: ["message_id", "body"],
+      },
+    });
+    handlers.gmail_reply = async (args) => {
+      try {
+        const original = await gmailFetch(gc, `/messages/${args.message_id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=References`);
+        const headers = original.payload?.headers ?? [];
+        const origFrom = gmailHeader(headers, "From");
+        const origSubject = gmailHeader(headers, "Subject");
+        const origMsgId = gmailHeader(headers, "Message-ID");
+        const origRefs = gmailHeader(headers, "References");
+        const subject = origSubject.startsWith("Re:") ? origSubject : `Re: ${origSubject}`;
+        const references = origRefs ? `${origRefs} ${origMsgId}` : origMsgId;
+        const raw = buildGmailMime({ to: origFrom, subject, body: args.body, inReplyTo: origMsgId, references });
+        const result = await gmailFetch(gc, "/messages/send", "POST", { raw, threadId: original.threadId });
+        await deps.convexClient.emitEvent(deps.agentId, "gmail.replied", "gmail_tools", { to: origFrom, subject, gmailMessageId: result.id });
+        return `Reply sent to ${origFrom}. Thread: ${result.threadId}`;
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gmail_modify_labels",
+      description: "Add or remove labels from a Gmail message (archive, star, mark read/unread).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          message_id: { type: SchemaType.STRING, description: "Gmail message ID" },
+          add_labels: { type: SchemaType.STRING, description: "Comma-separated label IDs to add (e.g. STARRED,IMPORTANT)" },
+          remove_labels: { type: SchemaType.STRING, description: "Comma-separated label IDs to remove (e.g. UNREAD,INBOX)" },
+        },
+        required: ["message_id"],
+      },
+    });
+    handlers.gmail_modify_labels = async (args) => {
+      try {
+        const body: any = {};
+        if (args.add_labels) body.addLabelIds = args.add_labels.split(",").map((s: string) => s.trim());
+        if (args.remove_labels) body.removeLabelIds = args.remove_labels.split(",").map((s: string) => s.trim());
+        await gmailFetch(gc, `/messages/${args.message_id}/modify`, "POST", body);
+        return `Labels updated on message ${args.message_id}.`;
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gmail_get_thread",
+      description: "Get all messages in a Gmail thread/conversation.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: { thread_id: { type: SchemaType.STRING, description: "Gmail thread ID" } },
+        required: ["thread_id"],
+      },
+    });
+    handlers.gmail_get_thread = async (args) => {
+      try {
+        const thread = await gmailFetch(gc, `/threads/${args.thread_id}?format=metadata`);
+        return JSON.stringify({ threadId: thread.id, messageCount: (thread.messages ?? []).length }, null, 2);
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+  }
+
+  // ── Google Sheets tools ───────────────────────────────────────────
+  if (has(enabled, "google_sheets") && deps.gsheetsConfig) {
+    const sc = deps.gsheetsConfig;
+
+    declarations.push({
+      name: "gsheets_list_spreadsheets",
+      description: "List all Google Sheets spreadsheets in Google Drive. Always use this first when asked to list spreadsheets.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: { max_results: { type: SchemaType.NUMBER, description: "Max results (default 20)" } },
+      },
+    });
+    handlers.gsheets_list_spreadsheets = async (args) => {
+      try {
+        const token = await getGoogleAccessToken(sc);
+        const params = new URLSearchParams({
+          q: "mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+          pageSize: String(args.max_results ?? 20),
+          fields: "files(id,name,modifiedTime,webViewLink)",
+          orderBy: "modifiedTime desc",
+        });
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || `Drive API error: ${res.status}`);
+        const files = (data.files ?? []).map((f: any) => ({ id: f.id, name: f.name, modifiedTime: f.modifiedTime, link: f.webViewLink }));
+        return files.length > 0 ? JSON.stringify({ spreadsheets: files, count: files.length }, null, 2) : "No spreadsheets found.";
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gsheets_create",
+      description: "Create a new Google Sheets spreadsheet with optional sheet names and headers.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING, description: "Spreadsheet title" },
+          headers: { type: SchemaType.STRING, description: "Comma-separated column headers for the first sheet" },
+        },
+        required: ["title"],
+      },
+    });
+    handlers.gsheets_create = async (args) => {
+      try {
+        const body: any = { properties: { title: args.title }, sheets: [{ properties: { title: "Sheet1" } }] };
+        const created = await sheetsFetch(sc, "", "POST", body);
+        if (args.headers) {
+          const headerArr = args.headers.split(",").map((h: string) => h.trim());
+          await sheetsFetch(sc, `/${created.spreadsheetId}/values/Sheet1!A1:append?valueInputOption=USER_ENTERED`, "POST", { values: [headerArr] });
+        }
+        await deps.convexClient.emitEvent(deps.agentId, "gsheets.spreadsheet_created", "gsheets_tools", { spreadsheetId: created.spreadsheetId, title: args.title });
+        return `Spreadsheet created: "${args.title}"\nID: ${created.spreadsheetId}\nLink: ${created.spreadsheetUrl}`;
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gsheets_get_info",
+      description: "Get metadata about a spreadsheet — title, sheet names, row/column counts.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: { spreadsheet_id: { type: SchemaType.STRING, description: "Spreadsheet ID" } },
+        required: ["spreadsheet_id"],
+      },
+    });
+    handlers.gsheets_get_info = async (args) => {
+      try {
+        const data = await sheetsFetch(sc, `/${args.spreadsheet_id}?fields=properties.title,sheets.properties`);
+        return JSON.stringify({ title: data.properties.title, sheets: (data.sheets ?? []).map((s: any) => ({ name: s.properties.title, rows: s.properties.gridProperties?.rowCount })) }, null, 2);
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gsheets_read",
+      description: "Read data from a range in a Google Sheet. Use A1 notation (e.g. 'Sheet1!A1:D10' or 'Sheet1').",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          spreadsheet_id: { type: SchemaType.STRING, description: "Spreadsheet ID" },
+          range: { type: SchemaType.STRING, description: "A1 notation range" },
+        },
+        required: ["spreadsheet_id", "range"],
+      },
+    });
+    handlers.gsheets_read = async (args) => {
+      try {
+        const data = await sheetsFetch(sc, `/${args.spreadsheet_id}/values/${encodeURIComponent(args.range)}`);
+        const values = data.values ?? [];
+        if (!values.length) return "Range is empty.";
+        return JSON.stringify({ headers: values[0], rows: values.slice(1), totalRows: values.length - 1 }, null, 2);
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gsheets_write",
+      description: "Write data to a specific range in a Google Sheet. Overwrites existing data.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          spreadsheet_id: { type: SchemaType.STRING, description: "Spreadsheet ID" },
+          range: { type: SchemaType.STRING, description: "A1 notation range" },
+          values: { type: SchemaType.STRING, description: "JSON string of 2D array [[row1col1, row1col2], [row2col1, ...]]" },
+        },
+        required: ["spreadsheet_id", "range", "values"],
+      },
+    });
+    handlers.gsheets_write = async (args) => {
+      try {
+        const vals = typeof args.values === "string" ? JSON.parse(args.values) : args.values;
+        const result = await sheetsFetch(sc, `/${args.spreadsheet_id}/values/${encodeURIComponent(args.range)}?valueInputOption=USER_ENTERED`, "PUT", { values: vals });
+        await deps.convexClient.emitEvent(deps.agentId, "gsheets.data_written", "gsheets_tools", { spreadsheetId: args.spreadsheet_id, range: args.range, rowCount: vals.length });
+        return `Updated ${result.updatedCells} cells in range ${result.updatedRange}.`;
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gsheets_append",
+      description: "Append rows to the end of a Google Sheet. Automatically finds the next empty row.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          spreadsheet_id: { type: SchemaType.STRING, description: "Spreadsheet ID" },
+          sheet: { type: SchemaType.STRING, description: "Sheet/tab name (default: first sheet)" },
+          rows: { type: SchemaType.STRING, description: "JSON string of rows to append [[col1, col2, ...], ...]" },
+        },
+        required: ["spreadsheet_id", "rows"],
+      },
+    });
+    handlers.gsheets_append = async (args) => {
+      try {
+        const rows = typeof args.rows === "string" ? JSON.parse(args.rows) : args.rows;
+        const range = args.sheet ? `${args.sheet}!A:A` : "A:A";
+        const result = await sheetsFetch(sc, `/${args.spreadsheet_id}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, "POST", { values: rows });
+        await deps.convexClient.emitEvent(deps.agentId, "gsheets.rows_appended", "gsheets_tools", { spreadsheetId: args.spreadsheet_id, sheet: args.sheet, rowCount: rows.length });
+        return `Appended ${rows.length} row(s). Updated range: ${result.updates?.updatedRange || "success"}.`;
+      } catch (e: any) { return `Error: ${e.message}`; }
+    };
+
+    declarations.push({
+      name: "gsheets_clear",
+      description: "Clear all values from a range in a Google Sheet (keeps formatting).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          spreadsheet_id: { type: SchemaType.STRING, description: "Spreadsheet ID" },
+          range: { type: SchemaType.STRING, description: "A1 notation range to clear" },
+        },
+        required: ["spreadsheet_id", "range"],
+      },
+    });
+    handlers.gsheets_clear = async (args) => {
+      try {
+        await sheetsFetch(sc, `/${args.spreadsheet_id}/values/${encodeURIComponent(args.range)}:clear`, "POST");
+        return `Cleared range: ${args.range}`;
+      } catch (e: any) { return `Error: ${e.message}`; }
     };
   }
 

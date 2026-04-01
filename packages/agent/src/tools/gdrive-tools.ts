@@ -113,7 +113,7 @@ export function createGDriveTools(
     },
     async (input) => {
       try {
-        let q = `fullText contains '${input.query.replace(/'/g, "\\'")}'`;
+        let q: string;
         // If the query looks like Drive query syntax, use it directly
         if (
           input.query.includes(" contains ") ||
@@ -121,11 +121,20 @@ export function createGDriveTools(
           input.query.includes("name =")
         ) {
           q = input.query;
+        } else if (input.query.trim() === "") {
+          // Empty query — list by mime_type or all files
+          q = input.mime_type
+            ? `mimeType = '${input.mime_type}'`
+            : "trashed = false";
+        } else {
+          q = `fullText contains '${input.query.replace(/'/g, "\\'")}'`;
         }
-        if (input.mime_type) {
+        if (input.mime_type && !q.includes("mimeType")) {
           q += ` and mimeType = '${input.mime_type}'`;
         }
-        q += " and trashed = false";
+        if (!q.includes("trashed")) {
+          q += " and trashed = false";
+        }
 
         const params = new URLSearchParams({
           q,

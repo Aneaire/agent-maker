@@ -129,7 +129,7 @@ export const CREDENTIAL_TYPE_REGISTRY: Record<string, CredentialTypeDef> = {
   google_oauth2: {
     type: "google_oauth2",
     label: "Google (OAuth2)",
-    description: "Connect Google Calendar, Drive, and Sheets via OAuth",
+    description: "Connect Google Calendar, Drive, Sheets, and Gmail via OAuth",
     icon: "Calendar",
     authMethod: "oauth2",
     fields: [],
@@ -140,17 +140,19 @@ export const CREDENTIAL_TYPE_REGISTRY: Record<string, CredentialTypeDef> = {
         "https://www.googleapis.com/auth/calendar",
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://mail.google.com/",
       ],
       extraParams: {
         access_type: "offline",
         prompt: "consent",
+        include_granted_scopes: "true",
       },
     },
-    compatibleToolSets: ["google_calendar", "google_drive", "google_sheets"],
+    compatibleToolSets: ["google_calendar", "google_drive", "google_sheets", "gmail"],
     test: {
       method: "GET",
-      url: "https://www.googleapis.com/oauth2/v1/userinfo",
-      headers: { Authorization: "Bearer {{accessToken}}" },
+      url: "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={{accessToken}}",
       expectedStatus: 200,
     },
   },
@@ -224,5 +226,6 @@ export const TOOL_SETS_REQUIRING_CREDENTIALS: Record<string, boolean> = {
   google_calendar: true,
   google_drive: true,
   google_sheets: true,
+  gmail: true,
   image_generation: true,
 };

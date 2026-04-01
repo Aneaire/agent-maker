@@ -50,6 +50,38 @@ export const listUsers = internalQuery({
   },
 });
 
+// ── Debug: inspect sandbox agent config ─────────────────────────────────
+
+export const debugSandboxAgent = internalQuery({
+  handler: async (ctx) => {
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q) => q.eq("slug", SANDBOX_SLUG))
+      .collect();
+    const agent = agents[0];
+    if (!agent) return { error: "Sandbox agent not found. Run seed:run first." };
+
+    const credLinks = await ctx.db
+      .query("agentCredentialLinks")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+
+    const creds = await Promise.all(
+      credLinks.map(async (link: any) => {
+        const cred = await ctx.db.get(link.credentialId);
+        return { toolSetName: link.toolSetName, type: (cred as any)?.type, name: (cred as any)?.name, linkId: link._id };
+      })
+    );
+
+    return {
+      agentId: agent._id,
+      name: agent.name,
+      enabledToolSets: agent.enabledToolSets,
+      linkedCredentials: creds,
+    };
+  },
+});
+
 // ── Functional Tests ────────────────────────────────────────────────────
 // These test REAL functionality — create real data, fire real events,
 // trigger real automations, and verify real results.
@@ -842,3 +874,197 @@ async function cascadeDeleteAgent(
   // Finally, delete the agent itself
   await ctx.db.delete(agentId);
 }
+
+// ── Live Tool Tests ─────────────────────────────────────────────────────
+// These dispatch real jobs to the agent server so it exercises live tools
+// (Gmail, Google Sheets, etc.) using connected credentials.
+
+async function dispatchAgentPrompt(
+  ctx: any,
+  agentId: any,
+  userId: any,
+  prompt: string,
+  title: string
+) {
+  const conversationId = await ctx.db.insert("conversations", {
+    agentId,
+    userId,
+    title,
+  });
+  await ctx.db.insert("messages", {
+    conversationId,
+    role: "user",
+    content: prompt,
+    status: "done",
+  });
+  const assistantMessageId = await ctx.db.insert("messages", {
+    conversationId,
+    role: "assistant",
+    content: "",
+    status: "pending",
+  });
+  const jobId = await ctx.db.insert("agentJobs", {
+    agentId,
+    conversationId,
+    messageId: assistantMessageId,
+    userId,
+    status: "pending",
+  });
+  await ctx.scheduler.runAfter(0, internal.dispatch.notifyJobCreated, {
+    jobId: jobId.toString(),
+  });
+  return { conversationId, jobId };
+}
+
+async function getSandboxAgent(ctx: any) {
+  const agents = await ctx.db
+    .query("agents")
+    .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+    .collect();
+  const agent = agents[0];
+  if (!agent) throw new Error("Sandbox agent not found. Run seed:run first.");
+  return agent;
+}
+
+/**
+ * Test: Gmail send — asks the agent to send "Hi" email using Hometown Roofing template.
+ *
+ * Run: npx convex run seed:testGmailSend '{}'
+ * Then check: npx convex run seed:verifyConversation '{"conversationId":"<id from output>"}'
+ */
+export const testGmailSend = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please send an email to angelo@hometownroofingtx.com using your Gmail.
+Subject: "Hi from Agent Maker"
+Body: Use a professional HTML email format with:
+- A greeting: "Hi Angelo,"
+- Body: "Just wanted to say Hi and test our Gmail integration is working great!"
+- Sign off: "Best regards, Agent Maker"
+After sending, confirm the message ID and that it was delivered successfully.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Gmail Send"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Gmail send job dispatched. Check seed:verifyConversation in ~15s.",
+    };
+  },
+});
+
+/**
+ * Test: Google Sheets — creates a spreadsheet, writes data, appends rows, reads it back.
+ *
+ * Run: npx convex run seed:testSpreadsheet '{}'
+ * Then check: npx convex run seed:verifyConversation '{"conversationId":"<id from output>"}'
+ */
+export const testSpreadsheet = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please do the following Google Sheets operations in order and report each result:
+1. Use gsheets_list_spreadsheets to list all spreadsheets in my Google Drive.
+2. Create a new spreadsheet titled "Agent Maker Test - ${new Date().toISOString().slice(0, 10)}" with headers: Name, Email, Score, Date.
+3. Write 3 sample rows of test data to it (make up realistic data).
+4. Append 2 more rows using gsheets_append.
+5. Read back the full sheet with gsheets_read and confirm the row count.
+6. Report the spreadsheet ID and link so I can open it.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Google Sheets Full Flow"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Spreadsheet test job dispatched. Check seed:verifyConversation in ~30s.",
+    };
+  },
+});
+
+/**
+ * Test: Multi-tool — exercises Gmail read + Sheets + memory in one conversation.
+ *
+ * Run: npx convex run seed:testMultiTool '{}'
+ */
+export const testMultiTool = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Run through these tests and report each result:
+1. Gmail: List my last 5 inbox emails (subject + from + date only).
+2. Gmail: List all my Gmail labels.
+3. Google Sheets: List all my spreadsheets (names + IDs).
+4. Memory: Store this memory — "Multi-tool test run completed on ${new Date().toLocaleDateString()}".
+5. Summarize all results in a clean list.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Multi-Tool"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Multi-tool test dispatched. Check seed:verifyConversation in ~30s.",
+    };
+  },
+});
+
+/**
+ * Verify the result of a dispatched agent conversation.
+ *
+ * Run: npx convex run seed:verifyConversation '{"conversationId":"<id>"}'
+ */
+export const verifyConversation = internalQuery({
+  args: { conversationId: v.string() },
+  handler: async (ctx, args) => {
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q: any) =>
+        q.eq("conversationId", args.conversationId)
+      )
+      .collect();
+
+    const allJobs = await ctx.db.query("agentJobs").collect();
+    const jobs = allJobs.filter(
+      (j: any) => j.conversationId === args.conversationId
+    );
+
+    const assistantMessages = messages.filter((m: any) => m.role === "assistant");
+    const latestAssistant = assistantMessages[assistantMessages.length - 1];
+
+    return {
+      jobStatus: jobs[0]?.status ?? "not found",
+      jobError: jobs[0]?.error ?? null,
+      messageCount: messages.length,
+      assistantStatus: latestAssistant?.status ?? "not found",
+      assistantResponse: latestAssistant?.content?.slice(0, 1000) ?? "(empty)",
+      toolCalls: latestAssistant?.toolCalls?.map((tc: any) => ({
+        name: tc.name,
+        output: tc.output ? tc.output.slice(0, 400) : null,
+      })) ?? [],
+    };
+  },
+});

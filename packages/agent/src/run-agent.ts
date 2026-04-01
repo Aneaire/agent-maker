@@ -190,7 +190,7 @@ export async function runAgent(params: RunAgentParams) {
     // Credential loading (parallel)
     const toolSetsNeedingCreds = [
       "email", "notion", "slack", "google_calendar",
-      "google_drive", "google_sheets", "image_generation",
+      "google_drive", "google_sheets", "gmail", "image_generation",
     ];
     const enabledCredToolSets = toolSetsNeedingCreds.filter((ts) => enabled.includes(ts));
 
@@ -235,6 +235,7 @@ export async function runAgent(params: RunAgentParams) {
     const gcalConfig = configs.google_calendar ?? null;
     const gdriveConfig = configs.google_drive ?? null;
     const gsheetsConfig = configs.google_sheets ?? null;
+    const gmailConfig = configs.gmail ?? null;
     const imageGenConfig = configs.image_generation ?? null;
 
     // Build conversation messages (exclude the placeholder assistant message)
@@ -347,6 +348,7 @@ export async function runAgent(params: RunAgentParams) {
       gcalConfig: gcalConfig as any,
       gdriveConfig: gdriveConfig as any,
       gsheetsConfig: gsheetsConfig as any,
+      gmailConfig: gmailConfig as any,
       imageGenConfig: imageGenConfig as any,
       imageGenModel: agent.imageGenModel,
       onToolProgress,

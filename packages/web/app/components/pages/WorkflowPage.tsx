@@ -334,6 +334,16 @@ const EVENT_OPTIONS: Array<{
     ],
   },
   {
+    group: "Gmail",
+    groupColor: "text-red-400",
+    events: [
+      { value: "gmail.sent",            description: "An email was sent via Gmail" },
+      { value: "gmail.failed",          description: "A Gmail send failed" },
+      { value: "gmail.replied",         description: "A reply was sent to an existing thread" },
+      { value: "gmail.labels_modified", description: "Labels were added or removed from a message" },
+    ],
+  },
+  {
     group: "Webhooks",
     groupColor: "text-purple-400",
     events: [
@@ -655,6 +665,12 @@ const PAYLOAD_VARIABLES: Record<string, Array<{ key: string; description: string
     { key: "{{event.to}}",      description: "Recipient(s)" },
     { key: "{{event.subject}}", description: "Email subject" },
     { key: "{{event.resendId}}", description: "Resend message ID" },
+  ],
+  "gmail.*": [
+    { key: "{{event.to}}",             description: "Recipient(s)" },
+    { key: "{{event.subject}}",        description: "Email subject" },
+    { key: "{{event.gmailMessageId}}", description: "Gmail message ID" },
+    { key: "{{event.threadId}}",       description: "Gmail thread ID" },
   ],
   "webhook.*": [
     { key: "{{event.webhookId}}", description: "Webhook ID" },

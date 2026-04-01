@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUser, getOrCreateAuthUser, requireAuthUser } from "./auth";
 
@@ -468,5 +468,14 @@ export const saveToolConfig = mutation({
         config: args.config,
       });
     }
+  },
+});
+
+// ── Internal queries (used by other Convex modules) ───────────────────
+
+export const _get = internalQuery({
+  args: { agentId: v.id("agents") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.agentId);
   },
 });

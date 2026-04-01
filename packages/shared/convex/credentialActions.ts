@@ -66,6 +66,38 @@ export const test = action({
 
     const data = JSON.parse(decrypt(cred.encryptedData, cred.iv));
 
+    // For OAuth2 credentials, refresh the access token before testing
+    // so the test doesn't fail just because the stored token expired
+    if (typeDef.authMethod === "oauth2") {
+      const hasRefreshToken = !!data.refreshToken;
+      const hasClientId = !!data.clientId;
+      const hasClientSecret = !!data.clientSecret;
+      console.log("[credential test] OAuth2 fields:", { hasRefreshToken, hasClientId, hasClientSecret, keys: Object.keys(data) });
+
+      if (hasRefreshToken && hasClientId && hasClientSecret) {
+        const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: data.clientId,
+            client_secret: data.clientSecret,
+            refresh_token: data.refreshToken,
+            grant_type: "refresh_token",
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+        const tokenData = await tokenRes.json();
+        console.log("[credential test] Token refresh status:", tokenRes.status, tokenData.error ?? "ok");
+        if (tokenRes.ok && tokenData.access_token) {
+          data.accessToken = tokenData.access_token;
+        } else {
+          return { valid: false, error: `Token refresh failed: ${tokenData.error_description ?? tokenData.error ?? tokenRes.status}` };
+        }
+      } else {
+        return { valid: false, error: `Missing OAuth fields: refreshToken=${hasRefreshToken} clientId=${hasClientId} clientSecret=${hasClientSecret}` };
+      }
+    }
+
     let url = typeDef.test.url;
     const headers: Record<string, string> = {};
 
@@ -155,10 +187,16 @@ export const getDecryptedForAgent = action({
     });
     if (!link) return null;
 
-    const cred: any = await ctx.runQuery(internal.credentials._get, {
-      credentialId: link.credentialId,
-    });
-    if (!cred) return null;
+    // Fetch agent and credential in parallel
+    const [agent, cred]: [any, any] = await Promise.all([
+      ctx.runQuery(internal.agents._get, { agentId: args.agentId }),
+      ctx.runQuery(internal.credentials._get, { credentialId: link.credentialId }),
+    ]);
+
+    if (!agent || !cred) return null;
+
+    // Verify the credential belongs to the same user as the agent
+    if (agent.userId !== cred.userId) return null;
 
     try {
       return JSON.parse(decrypt(cred.encryptedData, cred.iv));
@@ -220,6 +258,7 @@ const LEGACY_TOOL_SET_TO_CRED_TYPE: Record<string, string> = {
   google_calendar: "google_oauth2",
   google_drive: "google_oauth2",
   google_sheets: "google_oauth2",
+  gmail: "google_oauth2",
 };
 
 function legacyDedupeKey(toolSetName: string, config: any): string {

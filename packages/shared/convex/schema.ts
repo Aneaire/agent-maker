@@ -255,10 +255,16 @@ export default defineSchema({
     agentId: v.id("agents"),
     content: v.string(),
     category: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())),
   })
     .index("by_agent", ["agentId"])
     .searchIndex("search_content", {
       searchField: "content",
+      filterFields: ["agentId"],
+    })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 3072,
       filterFields: ["agentId"],
     }),
 

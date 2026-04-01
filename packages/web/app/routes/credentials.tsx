@@ -474,6 +474,7 @@ function TestButton({ credentialId }: { credentialId: Id<"credentials"> }) {
   const [result, setResult] = useState<{ valid: boolean; error?: string } | null>(null);
 
   return (
+    <>
     <button
       onClick={async () => {
         setTesting(true);
@@ -502,6 +503,10 @@ function TestButton({ credentialId }: { credentialId: Id<"credentials"> }) {
       )}
       {testing ? "Testing..." : result?.valid ? "Valid" : result ? "Failed" : "Test"}
     </button>
+    {result && !result.valid && result.error && (
+      <p className="text-[10px] text-red-400 mt-1 max-w-[200px] break-words">{result.error}</p>
+    )}
+    </>
   );
 }
 

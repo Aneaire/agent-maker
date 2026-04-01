@@ -17,6 +17,7 @@ import { createGCalTools } from "./tools/gcal-tools.js";
 import { createGDriveTools } from "./tools/gdrive-tools.js";
 import { createGSheetsTools } from "./tools/gsheets-tools.js";
 import { createImageGenTools } from "./tools/image-gen-tools.js";
+import { createGmailTools } from "./tools/gmail-tools.js";
 
 interface Tab {
   _id: string;
@@ -73,6 +74,12 @@ interface ImageGenConfig {
   nanoBananaApiKey?: string;
 }
 
+interface GmailConfig {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}
+
 interface McpServerDeps {
   convexClient: AgentConvexClient;
   agentId: string;
@@ -89,6 +96,7 @@ interface McpServerDeps {
   gsheetsConfig?: GSheetsConfig | null;
   imageGenConfig?: ImageGenConfig | null;
   imageGenModel?: string | null;
+  gmailConfig?: GmailConfig | null;
   onToolProgress?: (toolName: string, progress: string) => void;
 }
 
@@ -199,6 +207,13 @@ export function buildMcpServer(deps: McpServerDeps) {
   if (has(enabled, "google_sheets") && deps.gsheetsConfig) {
     tools.push(
       ...createGSheetsTools(deps.convexClient, deps.agentId, deps.gsheetsConfig)
+    );
+  }
+
+  // Gmail — gated by "gmail"
+  if (has(enabled, "gmail") && deps.gmailConfig) {
+    tools.push(
+      ...createGmailTools(deps.convexClient, deps.agentId, deps.gmailConfig)
     );
   }
 
@@ -373,12 +388,27 @@ export function buildAllowedTools(
   // Google Sheets — gated by "google_sheets"
   if (has(enabledToolSets, "google_sheets")) {
     allowed.push(
+      "mcp__agent-tools__gsheets_list_spreadsheets",
       "mcp__agent-tools__gsheets_create",
       "mcp__agent-tools__gsheets_get_info",
       "mcp__agent-tools__gsheets_read",
       "mcp__agent-tools__gsheets_write",
       "mcp__agent-tools__gsheets_append",
       "mcp__agent-tools__gsheets_clear"
+    );
+  }
+
+  // Gmail — gated by "gmail"
+  if (has(enabledToolSets, "gmail")) {
+    allowed.push(
+      "mcp__agent-tools__gmail_list_messages",
+      "mcp__agent-tools__gmail_search",
+      "mcp__agent-tools__gmail_get_message",
+      "mcp__agent-tools__gmail_send",
+      "mcp__agent-tools__gmail_reply",
+      "mcp__agent-tools__gmail_list_labels",
+      "mcp__agent-tools__gmail_modify_labels",
+      "mcp__agent-tools__gmail_get_thread"
     );
   }
 

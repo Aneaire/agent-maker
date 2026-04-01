@@ -22,6 +22,7 @@ Complete list of all tool sets, their tools, and configuration.
 | Google Calendar | `google_calendar` | Disabled | All |
 | Google Drive | `google_drive` | Disabled | All |
 | Google Sheets | `google_sheets` | Disabled | All |
+| Gmail | `gmail` | Disabled | All |
 | Image Generation | `image_generation` | Disabled | All |
 | REST API | `rest_api` | Disabled | Pro+ |
 | PostgreSQL | `postgres` | Disabled | Pro+ |
@@ -172,6 +173,20 @@ Complete list of all tool sets, their tools, and configuration.
 | `gsheets_clear` | Erase data from a range |
 
 **Requires configuration**: Google OAuth (clientId, clientSecret, refreshToken)
+
+### gmail
+| MCP Tool Name | Description |
+|---------------|-------------|
+| `gmail_list_messages` | List recent emails (supports label filters: INBOX, UNREAD, STARRED) |
+| `gmail_search` | Search emails using Gmail search syntax |
+| `gmail_get_message` | Get full content and headers of a specific message |
+| `gmail_get_thread` | Get all messages in an email thread/conversation |
+| `gmail_send` | Compose and send a new email (HTML, CC, BCC) |
+| `gmail_reply` | Reply to an existing message (auto-threads with In-Reply-To headers) |
+| `gmail_list_labels` | List all Gmail labels (system + custom) with unread counts |
+| `gmail_modify_labels` | Add/remove labels — archive, star, mark read/unread |
+
+**Requires configuration**: Google OAuth (clientId, clientSecret, refreshToken) — same credential as google_calendar/drive/sheets. Gmail API must be enabled in Google Cloud Console.
 
 ### image_generation
 | MCP Tool Name | Description |

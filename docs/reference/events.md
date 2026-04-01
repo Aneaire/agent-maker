@@ -24,6 +24,15 @@ All events emitted by the event bus. Use these as triggers for automations or fo
 | `email.sent` | `email_tools`, `automation`, `scheduler`, `timer` | `to`, `subject`, `resendId` |
 | `email.failed` | `email_tools` | `to`, `subject`, `error` |
 
+## Gmail Events
+
+| Event | Source | Payload Fields |
+|-------|--------|----------------|
+| `gmail.sent` | `gmail_tools` | `to`, `subject`, `body`, `cc`, `bcc`, `replyTo`, `gmailMessageId`, `threadId` |
+| `gmail.failed` | `gmail_tools` | `to`, `subject`, `error` |
+| `gmail.replied` | `gmail_tools` | `to`, `subject`, `originalMessageId`, `gmailMessageId`, `threadId` |
+| `gmail.labels_modified` | `gmail_tools` | `messageId`, `addedLabels`, `removedLabels` |
+
 ## Webhook Events
 
 | Event | Source | Payload Fields |

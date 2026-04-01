@@ -76,12 +76,22 @@ export class AgentConvexClient {
     return result ?? { stopped: false };
   }
 
-  async storeMemory(agentId: string, content: string, category?: string) {
+  async storeMemory(agentId: string, content: string, category?: string, embedding?: number[]) {
     return this.client.mutation(api.agentApi.storeMemory, {
       serverToken: this.serverToken,
       agentId: agentId as any,
       content,
       category,
+      embedding,
+    });
+  }
+
+  async searchMemoriesVector(agentId: string, embedding: number[], limit?: number) {
+    return this.client.action(api.agentApi.searchMemoriesVector, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      embedding,
+      limit,
     });
   }
 
@@ -341,12 +351,18 @@ export class AgentConvexClient {
       if (linked) {
         result = linked;
       }
-    } catch {
+    } catch (err: any) {
+      console.error(`[credential] getDecryptedForAgent failed for ${toolSetName}:`, err?.message ?? err);
       // New credential system not available — fall through to legacy
     }
 
     if (!result) {
       result = await this.getToolConfig(agentId, toolSetName);
+      if (result) {
+        console.log(`[credential] using legacy config for ${toolSetName}`);
+      } else {
+        console.warn(`[credential] no credential found for ${toolSetName} (agentId: ${agentId})`);
+      }
     }
 
     if (result) {

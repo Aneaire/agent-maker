@@ -345,6 +345,65 @@ export function createGSheetsTools(
     }
   );
 
+  // ── List Spreadsheets ───────────────────────────────────────────────
+  const listSpreadsheets = tool(
+    "gsheets_list_spreadsheets",
+    "List all Google Sheets spreadsheets in the user's Google Drive. Returns titles, IDs, and links.",
+    {
+      max_results: z
+        .number()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Max results to return (default 20)"),
+    },
+    async (input) => {
+      try {
+        const accessToken = await getAccessToken(config);
+        const params = new URLSearchParams({
+          q: "mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+          pageSize: String(input.max_results ?? 20),
+          fields: "files(id,name,modifiedTime,webViewLink)",
+          orderBy: "modifiedTime desc",
+        });
+        const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files?${params}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error?.message || `Drive API error: ${res.status}`);
+        }
+        const files = (data.files ?? []).map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          modifiedTime: f.modifiedTime,
+          link: f.webViewLink,
+        }));
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                files.length > 0
+                  ? JSON.stringify({ spreadsheets: files, count: files.length }, null, 2)
+                  : "No spreadsheets found in Google Drive.",
+            },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Failed to list spreadsheets: ${err.message}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
   // ── Clear Range ─────────────────────────────────────────────────────
   const clearRange = tool(
     "gsheets_clear",
@@ -385,6 +444,7 @@ export function createGSheetsTools(
   );
 
   return [
+    listSpreadsheets,
     createSpreadsheet,
     getSpreadsheet,
     readRange,

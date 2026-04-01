@@ -1,6 +1,7 @@
 import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { AgentConvexClient } from "../convex-client.js";
+import { embedText } from "../embeddings.js";
 
 export function createMemoryTools(
   convexClient: AgentConvexClient,
@@ -23,7 +24,12 @@ export function createMemoryTools(
         ),
     },
     async (input) => {
-      await convexClient.storeMemory(agentId, input.content, input.category);
+      let embedding: number[] | undefined;
+      try {
+        embedding = await embedText(input.content);
+      } catch {}
+
+      await convexClient.storeMemory(agentId, input.content, input.category, embedding);
       await convexClient.emitEvent(agentId, "memory.stored", "memory_tools", {
         content: input.content,
         category: input.category,
@@ -45,7 +51,19 @@ export function createMemoryTools(
         .describe("Search query to find relevant memories"),
     },
     async (input) => {
-      const memories = await convexClient.searchMemories(agentId, input.query);
+      let memories: any[] | null = null;
+
+      try {
+        const embedding = await embedText(input.query);
+        const results = await convexClient.searchMemoriesVector(agentId, embedding);
+        if (results && results.length > 0) {
+          memories = results;
+        }
+      } catch {}
+
+      if (!memories || memories.length === 0) {
+        memories = await convexClient.searchMemories(agentId, input.query);
+      }
 
       if (!memories || memories.length === 0) {
         return {
@@ -77,7 +95,19 @@ export function createMemoryTools(
     },
     async (input) => {
       if (input.query) {
-        const memories = await convexClient.searchMemories(agentId, input.query);
+        let memories: any[] | null = null;
+
+        try {
+          const embedding = await embedText(input.query);
+          const results = await convexClient.searchMemoriesVector(agentId, embedding);
+          if (results && results.length > 0) {
+            memories = results;
+          }
+        } catch {}
+
+        if (!memories || memories.length === 0) {
+          memories = await convexClient.searchMemories(agentId, input.query);
+        }
 
         if (!memories || memories.length === 0) {
           return {

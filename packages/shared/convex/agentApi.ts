@@ -126,6 +126,7 @@ export const storeMemory = mutation({
     agentId: v.id("agents"),
     content: v.string(),
     category: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())),
   },
   handler: async (ctx, args) => {
     await requireServerAuth(ctx, args.serverToken);
@@ -133,7 +134,45 @@ export const storeMemory = mutation({
       agentId: args.agentId,
       content: args.content,
       category: args.category,
+      embedding: args.embedding,
     });
+  },
+});
+
+export const searchMemoriesVector = action({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    embedding: v.array(v.float64()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const expected = process.env.AGENT_SERVER_TOKEN;
+    if (!expected || args.serverToken !== expected) {
+      throw new Error("Invalid server token");
+    }
+
+    const limit = args.limit ?? 5;
+    const searchResults = await ctx.vectorSearch("memories", "by_embedding", {
+      vector: args.embedding,
+      limit,
+      filter: (q) => q.eq("agentId", args.agentId),
+    });
+
+    const memories: Array<{ content: string; category?: string; score: number }> = [];
+    for (const result of searchResults) {
+      const doc = await ctx.runQuery(internal.memoriesInternal.getById, {
+        id: result._id,
+      });
+      if (doc) {
+        memories.push({
+          content: doc.content,
+          category: doc.category ?? undefined,
+          score: result._score,
+        });
+      }
+    }
+    return memories;
   },
 });
 

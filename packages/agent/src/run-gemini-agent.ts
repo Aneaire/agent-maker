@@ -223,11 +223,18 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
       ? await convexClient.listAgentDocuments(params.agentId)
       : [];
 
-    // Load image generation credentials if enabled
-    let imageGenConfig: any = null;
-    if (geminiEnabled.includes("image_generation")) {
-      imageGenConfig = await convexClient.getCredentialForToolSet(params.agentId, "image_generation");
-    }
+    // Load credentials for all enabled tool sets that need them
+    const credToolSets = ["email", "notion", "slack", "google_calendar", "google_drive", "google_sheets", "gmail", "image_generation"];
+    const enabledCredToolSets = credToolSets.filter((ts) => geminiEnabled.includes(ts));
+    const credResults = await Promise.all(
+      enabledCredToolSets.map((ts) => convexClient.getCredentialForToolSet(params.agentId, ts))
+    );
+    const configs: Record<string, any> = {};
+    enabledCredToolSets.forEach((ts, i) => { configs[ts] = credResults[i]; });
+
+    const imageGenConfig = configs.image_generation ?? null;
+    const gmailConfig = configs.gmail ?? null;
+    const gsheetsConfig = configs.google_sheets ?? null;
 
     const systemPrompt = buildSystemPrompt(
       {
@@ -257,6 +264,8 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
       customTools: customTools as any,
       imageGenConfig,
       imageGenModel: agent.imageGenModel,
+      gmailConfig,
+      gsheetsConfig,
       onToolProgress,
     });
 

@@ -96,7 +96,7 @@ export function buildSystemPrompt(
   }
   if (has(enabled, "memory")) {
     capabilities.push(
-      "- **Memory** — store, recall, and search information across conversations"
+      "- **Memory** — store, recall, and semantically search information across conversations"
     );
   }
   if (has(enabled, "pages")) {
@@ -172,6 +172,11 @@ export function buildSystemPrompt(
   if (has(enabled, "image_generation")) {
     capabilities.push(
       "- **Image Generation** — generate images from text prompts using AI (Gemini Imagen or Nano Banana), saved to your asset library"
+    );
+  }
+  if (has(enabled, "gmail")) {
+    capabilities.push(
+      "- **Gmail** — read, search, send, and reply to emails in the user's Gmail inbox; manage labels and threads"
     );
   }
 
@@ -271,6 +276,7 @@ export function buildSystemPrompt(
   const gsheetsGuidance = has(enabled, "google_sheets")
     ? `
 ## Google Sheets
+- Use \`gsheets_list_spreadsheets\` to list all Google Sheets spreadsheets in the user's Drive — always start here when the user asks to "list" or "find" spreadsheets
 - Use \`gsheets_read\` to read data from a sheet range (A1 notation, e.g. "Sheet1!A1:D10" or just "Sheet1")
 - Use \`gsheets_write\` to overwrite a specific range with new data
 - Use \`gsheets_append\` to add new rows at the bottom of a sheet — ideal for logging, tracking, or accumulating data
@@ -294,6 +300,25 @@ export function buildSystemPrompt(
 - Use \`slack_set_topic\` to update channel topics
 - When the user says "post to Slack" or "notify the team", use slack_send_message
 - Slack messages support mrkdwn formatting: *bold*, _italic_, ~strike~, \`code\`, > quote, bullet lists
+`
+    : "";
+
+  // ── Gmail guidelines ───────────────────────────────────────────────
+  const gmailGuidance = has(enabled, "gmail")
+    ? `
+## Gmail
+- Use \`gmail_list_messages\` to check the inbox (supports label filters like INBOX, UNREAD, STARRED)
+- Use \`gmail_search\` to find emails using Gmail's search syntax: \`from:alice\`, \`subject:invoice\`, \`is:unread\`, \`newer_than:2d\`, \`has:attachment\`
+- Use \`gmail_get_message\` to read the full body and headers of a specific email
+- Use \`gmail_get_thread\` to read an entire email conversation/thread
+- Use \`gmail_send\` to compose and send a new email (supports HTML body, CC, BCC)
+- Use \`gmail_reply\` to reply to an existing message — it automatically handles threading headers
+- Use \`gmail_list_labels\` to discover label IDs before filtering or modifying
+- Use \`gmail_modify_labels\` to archive (remove INBOX), star, mark as read/unread (remove UNREAD), or apply custom labels
+- When the user says "check my email", "any new messages", "read my inbox" — use gmail_list_messages with label UNREAD
+- When the user says "send an email to..." — use gmail_send
+- When the user says "reply to..." — fetch the message first, then use gmail_reply
+- Always confirm before sending or replying to emails
 `
     : "";
 
@@ -333,7 +358,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
 
   // ── Available integrations (show what's NOT enabled yet) ────────────
   const allIntegrations: Record<string, { label: string; description: string }> = {
-    memory: { label: "Memory", description: "Store and recall information across conversations" },
+    memory: { label: "Memory", description: "Store and semantically recall information across conversations" },
     web_search: { label: "Web Search", description: "Search the internet and fetch web pages" },
     pages: { label: "Pages", description: "Create and manage task boards, notes, spreadsheets, and markdown pages" },
     rag: { label: "Knowledge Base", description: "Upload documents and search them for answers" },
@@ -350,6 +375,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
     google_drive: { label: "Google Drive", description: "Search, read, create, and manage files in Google Drive" },
     google_sheets: { label: "Google Sheets", description: "Read, write, and manage spreadsheet data" },
     image_generation: { label: "Image Generation", description: "Generate images from text prompts using AI" },
+    gmail: { label: "Gmail", description: "Read, search, send, and reply to emails in Gmail" },
   };
 
   const disabledIntegrations = Object.entries(allIntegrations)
@@ -368,7 +394,7 @@ If the user wants more details, point them to the documentation page in the HiGa
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${imageGenGuidance}${customToolGuidance}${availableIntegrationsSection}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${gmailGuidance}${imageGenGuidance}${customToolGuidance}${availableIntegrationsSection}
 ## Interactive Questions
 When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
 

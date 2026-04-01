@@ -30,6 +30,7 @@ import type * as documentChunksInternal from "../documentChunksInternal.js";
 import type * as documents from "../documents.js";
 import type * as executions from "../executions.js";
 import type * as memories from "../memories.js";
+import type * as memoriesInternal from "../memoriesInternal.js";
 import type * as messages from "../messages.js";
 import type * as processAutomation from "../processAutomation.js";
 import type * as scheduledActions from "../scheduledActions.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   executions: typeof executions;
   memories: typeof memories;
+  memoriesInternal: typeof memoriesInternal;
   messages: typeof messages;
   processAutomation: typeof processAutomation;
   scheduledActions: typeof scheduledActions;
