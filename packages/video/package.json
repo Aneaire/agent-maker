@@ -1,0 +1,30 @@
+{
+  "name": "@agent-maker/video",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion render HiGanticDemo out/demo.mp4",
+    "render": "remotion render HiGanticDemo out/demo.mp4 --log=verbose"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.99.0",
+    "@react-three/fiber": "^8.15.0",
+    "@remotion/cli": "4.0.296",
+    "@remotion/three": "4.0.296",
+    "@remotion/transitions": "4.0.296",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "remotion": "4.0.296",
+    "three": "^0.162.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.0",
+    "@types/three": "^0.162.0",
+    "typescript": "^5.3.0"
+  },
+  "remotion": {
+    "entrypoint": "src/index.ts"
+  }
+}
