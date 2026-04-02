@@ -56,6 +56,13 @@ export const get = query({
 
 // ── User-facing mutations ───────────────────────────────────────────
 
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    await requireAuthUser(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const create = mutation({
   args: {
     agentId: v.id("agents"),
