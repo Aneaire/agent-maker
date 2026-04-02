@@ -328,11 +328,14 @@ export function buildSystemPrompt(
 ## Image Generation
 - Use \`generate_image\` to create images from detailed text prompts
 - Write detailed, specific prompts: include style (photorealistic, watercolor, 3D render), subject details, composition, lighting, and mood
+- The user will see a review panel where they can edit the prompt, choose the model, and select the aspect ratio before generating
+- Write the best prompt you can — the user can refine it in the review panel
 - Give each image a descriptive name — it's saved to the agent's Assets library for the user to browse
 - Use \`list_assets\` to show the user their generated images
 - You can specify a folder_id to organize images into folders
 - When the user says "create an image", "generate a picture", "make me a visual", etc., use generate_image
-- If image generation fails, explain the error and suggest a modified prompt
+- After calling generate_image, let the user know they can adjust settings in the review panel and click Generate when ready
+- **Image editing**: When the user wants to edit or modify an existing image, pass its asset ID via \`input_asset_id\`. Only models marked with "img input" support this (e.g. Gemini Flash Image). Write the edit instructions as the prompt (e.g. "Make the sky purple and add stars"). Use \`list_assets\` first if you need to find the asset ID.
 `
     : "";
 

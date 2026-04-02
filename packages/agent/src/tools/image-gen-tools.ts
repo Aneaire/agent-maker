@@ -226,13 +226,16 @@ export function createImageGenTools(
         .string()
         .optional()
         .describe("Optional folder ID to save the image in"),
+      input_asset_id: z
+        .string()
+        .optional()
+        .describe("Asset ID of an existing image to use as input for editing. Only supported by models with image input capability (e.g. Gemini Flash Image)."),
     },
     async (input) => {
-      // Determine provider: imageGenModel setting (user's choice) > explicit input > config default > auto-detect
+      // Determine provider + model from settings for the pending_approval response
       let provider: string | undefined;
       let modelOverride: string | undefined;
 
-      // imageGenModel is the user's preferred image gen model from settings — highest priority
       if (imageGenModel) {
         const [p, m] = imageGenModel.split(":");
         if (p === "gemini" || p === "nano_banana") {
@@ -241,92 +244,33 @@ export function createImageGenTools(
         }
       }
 
-      // Fall back to explicit tool input, then config default
       if (!provider) {
         provider = input.provider || config.provider;
       }
 
-      // Resolve API keys: credential system first, then env var fallback
-      const geminiApiKey = config.geminiApiKey || process.env.GEMINI_API_KEY;
-      const nanoBananaApiKey = config.nanoBananaApiKey;
-
-      // Auto-detect provider from available API keys if still not set
+      // Auto-detect from available keys
       if (!provider) {
-        if (nanoBananaApiKey) provider = "nano_banana";
-        else if (geminiApiKey) provider = "gemini";
+        if (config.nanoBananaApiKey) provider = "nano_banana";
+        else if (config.geminiApiKey || process.env.GEMINI_API_KEY) provider = "gemini";
+        else provider = "gemini";
       }
 
-      let result: { imageBase64: string; mimeType: string };
-      let modelUsed: string;
+      const modelValue = provider === "gemini"
+        ? `gemini:${modelOverride || "imagen-4.0-generate-001"}`
+        : `nano_banana:${modelOverride || "generate-2"}`;
 
-      if (provider === "gemini") {
-        if (!geminiApiKey) {
-          return {
-            content: [{ type: "text" as const, text: "Error: Gemini API key not configured. Set GEMINI_API_KEY or add it in Settings > Image Generation." }],
-          };
-        }
-        modelUsed = modelOverride || "imagen-4.0-generate-001";
-        reportProgress(`Generating image with ${modelUsed}...`);
-        result = await generateWithGemini(geminiApiKey, input.prompt, {
-          width: input.width,
-          height: input.height,
-          model: modelUsed,
-        });
-      } else if (provider === "nano_banana") {
-        if (!nanoBananaApiKey) {
-          return {
-            content: [{ type: "text" as const, text: "Error: Nano Banana API key not configured. Add it in Settings > Credentials." }],
-          };
-        }
-        const nbModel = modelOverride || "generate-2";
-        modelUsed = `nano_banana_${nbModel.replace(/-/g, "_")}`;
-        const nbLabel = nbModel === "generate" ? "Nano Banana" : nbModel === "generate-pro" ? "Nano Banana Pro" : "Nano Banana 2";
-        reportProgress(`Generating image with ${nbLabel}...`);
-        result = await generateWithNanoBanana(
-          nanoBananaApiKey,
-          input.prompt,
-          { width: input.width, height: input.height, model: nbModel }
-        );
-      } else {
-        return {
-          content: [{ type: "text" as const, text: `Error: Unknown provider: ${provider}` }],
-        };
-      }
-
-      // Upload to Convex storage
-      reportProgress("Uploading image...");
-      const storageId = await uploadBase64ToConvex(
-        convexClient,
-        result.imageBase64,
-        result.mimeType
-      );
-
-      // Create asset record
-      reportProgress("Saving to assets library...");
-      const assetId = await convexClient.createAsset(agentId, {
-        name: input.name,
-        type: "image",
-        storageId,
-        mimeType: result.mimeType,
-        fileSize: Buffer.from(result.imageBase64, "base64").length,
-        generatedBy: provider,
-        prompt: input.prompt,
-        model: modelUsed,
-        width: input.width || 1024,
-        height: input.height || 1024,
-        ...(input.folder_id ? { folderId: input.folder_id } : {}),
-      });
-
-      // Emit event
-      await convexClient.emitEvent(agentId, "image.generated", "image_gen_tools", {
-        assetId,
-        name: input.name,
-        provider,
-        prompt: input.prompt,
-      });
-
+      // Return pending_approval — the UI will show a review panel for the user
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ success: true, assetId, name: input.name, provider, prompt: input.prompt }) }],
+        content: [{ type: "text" as const, text: JSON.stringify({
+          status: "pending_approval",
+          prompt: input.prompt,
+          name: input.name,
+          model: modelValue,
+          width: input.width || 1024,
+          height: input.height || 1024,
+          folder_id: input.folder_id,
+          input_asset_id: input.input_asset_id,
+        }) }],
       };
     }
   );
