@@ -4,7 +4,7 @@ import {
   Eye, Brain, ImagePlus, Search, Lock, Check, Sparkles,
   Paperclip, X, FileText, Image as ImageIcon, Loader2,
 } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -60,16 +60,6 @@ interface ModelEntry {
   type: "chat";
 }
 
-interface ImageGenEntry {
-  value: string;
-  label: string;
-  description: string;
-  group: "Gemini" | "Nano Banana";
-  provider: string;
-  type: "image_gen";
-}
-
-type AnyModel = ModelEntry | ImageGenEntry;
 
 const CHAT_MODELS: ModelEntry[] = [
   {
@@ -104,35 +94,9 @@ const CHAT_MODELS: ModelEntry[] = [
   },
 ];
 
-const IMAGE_GEN_MODELS: ImageGenEntry[] = [
-  {
-    value: "gemini:imagen-4.0-generate-001", label: "Gemini Imagen 4.0",
-    description: "High quality image generation",
-    group: "Gemini", provider: "gemini", type: "image_gen",
-  },
-  {
-    value: "nano_banana:generate", label: "Nano Banana",
-    description: "Fastest, $0.02/image",
-    group: "Nano Banana", provider: "nano_banana", type: "image_gen",
-  },
-  {
-    value: "nano_banana:generate-2", label: "Nano Banana 2",
-    description: "Balanced, up to 4K, $0.04/image",
-    group: "Nano Banana", provider: "nano_banana", type: "image_gen",
-  },
-  {
-    value: "nano_banana:generate-pro", label: "Nano Banana Pro",
-    description: "Highest quality, 4K native, $0.09/image",
-    group: "Nano Banana", provider: "nano_banana", type: "image_gen",
-  },
-];
 
 function getModelLabel(value: string) {
   return CHAT_MODELS.find((m) => m.value === value)?.label ?? value;
-}
-
-function getImageGenLabel(value: string) {
-  return IMAGE_GEN_MODELS.find((m) => m.value === value)?.label ?? "";
 }
 
 function getProviderIcon(group: string) {
@@ -177,23 +141,17 @@ function formatFileSize(bytes: number) {
 function ModelDropdown({
   model,
   onModelChange,
-  imageGenModel,
-  onImageGenModelChange,
-  configuredImageGenProviders,
   disabled,
   enabledModels,
 }: {
   model: string;
   onModelChange: (model: string) => void;
-  imageGenModel?: string;
-  onImageGenModelChange?: (model: string) => void;
-  configuredImageGenProviders?: string[];
   disabled?: boolean;
   enabledModels?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "Claude" | "Gemini" | "image_gen">("all");
+  const [filter, setFilter] = useState<"all" | "Claude" | "Gemini">("all");
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => {
@@ -202,7 +160,6 @@ function ModelDropdown({
     setFilter("all");
   }, []);
 
-  // Click outside to close
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -210,7 +167,6 @@ function ModelDropdown({
         close();
       }
     };
-    // Use setTimeout so the opening click doesn't immediately close
     const id = setTimeout(() => document.addEventListener("click", handler), 0);
     return () => {
       clearTimeout(id);
@@ -218,81 +174,42 @@ function ModelDropdown({
     };
   }, [open, close]);
 
-  // Escape to close
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open, close]);
 
-  const visibleChatModels = useMemo(() => {
-    if (!enabledModels) return CHAT_MODELS;
-    return CHAT_MODELS.filter((m) => enabledModels.includes(m.value));
-  }, [enabledModels]);
-
-  const filtered = useMemo(() => {
+  const visibleModels = useMemo(() => {
+    const base = enabledModels
+      ? CHAT_MODELS.filter((m) => enabledModels.includes(m.value))
+      : CHAT_MODELS;
     const q = search.toLowerCase();
-    const results: AnyModel[] = [];
+    return base.filter((m) => {
+      if (filter !== "all" && m.group !== filter) return false;
+      if (q && !m.label.toLowerCase().includes(q) && !m.description.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [search, filter, enabledModels]);
 
-    if (filter === "all" || filter === "Claude" || filter === "Gemini") {
-      for (const m of visibleChatModels) {
-        if (filter !== "all" && m.group !== filter) continue;
-        if (q && !m.label.toLowerCase().includes(q) && !m.description.toLowerCase().includes(q)) continue;
-        results.push(m);
-      }
+  const groups = useMemo(() => {
+    const map = new Map<string, ModelEntry[]>();
+    for (const m of visibleModels) {
+      if (!map.has(m.group)) map.set(m.group, []);
+      map.get(m.group)!.push(m);
     }
-
-    if ((filter === "all" || filter === "image_gen") && onImageGenModelChange) {
-      for (const m of IMAGE_GEN_MODELS) {
-        if (q && !m.label.toLowerCase().includes(q) && !m.description.toLowerCase().includes(q)) continue;
-        results.push(m);
-      }
-    }
-
-    return results;
-  }, [search, filter, onImageGenModelChange, visibleChatModels]);
-
-  // Group into two sections: Agent Brain (chat models) and Image Generation
-  const sections = useMemo(() => {
-    const brainModels: { group: string; models: AnyModel[] }[] = [];
-    const imageGenModels: AnyModel[] = [];
-    const brainGroups = new Map<string, AnyModel[]>();
-
-    for (const m of filtered) {
-      if (m.type === "image_gen") {
-        imageGenModels.push(m);
-      } else {
-        if (!brainGroups.has(m.group)) brainGroups.set(m.group, []);
-        brainGroups.get(m.group)!.push(m);
-      }
-    }
-
-    for (const [group, models] of brainGroups) {
-      brainModels.push({ group, models });
-    }
-
-    return { brainModels, imageGenModels };
-  }, [filtered]);
+    return Array.from(map.entries());
+  }, [visibleModels]);
 
   const filterTabs: { key: typeof filter; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "all", label: "All", icon: Sparkles },
-  ];
-  if (onImageGenModelChange) {
-    filterTabs.push({ key: "image_gen", label: "Image", icon: ImagePlus });
-  }
-  filterTabs.push(
     { key: "Claude", label: "Claude", icon: AnthropicIcon },
     { key: "Gemini", label: "Gemini", icon: GoogleIcon },
-  );
-
-  const imageGenLabel = imageGenModel ? getImageGenLabel(imageGenModel) : "";
+  ];
 
   return (
     <div ref={wrapperRef} className="relative">
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -300,21 +217,9 @@ function ModelDropdown({
         className="flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-lg text-[11px] font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80 disabled:opacity-50 transition-all cursor-pointer"
       >
         {getModelLabel(model)}
-        {imageGenLabel && (
-          <>
-            <span className="text-zinc-700">/</span>
-            <ImagePlus className="h-2.5 w-2.5 text-violet-400/60" />
-            <span className="text-violet-400/60 text-[10px]">{imageGenLabel}</span>
-          </>
-        )}
-        {open ? (
-          <ChevronUp className="h-2.5 w-2.5 text-zinc-600" />
-        ) : (
-          <ChevronDown className="h-2.5 w-2.5 text-zinc-600" />
-        )}
+        {open ? <ChevronUp className="h-2.5 w-2.5 text-zinc-600" /> : <ChevronDown className="h-2.5 w-2.5 text-zinc-600" />}
       </button>
 
-      {/* Panel */}
       {open && (
         <div className="absolute bottom-full left-0 mb-2 w-[370px] h-[420px] flex rounded-2xl border border-zinc-800 bg-zinc-950 backdrop-blur-2xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
           {/* Sidebar */}
@@ -322,26 +227,17 @@ function ModelDropdown({
             {filterTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = filter === tab.key;
-              const isImageTab = tab.key === "image_gen";
               return (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setFilter(tab.key)}
                   className={`relative flex items-center justify-center h-9 w-9 rounded-xl transition-all ${
-                    isActive
-                      ? isImageTab
-                        ? "bg-violet-500/15 text-violet-400"
-                        : "bg-neon-400/10 text-neon-400"
-                      : "text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60"
+                    isActive ? "bg-neon-400/10 text-neon-400" : "text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60"
                   }`}
                   title={tab.label}
                 >
-                  {isActive && (
-                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full ${
-                      isImageTab ? "bg-violet-400" : "bg-neon-400"
-                    }`} />
-                  )}
+                  {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full bg-neon-400" />}
                   <Icon className="h-4 w-4" />
                 </button>
               );
@@ -350,7 +246,6 @@ function ModelDropdown({
 
           {/* Content */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Search */}
             <div className="px-3 pt-3 pb-2">
               <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2">
                 <Search className="h-3.5 w-3.5 text-zinc-600 shrink-0" />
@@ -365,134 +260,142 @@ function ModelDropdown({
               </div>
             </div>
 
-            {/* Model list */}
             <div className="flex-1 overflow-y-auto px-2 pb-2">
-              {/* ── Agent Brain section ── */}
-              {sections.brainModels.length > 0 && (
-                <div>
-                  <div className="sticky top-0 z-10 bg-zinc-950/95 backdrop-blur px-2 pt-1 pb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Brain className="h-3 w-3 text-neon-400" />
-                      <span className="text-[9px] font-semibold text-neon-400/80 uppercase tracking-wider">Agent Brain</span>
-                    </div>
-                  </div>
-                  {sections.brainModels.map(({ group, models }) => (
-                    <div key={group}>
-                      <div className="px-2 py-1 text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">
-                        {group}
-                      </div>
-                      {models.map((m) => {
-                        const isSelected = m.value === model;
-                        const ProviderIcon = getProviderIcon(m.group);
-                        return (
-                          <button
-                            key={m.value}
-                            type="button"
-                            onClick={() => onModelChange(m.value)}
-                            className={`w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all mb-0.5 ${
-                              isSelected
-                                ? "bg-neon-400/8 ring-1 ring-neon-400/20"
-                                : "hover:bg-zinc-900/80"
-                            }`}
-                          >
-                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                              isSelected ? "bg-neon-400/10" : "bg-zinc-900"
-                            }`}>
-                              <ProviderIcon className={`h-4 w-4 ${isSelected ? "text-neon-400" : "text-zinc-500"}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[13px] font-medium leading-tight ${
-                                  isSelected ? "text-zinc-100" : "text-zinc-300"
-                                }`}>{m.label}</span>
-                                <TierBadge tier={(m as ModelEntry).tier} />
-                              </div>
-                              <p className="text-[11px] mt-0.5 leading-tight text-zinc-500">{m.description}</p>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {(m as ModelEntry).capabilities.includes("vision") && (
-                                <Eye className={`h-3.5 w-3.5 ${isSelected ? "text-blue-400" : "text-zinc-700"}`} />
-                              )}
-                              {(m as ModelEntry).capabilities.includes("thinking") && (
-                                <Brain className={`h-3.5 w-3.5 ${isSelected ? "text-pink-400" : "text-zinc-700"}`} />
-                              )}
-                              {isSelected && <Check className="h-3.5 w-3.5 text-neon-400" />}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ── Divider ── */}
-              {sections.brainModels.length > 0 && sections.imageGenModels.length > 0 && (
-                <div className="mx-2 my-2 border-t border-zinc-800/60" />
-              )}
-
-              {/* ── Image Generation section ── */}
-              {sections.imageGenModels.length > 0 && (
-                <div>
-                  <div className="sticky top-0 z-10 bg-zinc-950/95 backdrop-blur px-2 pt-1 pb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <ImagePlus className="h-3 w-3 text-violet-400" />
-                      <span className="text-[9px] font-semibold text-violet-400/80 uppercase tracking-wider">Image Generation</span>
-                    </div>
-                  </div>
-                  {sections.imageGenModels.map((m) => {
-                    const isSelected = m.value === imageGenModel;
-                    const isDisabled = !configuredImageGenProviders?.includes((m as ImageGenEntry).provider);
+              {groups.map(([group, models]) => (
+                <div key={group}>
+                  <div className="px-2 py-1 text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">{group}</div>
+                  {models.map((m) => {
+                    const isSelected = m.value === model;
                     const ProviderIcon = getProviderIcon(m.group);
                     return (
                       <button
                         key={m.value}
                         type="button"
-                        disabled={isDisabled}
-                        onClick={() => {
-                          if (!isDisabled && onImageGenModelChange) onImageGenModelChange(m.value);
-                        }}
+                        onClick={() => onModelChange(m.value)}
                         className={`w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all mb-0.5 ${
-                          isDisabled
-                            ? "opacity-40 cursor-not-allowed"
-                            : isSelected
-                              ? "bg-violet-500/8 ring-1 ring-violet-500/20"
-                              : "hover:bg-zinc-900/80"
+                          isSelected ? "bg-neon-400/8 ring-1 ring-neon-400/20" : "hover:bg-zinc-900/80"
                         }`}
                       >
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          isSelected ? "bg-violet-500/15" : "bg-zinc-900"
-                        }`}>
-                          <ProviderIcon className={`h-4 w-4 ${isSelected ? "text-violet-400" : "text-zinc-500"}`} />
+                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-neon-400/10" : "bg-zinc-900"}`}>
+                          <ProviderIcon className={`h-4 w-4 ${isSelected ? "text-neon-400" : "text-zinc-500"}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className={`text-[13px] font-medium leading-tight ${
-                              isDisabled ? "text-zinc-600" : isSelected ? "text-zinc-100" : "text-zinc-300"
-                            }`}>{m.label}</span>
+                            <span className={`text-[13px] font-medium leading-tight ${isSelected ? "text-zinc-100" : "text-zinc-300"}`}>{m.label}</span>
+                            <TierBadge tier={m.tier} />
                           </div>
-                          <p className={`text-[11px] mt-0.5 leading-tight ${
-                            isDisabled ? "text-zinc-700" : "text-zinc-500"
-                          }`}>
-                            {isDisabled ? "No API key configured" : m.description}
-                          </p>
+                          <p className="text-[11px] mt-0.5 leading-tight text-zinc-500">{m.description}</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          {isDisabled && <Lock className="h-3.5 w-3.5 text-zinc-700" />}
-                          {isSelected && <Check className="h-3.5 w-3.5 text-violet-400" />}
+                          {m.capabilities.includes("vision") && <Eye className={`h-3.5 w-3.5 ${isSelected ? "text-blue-400" : "text-zinc-700"}`} />}
+                          {m.capabilities.includes("thinking") && <Brain className={`h-3.5 w-3.5 ${isSelected ? "text-pink-400" : "text-zinc-700"}`} />}
+                          {isSelected && <Check className="h-3.5 w-3.5 text-neon-400" />}
                         </div>
                       </button>
                     );
                   })}
                 </div>
-              )}
-
-              {filtered.length === 0 && (
-                <div className="text-center py-6 text-xs text-zinc-600">
-                  No models found
-                </div>
+              ))}
+              {visibleModels.length === 0 && (
+                <div className="text-center py-6 text-xs text-zinc-600">No models found</div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Image Picker Button ─────────────────────────────────────────────────
+
+function ImagePickerButton({
+  agentId,
+  onSelect,
+  disabled,
+}: {
+  agentId: string;
+  onSelect: (attachment: PendingAttachment) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const images = useQuery(api.assets.list, { agentId: agentId as any });
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const id = setTimeout(() => document.addEventListener("click", handler), 0);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("click", handler);
+    };
+  }, [open]);
+
+  const imageAssets = (images ?? [])
+    .filter((a: any) => a.type === "image" && a.resolvedUrl)
+    .sort((a: any, b: any) => b.createdAt - a.createdAt);
+
+  if (!imageAssets.length && images !== undefined) return null;
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        title="Reference a generated image"
+        className="flex items-center justify-center h-7 w-7 rounded-lg text-zinc-600 hover:text-violet-400 hover:bg-zinc-800/80 disabled:opacity-40 transition-all"
+      >
+        <ImageIcon className="h-3.5 w-3.5" />
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 mb-2 w-72 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 z-50 overflow-hidden">
+          <div className="px-3 pt-3 pb-2 border-b border-zinc-800/60">
+            <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+              Generated Images
+            </p>
+          </div>
+          <div className="p-2 max-h-56 overflow-y-auto">
+            {images === undefined ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-zinc-600" />
+              </div>
+            ) : imageAssets.length === 0 ? (
+              <p className="text-xs text-zinc-600 text-center py-4">No images generated yet</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5">
+                {imageAssets.map((asset: any) => (
+                  <button
+                    key={asset._id}
+                    type="button"
+                    onClick={() => {
+                      onSelect({
+                        storageId: asset.storageId,
+                        fileName: asset.name,
+                        contentType: asset.mimeType || "image/png",
+                        fileSize: asset.fileSize || 0,
+                        previewUrl: asset.resolvedUrl,
+                      });
+                      setOpen(false);
+                    }}
+                    className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 hover:border-violet-500/50 hover:ring-1 hover:ring-violet-500/30 transition-all group"
+                  >
+                    <img
+                      src={asset.resolvedUrl}
+                      alt={asset.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -509,10 +412,8 @@ export function ChatInput({
   hasActiveQuestions,
   model,
   onModelChange,
-  imageGenModel,
-  onImageGenModelChange,
-  configuredImageGenProviders,
   enabledModels,
+  agentId,
 }: {
   onSend: (content: string, attachments?: ChatAttachment[]) => void;
   onStop?: () => void;
@@ -520,10 +421,8 @@ export function ChatInput({
   hasActiveQuestions?: boolean;
   model?: string;
   onModelChange?: (model: string) => void;
-  imageGenModel?: string;
-  onImageGenModelChange?: (model: string) => void;
-  configuredImageGenProviders?: string[];
   enabledModels?: string[];
+  agentId?: string;
 }) {
   const [value, setValue] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
@@ -759,9 +658,6 @@ export function ChatInput({
                 <ModelDropdown
                   model={model}
                   onModelChange={onModelChange}
-                  imageGenModel={imageGenModel}
-                  onImageGenModelChange={onImageGenModelChange}
-                  configuredImageGenProviders={configuredImageGenProviders}
                   disabled={isProcessing}
                   enabledModels={enabledModels}
                 />
@@ -791,6 +687,15 @@ export function ChatInput({
                 onChange={handleFileInputChange}
                 className="hidden"
               />
+
+              {/* Image picker — only shown when agent has generated images */}
+              {agentId && (
+                <ImagePickerButton
+                  agentId={agentId}
+                  disabled={isProcessing}
+                  onSelect={(att) => setAttachments((prev) => [...prev, att])}
+                />
+              )}
             </div>
 
             {isProcessing ? (
