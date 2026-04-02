@@ -29,6 +29,8 @@ import type * as dispatch from "../dispatch.js";
 import type * as documentChunksInternal from "../documentChunksInternal.js";
 import type * as documents from "../documents.js";
 import type * as executions from "../executions.js";
+import type * as imageGeneration from "../imageGeneration.js";
+import type * as imageGenerationHelpers from "../imageGenerationHelpers.js";
 import type * as memories from "../memories.js";
 import type * as memoriesInternal from "../memoriesInternal.js";
 import type * as messages from "../messages.js";
@@ -77,6 +79,8 @@ declare const fullApi: ApiFromModules<{
   documentChunksInternal: typeof documentChunksInternal;
   documents: typeof documents;
   executions: typeof executions;
+  imageGeneration: typeof imageGeneration;
+  imageGenerationHelpers: typeof imageGenerationHelpers;
   memories: typeof memories;
   memoriesInternal: typeof memoriesInternal;
   messages: typeof messages;
