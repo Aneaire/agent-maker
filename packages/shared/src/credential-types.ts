@@ -98,6 +98,31 @@ export const CREDENTIAL_TYPE_REGISTRY: Record<string, CredentialTypeDef> = {
     },
   },
 
+  discord: {
+    type: "discord",
+    label: "Discord Bot",
+    description: "Send messages, read channels, manage threads, and react in Discord",
+    icon: "MessageCircle",
+    authMethod: "token",
+    fields: [
+      {
+        key: "botToken",
+        label: "Bot Token",
+        type: "password",
+        placeholder: "MTk...",
+        required: true,
+        helpText: "From your Discord app's Bot page at discord.com/developers/applications",
+      },
+    ],
+    compatibleToolSets: ["discord"],
+    test: {
+      method: "GET",
+      url: "https://discord.com/api/v10/users/@me",
+      headers: { Authorization: "Bot {{botToken}}" },
+      expectedStatus: 200,
+    },
+  },
+
   notion: {
     type: "notion",
     label: "Notion Integration",
@@ -222,6 +247,7 @@ export function getCredentialTypeDef(type: string): CredentialTypeDef | undefine
 export const TOOL_SETS_REQUIRING_CREDENTIALS: Record<string, boolean> = {
   email: true,
   slack: true,
+  discord: true,
   notion: true,
   google_calendar: true,
   google_drive: true,

@@ -269,6 +269,13 @@ function createListToolSetsTool(ctx: CreatorContext) {
           enabledByDefault: false,
           canDisable: true,
         },
+        {
+          name: "discord",
+          description:
+            "Send messages, read channels, manage threads, and add reactions in Discord servers.",
+          enabledByDefault: false,
+          canDisable: true,
+        },
       ];
       return {
         content: [

@@ -48,6 +48,7 @@ const TOOL_SET_INFO: Record<string, ToolSetEntry> = {
   agent_messages: { label: "Inter-Agent Messaging", description: "Communicate with other agents for delegation and coordination" },
   notion: { label: "Notion", description: "Search, read, create, and update pages and databases in Notion" },
   slack: { label: "Slack", description: "Send messages, read channels, search, and react in Slack" },
+  discord: { label: "Discord", description: "Send messages, read channels, manage threads, and react in Discord" },
   google_calendar: { label: "Google Calendar", description: "List events, schedule meetings, check availability, and manage calendar" },
   google_drive: { label: "Google Drive", description: "Search, read, create, and manage files and folders in Google Drive" },
   google_sheets: { label: "Google Sheets", description: "Read, write, and manage spreadsheet data in Google Sheets" },
@@ -102,6 +103,7 @@ const INTEGRATION_CATEGORIES: ToolSetCategory[] = [
     description: "Connect to external services",
     items: [
       { key: "slack", label: "Slack", description: "Send messages, read channels, search, and react" },
+      { key: "discord", label: "Discord", description: "Send messages, read channels, manage threads, and react" },
       { key: "notion", label: "Notion", description: "Search, read, create, and update pages and databases" },
       { key: "google_calendar", label: "Google Calendar", description: "Schedule meetings and manage calendar" },
       { key: "google_drive", label: "Google Drive", description: "Search, read, create, and manage files" },

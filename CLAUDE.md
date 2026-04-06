@@ -48,7 +48,7 @@ Monorepo with 3 packages:
 
 ## Tool Sets (enabledToolSets)
 
-`memory`, `web_search`, `pages`, `custom_http_tools`, `email`, `rag`, `schedules`, `automations`, `timers`, `webhooks`, `agent_messages`, `notion`, `slack`, `google_calendar`, `google_drive`, `google_sheets`, `gmail`, `image_generation`
+`memory`, `web_search`, `pages`, `custom_http_tools`, `email`, `rag`, `schedules`, `automations`, `timers`, `webhooks`, `agent_messages`, `notion`, `slack`, `discord`, `google_calendar`, `google_drive`, `google_sheets`, `gmail`, `image_generation`
 
 ## Adding a New Tool Set (Checklist)
 

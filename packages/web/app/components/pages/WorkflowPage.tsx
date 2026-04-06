@@ -1059,6 +1059,14 @@ const EVENT_OPTIONS: Array<{
     ],
   },
   {
+    group: "Discord",
+    groupColor: "text-indigo-400",
+    events: [
+      { value: "discord.message_sent",   description: "A message was sent to a Discord channel" },
+      { value: "discord.thread_created", description: "A thread was created in Discord" },
+    ],
+  },
+  {
     group: "Webhooks",
     groupColor: "text-purple-400",
     events: [
@@ -1477,6 +1485,13 @@ const PAYLOAD_VARIABLES: Record<string, Array<{ key: string; description: string
     { key: "{{event.start}}",      description: "Event start time" },
     { key: "{{event.end}}",        description: "Event end time" },
     { key: "{{event.calendarId}}", description: "Calendar ID" },
+  ],
+  "discord.*": [
+    { key: "{{event.channelId}}",  description: "Channel ID" },
+    { key: "{{event.messageId}}",  description: "Message ID" },
+    { key: "{{event.content}}",    description: "Message content" },
+    { key: "{{event.threadId}}",   description: "Thread ID (on thread create)" },
+    { key: "{{event.threadName}}", description: "Thread name (on thread create)" },
   ],
   "webhook.*": [
     { key: "{{event.webhookId}}", description: "Webhook ID" },

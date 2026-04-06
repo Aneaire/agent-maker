@@ -154,6 +154,11 @@ export function buildSystemPrompt(
       "- **Slack** — send messages, read channels, search messages, add reactions, and manage channel topics"
     );
   }
+  if (has(enabled, "discord")) {
+    capabilities.push(
+      "- **Discord** — send messages, read channels, list servers, manage threads, and add reactions"
+    );
+  }
   if (has(enabled, "google_calendar")) {
     capabilities.push(
       "- **Google Calendar** — list events, create/update/delete events, check availability, and schedule meetings"
@@ -288,6 +293,22 @@ export function buildSystemPrompt(
 `
     : "";
 
+  // ── Discord guidelines ──────────────────────────────────────────────
+  const discordGuidance = has(enabled, "discord")
+    ? `
+## Discord Integration
+- Use \`discord_list_guilds\` to find server IDs the bot is in
+- Use \`discord_list_channels\` to find channel IDs within a server before sending messages
+- Use \`discord_send_message\` to post to a channel (requires channel ID)
+- Use \`discord_read_messages\` to check recent messages in a channel
+- Use \`discord_add_reaction\` to react to messages with emoji (Unicode or custom)
+- Use \`discord_create_thread\` to start a thread from a message or standalone
+- Use \`discord_reply_in_thread\` to send a message in an existing thread
+- When the user says "post to Discord" or "send a message in Discord", use discord_send_message
+- Discord messages support markdown: **bold**, *italic*, ~~strike~~, \`code\`, > quote, \`\`\`code blocks\`\`\`
+`
+    : "";
+
   // ── Slack guidelines ───────────────────────────────────────────────
   const slackGuidance = has(enabled, "slack")
     ? `
@@ -374,6 +395,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
     agent_messages: { label: "Inter-Agent Messaging", description: "Communicate with other agents for delegation" },
     notion: { label: "Notion", description: "Search, read, create, and update Notion pages and databases" },
     slack: { label: "Slack", description: "Send messages, read channels, and search in Slack" },
+    discord: { label: "Discord", description: "Send messages, read channels, manage threads, and react in Discord" },
     google_calendar: { label: "Google Calendar", description: "Schedule meetings, check availability, manage events" },
     google_drive: { label: "Google Drive", description: "Search, read, create, and manage files in Google Drive" },
     google_sheets: { label: "Google Sheets", description: "Read, write, and manage spreadsheet data" },
@@ -397,7 +419,7 @@ If the user wants more details, point them to the documentation page in the HiGa
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${gmailGuidance}${imageGenGuidance}${customToolGuidance}${availableIntegrationsSection}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${discordGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${gmailGuidance}${imageGenGuidance}${customToolGuidance}${availableIntegrationsSection}
 ## Interactive Questions
 When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
 

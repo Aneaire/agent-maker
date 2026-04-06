@@ -189,7 +189,7 @@ export async function runAgent(params: RunAgentParams) {
 
     // Credential loading (parallel)
     const toolSetsNeedingCreds = [
-      "email", "notion", "slack", "google_calendar",
+      "email", "notion", "slack", "discord", "google_calendar",
       "google_drive", "google_sheets", "gmail", "image_generation",
     ];
     const enabledCredToolSets = toolSetsNeedingCreds.filter((ts) => enabled.includes(ts));
@@ -232,6 +232,7 @@ export async function runAgent(params: RunAgentParams) {
     const emailConfig = configs.email ?? null;
     const notionConfig = configs.notion ?? null;
     const slackConfig = configs.slack ?? null;
+    const discordConfig = configs.discord ?? null;
     const gcalConfig = configs.google_calendar ?? null;
     const gdriveConfig = configs.google_drive ?? null;
     const gsheetsConfig = configs.google_sheets ?? null;
@@ -345,6 +346,7 @@ export async function runAgent(params: RunAgentParams) {
       emailConfig: emailConfig as any,
       notionConfig: notionConfig as any,
       slackConfig: slackConfig as any,
+      discordConfig: discordConfig as any,
       gcalConfig: gcalConfig as any,
       gdriveConfig: gdriveConfig as any,
       gsheetsConfig: gsheetsConfig as any,

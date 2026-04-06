@@ -858,6 +858,7 @@ export function ChatMessage({
     message.questions &&
     message.questions.length > 0;
 
+
   return (
     <div className="flex gap-3">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neon-400/10 ring-1 ring-neon-400/20 mt-0.5">

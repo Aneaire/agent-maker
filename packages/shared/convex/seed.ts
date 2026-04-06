@@ -1037,6 +1037,69 @@ export const testMultiTool = internalMutation({
  *
  * Run: npx convex run seed:verifyConversation '{"conversationId":"<id>"}'
  */
+/**
+ * Test: Discord — asks the agent to list Discord servers and channels.
+ *
+ * Run: npx convex run seed:testDiscord '{}'
+ * Then check: npx convex run seed:verifyConversation '{"conversationId":"<id from output>"}'
+ */
+export const testDiscord = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please test the Discord integration by doing the following:
+1. Use discord_list_guilds to list all Discord servers the bot is in.
+2. For the first server you find, use discord_list_channels to list its channels.
+3. Report back the server names, IDs, and available channels.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Discord Integration"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Discord test job dispatched. Check seed:verifyConversation in ~15s.",
+    };
+  },
+});
+
+/**
+ * Test: Discord send message — asks the agent to send a message to #general.
+ *
+ * Run: npx convex run seed:testDiscordSend '{}'
+ * Then check: npx convex run seed:verifyConversation '{"conversationId":"<id>"}'
+ */
+export const testDiscordSend = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Send a message to the #general channel (ID: 1490200082241290253) in Aneaire's server. The message should say: "Hello from Agent Maker! 🤖 Discord integration is live and working."`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Discord Send Message"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Discord send message job dispatched. Check seed:verifyConversation in ~15s.",
+    };
+  },
+});
+
 export const verifyConversation = internalQuery({
   args: { conversationId: v.string() },
   handler: async (ctx, args) => {

@@ -13,6 +13,7 @@ import { createWebhookManagementTools } from "./tools/webhook-management-tools.j
 import { createAgentMessageTools } from "./tools/agent-message-tools.js";
 import { createNotionTools } from "./tools/notion-tools.js";
 import { createSlackTools } from "./tools/slack-tools.js";
+import { createDiscordTools } from "./tools/discord-tools.js";
 import { createGCalTools } from "./tools/gcal-tools.js";
 import { createGDriveTools } from "./tools/gdrive-tools.js";
 import { createGSheetsTools } from "./tools/gsheets-tools.js";
@@ -46,6 +47,11 @@ interface NotionConfig {
 }
 
 interface SlackConfig {
+  botToken: string;
+  defaultChannel?: string;
+}
+
+interface DiscordConfig {
   botToken: string;
   defaultChannel?: string;
 }
@@ -91,6 +97,7 @@ interface McpServerDeps {
   emailConfig?: EmailConfig | null;
   notionConfig?: NotionConfig | null;
   slackConfig?: SlackConfig | null;
+  discordConfig?: DiscordConfig | null;
   gcalConfig?: GCalConfig | null;
   gdriveConfig?: GDriveConfig | null;
   gsheetsConfig?: GSheetsConfig | null;
@@ -186,6 +193,13 @@ export function buildMcpServer(deps: McpServerDeps) {
   if (has(enabled, "slack") && deps.slackConfig) {
     tools.push(
       ...createSlackTools(deps.convexClient, deps.agentId, deps.slackConfig)
+    );
+  }
+
+  // Discord — gated by "discord"
+  if (has(enabled, "discord") && deps.discordConfig) {
+    tools.push(
+      ...createDiscordTools(deps.convexClient, deps.agentId, deps.discordConfig)
     );
   }
 
@@ -358,6 +372,19 @@ export function buildAllowedTools(
       "mcp__agent-tools__slack_add_reaction",
       "mcp__agent-tools__slack_set_topic",
       "mcp__agent-tools__slack_search_messages"
+    );
+  }
+
+  // Discord — gated by "discord"
+  if (has(enabledToolSets, "discord")) {
+    allowed.push(
+      "mcp__agent-tools__discord_send_message",
+      "mcp__agent-tools__discord_list_guilds",
+      "mcp__agent-tools__discord_list_channels",
+      "mcp__agent-tools__discord_read_messages",
+      "mcp__agent-tools__discord_add_reaction",
+      "mcp__agent-tools__discord_create_thread",
+      "mcp__agent-tools__discord_reply_in_thread"
     );
   }
 
