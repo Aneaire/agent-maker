@@ -203,7 +203,7 @@ export default function DocsPage() {
       <div className="flex gap-8 max-w-6xl mx-auto">
         {/* Sidebar */}
         <aside className="w-64 shrink-0 hidden lg:block">
-          <div className="sticky top-20 space-y-6">
+          <div className="sticky top-20 space-y-6 overflow-y-auto max-h-[calc(100vh-6rem)]">
             <Link
               to="/docs"
               className="flex items-center gap-2 text-sm font-semibold text-zinc-100 mb-4"

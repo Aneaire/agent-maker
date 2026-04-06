@@ -1100,6 +1100,111 @@ export const testDiscordSend = internalMutation({
   },
 });
 
+/**
+ * Test: Discord thread + reaction — creates a thread and adds a reaction.
+ */
+export const testDiscordThreadAndReaction = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please do the following Discord tests in order and report each result:
+1. Use discord_send_message to send "🧵 Thread test starting..." to channel 1490200082241290253
+2. Use discord_create_thread in channel 1490200082241290253 with name "Agent Test Thread"
+3. Use discord_reply_in_thread to send "Hello from inside the thread! ✅" in the new thread
+4. Use discord_add_reaction on the message from step 1 with emoji 🎉
+Report the message ID, thread ID, and whether each step succeeded.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Discord Thread + Reaction"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Discord thread+reaction job dispatched. Check seed:verifyConversation in ~20s.",
+    };
+  },
+});
+
+/**
+ * Verify discord events were emitted to the event bus.
+ */
+export const verifyDiscordEvents = internalQuery({
+  args: { agentId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const agent = args.agentId
+      ? await ctx.db.get(args.agentId as any)
+      : await (async () => {
+          const agents = await ctx.db
+            .query("agents")
+            .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+            .collect();
+          return agents[0];
+        })();
+
+    if (!agent) throw new Error("Agent not found.");
+
+    const allEvents = await ctx.db
+      .query("agentEvents")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .order("desc")
+      .take(20);
+
+    const discordEvents = allEvents.filter((e: any) =>
+      e.event?.startsWith("discord.")
+    );
+
+    return {
+      totalRecentEvents: allEvents.length,
+      discordEventCount: discordEvents.length,
+      discordEvents: discordEvents.map((e: any) => ({
+        event: e.event,
+        source: e.source,
+        payload: e.payload,
+        createdAt: new Date(e._creationTime).toISOString(),
+      })),
+    };
+  },
+});
+
+/**
+ * Test: Discord automation — creates an automation triggered by discord.message_sent.
+ */
+export const testDiscordAutomation = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please do the following:
+1. Use create_automation to create an automation called "Discord Message Logger" that:
+   - Triggers on event: discord.message_sent
+   - Action: create_note with title "Discord Log" and content "Message sent to channel {{event.channelId}} — ID: {{event.messageId}}"
+2. Then use discord_send_message to send "Automation test 🤖" to channel 1490200082241290253
+3. Report the automation ID and confirm the message was sent.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Discord Automation"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Discord automation test dispatched. Check seed:verifyConversation in ~20s, then seed:verifyDiscordEvents.",
+    };
+  },
+});
+
 export const verifyConversation = internalQuery({
   args: { conversationId: v.string() },
   handler: async (ctx, args) => {
