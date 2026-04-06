@@ -107,26 +107,6 @@ export const verifyMyEvents = internalQuery({
 | `seed:verifyConversation` | Generic: check any conversation result |
 | `seed:verifyDiscordEvents` | Check discord events in event bus |
 
-## Discord Gateway (two-way chat) — testing
-
-The Discord Gateway connects via WebSocket on agent server startup. Test this manually:
-
-1. Enable Discord + Discord Bot in agent settings (Settings → Integrations → Discord Bot)
-2. Add the testing Discord username to Authorized Users
-3. Restart the agent server: `cd packages/agent && bun run dev`
-4. @mention the bot in a Discord channel
-5. The agent should respond within ~5-10 seconds
-
-**Schema tables to verify in Convex dashboard:**
-- `discordConversationMap` — mapping of (agentId, channelId) → conversationId
-- `discordGatewayState` — connection status per agent
-- `conversations` — the Discord conversation created for the channel
-
-**Key files:**
-- `packages/agent/src/discord-gateway.ts` — WebSocket client (Gateway v10)
-- `packages/agent/src/discord-gateway-manager.ts` — per-agent connection manager
-- `packages/agent/src/discord-response-handler.ts` — sends replies back to Discord
-
 ## What to test for any new integration
 
 1. **All tools** — write a prompt that exercises every tool, check `toolCalls` in `verifyConversation`

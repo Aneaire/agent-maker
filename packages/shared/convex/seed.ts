@@ -1205,6 +1205,39 @@ export const testDiscordAutomation = internalMutation({
   },
 });
 
+/**
+ * Test: Custom HTTP Tools — asks the agent to fetch a joke using the get_joke custom tool.
+ *
+ * Run: npx convex run seed:testCustomHttpTools '{}'
+ * Then check: npx convex run seed:verifyConversation '{"conversationId":"<id from output>"}'
+ */
+export const testCustomHttpTools = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please test the custom HTTP tools by doing the following in order:
+1. Use the get_joke tool to fetch a programming joke.
+2. Report the full joke (setup + punchline) you received from the API.
+3. Confirm the tool call succeeded and show the raw response.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Custom HTTP Tools"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Custom HTTP tools test dispatched. Check seed:verifyConversation in ~20s.",
+    };
+  },
+});
+
 export const verifyConversation = internalQuery({
   args: { conversationId: v.string() },
   handler: async (ctx, args) => {
@@ -1233,6 +1266,37 @@ export const verifyConversation = internalQuery({
         name: tc.name,
         output: tc.output ? tc.output.slice(0, 400) : null,
       })) ?? [],
+    };
+  },
+});
+
+export const verifyDiscordGateway = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+
+    const gatewayState = await ctx.db
+      .query("discordGatewayState")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .first();
+
+    const discordMappings = await ctx.db
+      .query("discordConversationMap")
+      .withIndex("by_agent_channel", (q: any) => q.eq("agentId", agent._id))
+      .take(10);
+
+    return {
+      gatewayStatus: gatewayState?.status ?? "no_state",
+      botUserId: gatewayState?.botUserId ?? null,
+      connectedAt: gatewayState?.connectedAt
+        ? new Date(gatewayState.connectedAt).toISOString()
+        : null,
+      discordConversations: discordMappings.map((m: any) => ({
+        channelId: m.discordChannelId,
+        guildId: m.discordGuildId,
+        mode: m.mode,
+        conversationId: m.conversationId,
+      })),
     };
   },
 });

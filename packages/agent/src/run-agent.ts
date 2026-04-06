@@ -312,22 +312,53 @@ export async function runAgent(params: RunAgentParams) {
         ? `\n\n## Conversation History\n${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n`
         : "";
 
+    // Check if this conversation is Discord-sourced and get the mode
+    const discordSource = await convexClient.getDiscordSourceForConversation(params.conversationId);
+    const isDiscordBot = discordSource?.mode === "bot";
+    const isDiscordAgent = discordSource?.mode === "agent";
+
     // Build system prompt with full context
-    const systemPrompt = buildSystemPrompt(
-      {
-        name: agent.name,
-        systemPrompt: agent.systemPrompt,
-        description: agent.description,
-        enabledToolSets: agent.enabledToolSets,
-      },
-      memories ?? [],
-      tabs as any,
-      (customTools as any[]).map((t: any) => t.name),
-      conversationHistory,
-      (documents ?? []) as any,
-      (schedules ?? []) as any,
-      (automations ?? []) as any
-    );
+    let systemPrompt: string;
+
+    if (isDiscordBot && (agent as any).discordBotPrompt) {
+      // Bot mode: use the custom Discord bot prompt directly
+      systemPrompt = `${(agent as any).discordBotPrompt}
+
+## Context
+You are responding in a Discord channel. Keep responses concise and use Discord markdown where appropriate.`;
+    } else {
+      // Normal agent mode (including Discord agent mode)
+      const basePrompt = buildSystemPrompt(
+        {
+          name: agent.name,
+          systemPrompt: agent.systemPrompt,
+          description: agent.description,
+          enabledToolSets: agent.enabledToolSets,
+        },
+        memories ?? [],
+        tabs as any,
+        (customTools as any[]).map((t: any) => t.name),
+        conversationHistory,
+        (documents ?? []) as any,
+        (schedules ?? []) as any,
+        (automations ?? []) as any
+      );
+
+      if (isDiscordAgent) {
+        systemPrompt = `${basePrompt}
+
+## Discord Channel Context
+You are responding to a message in a Discord channel. Keep responses concise. Use Discord markdown (bold, code blocks, etc.) for formatting. Avoid overly long responses.`;
+      } else {
+        systemPrompt = basePrompt;
+      }
+    }
+
+    // In bot mode, use the bot model if configured
+    const effectiveModel =
+      isDiscordBot && (agent as any).discordBotModel
+        ? (agent as any).discordBotModel
+        : agent.model;
 
     // Create progress callback for tools that support streaming progress
     const onToolProgress: ToolProgressCallback = (toolName, progress) => {
@@ -387,7 +418,7 @@ export async function runAgent(params: RunAgentParams) {
         allowDangerouslySkipPermissions: true,
         includePartialMessages: true,
         maxTurns: 20,
-        model: agent.model || "claude-sonnet-4-6",
+        model: effectiveModel || "claude-sonnet-4-6",
         stderr: (data: string) => {
           console.error("[agent] CLI stderr:", data);
         },

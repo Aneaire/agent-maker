@@ -28,6 +28,11 @@ export default defineSchema({
       v.literal("draft")
     ),
     iconUrl: v.optional(v.string()),
+    // ── Discord Bot (Gateway / two-way chat) ────────────────────────
+    discordBotEnabled: v.optional(v.boolean()),
+    discordBotPrompt: v.optional(v.string()),
+    discordBotModel: v.optional(v.string()),
+    discordAuthorizedUsers: v.optional(v.array(v.string())),
   })
     .index("by_user", ["userId"])
     .index("by_slug", ["slug"]),
@@ -613,4 +618,30 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_agent", ["agentId"]),
+
+  // ── Discord Gateway ─────────────────────────────────────────────────
+
+  discordConversationMap: defineTable({
+    agentId: v.id("agents"),
+    discordChannelId: v.string(),
+    discordGuildId: v.string(),
+    conversationId: v.id("conversations"),
+    mode: v.union(v.literal("agent"), v.literal("bot")),
+  })
+    .index("by_agent_channel", ["agentId", "discordChannelId"])
+    .index("by_conversation", ["conversationId"]),
+
+  discordGatewayState: defineTable({
+    agentId: v.id("agents"),
+    status: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+      v.literal("connecting")
+    ),
+    botUserId: v.optional(v.string()),
+    sessionId: v.optional(v.string()),
+    resumeGatewayUrl: v.optional(v.string()),
+    lastSequence: v.optional(v.number()),
+    connectedAt: v.optional(v.number()),
+  }).index("by_agent", ["agentId"]),
 });

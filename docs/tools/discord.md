@@ -95,9 +95,42 @@ The following events are emitted and can be used as automation triggers:
 
 **Agent**: Uses `discord_read_messages` on the channel to fetch recent messages and summarizes them.
 
+## Two-Way Chat (Discord Bot Mode)
+
+Enable **Discord Bot** in agent settings to let users @mention the bot in Discord and get responses directly in the channel — no web UI needed.
+
+### How it works
+
+1. The agent server maintains a persistent WebSocket connection (Discord Gateway) for each enabled agent
+2. When someone @mentions the bot, the message is routed through the agent pipeline
+3. The response is posted back to the same Discord channel
+
+### Dual-mode responses
+
+| Who @mentions | Mode | Response |
+|---|---|---|
+| Authorized user (whitelist) | **Agent mode** | Full agent: system prompt, all tools, memory, web search |
+| Anyone else | **Bot mode** | Custom "Bot Prompt" you define in settings |
+
+### Setting it up
+
+1. Go to agent **Settings → Integrations**
+2. Enable **Discord** and add your bot token credential
+3. Scroll to **Discord Bot (Two-Way Chat)**
+4. Toggle **Enable Discord Bot** on
+5. Write a **Bot Prompt** for public-facing responses (leave blank to use the agent's system prompt for everyone)
+6. Add Discord usernames to **Authorized Users** for full agent access
+7. Save
+
+### Conversation continuity
+
+Each Discord channel maintains its own conversation context. Follow-up messages in the same channel continue the conversation — just like the web chat.
+
 ## Notes
 
 - The bot must be invited to a server before it can interact with it
 - The bot can only see channels it has permission to access in that server
 - `discord_add_reaction` accepts Unicode emoji (e.g. `👍`) or custom emoji in `name:id` format (e.g. `myemoji:123456`)
 - Threads are treated as channels — use the thread ID as the `channel_id` when reading or replying
+- The Discord Bot gateway connects automatically when the agent server starts (3s delay)
+- Config changes take effect within ~60 seconds (the manager re-syncs every minute)

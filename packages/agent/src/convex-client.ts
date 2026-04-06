@@ -642,4 +642,67 @@ export class AgentConvexClient {
       serverToken: this.serverToken,
     });
   }
+
+  async getMessageStatus(messageId: string): Promise<{ status: string; content: string; error?: string } | null> {
+    return this.client.query(api.agentApi.getMessageStatus, {
+      serverToken: this.serverToken,
+      messageId: messageId as any,
+    });
+  }
+
+  // ── Discord Gateway ────────────────────────────────────────────────
+
+  async listDiscordEnabledAgents() {
+    return this.client.query(api.agentApi.listDiscordEnabledAgents, {
+      serverToken: this.serverToken,
+    });
+  }
+
+  async getOrCreateDiscordConversation(
+    agentId: string,
+    discordChannelId: string,
+    discordGuildId: string,
+    mode: "agent" | "bot"
+  ) {
+    return this.client.mutation(api.agentApi.getOrCreateDiscordConversation, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      discordChannelId,
+      discordGuildId,
+      mode,
+    });
+  }
+
+  async createDiscordJob(agentId: string, conversationId: string, userContent: string) {
+    return this.client.mutation(api.agentApi.createDiscordJob, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      conversationId: conversationId as any,
+      userContent,
+    });
+  }
+
+  async getDiscordSourceForConversation(conversationId: string) {
+    return this.client.query(api.agentApi.getDiscordSourceForConversation, {
+      serverToken: this.serverToken,
+      conversationId: conversationId as any,
+    });
+  }
+
+  async updateDiscordGatewayState(
+    agentId: string,
+    state: {
+      status: "connected" | "disconnected" | "connecting";
+      botUserId?: string;
+      sessionId?: string;
+      resumeGatewayUrl?: string;
+      lastSequence?: number;
+    }
+  ) {
+    return this.client.mutation(api.agentApi.updateDiscordGatewayState, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      ...state,
+    });
+  }
 }

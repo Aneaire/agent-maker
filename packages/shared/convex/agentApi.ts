@@ -74,6 +74,19 @@ export const searchMemories = query({
   },
 });
 
+export const getMessageStatus = query({
+  args: {
+    serverToken: v.string(),
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const msg = await ctx.db.get(args.messageId);
+    if (!msg) return null;
+    return { status: msg.status, content: msg.content, error: msg.error };
+  },
+});
+
 // ── MUTATIONS ────────────────────────────────────────────────────────
 
 export const updateMessage = mutation({
@@ -1072,5 +1085,194 @@ export const runPrompt = mutation({
     });
 
     return { conversationId, assistantMessageId, jobId };
+  },
+});
+
+// ── DISCORD GATEWAY ──────────────────────────────────────────────────
+
+/** List all active agents that have Discord enabled and discordBotEnabled = true */
+export const listDiscordEnabledAgents = query({
+  args: { serverToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const allAgents = await ctx.db.query("agents").collect();
+    return allAgents.filter(
+      (a) =>
+        a.status === "active" &&
+        a.enabledToolSets.includes("discord") &&
+        a.discordBotEnabled === true
+    );
+  },
+});
+
+/** Get or create a Convex conversation for a (agentId, discordChannelId) pair */
+export const getOrCreateDiscordConversation = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    discordChannelId: v.string(),
+    discordGuildId: v.string(),
+    mode: v.union(v.literal("agent"), v.literal("bot")),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    // Check for existing mapping
+    const existing = await ctx.db
+      .query("discordConversationMap")
+      .withIndex("by_agent_channel", (q) =>
+        q.eq("agentId", args.agentId).eq("discordChannelId", args.discordChannelId)
+      )
+      .first();
+
+    if (existing) return existing.conversationId;
+
+    // Need a userId — use the agent's owner
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    const conversationId = await ctx.db.insert("conversations", {
+      agentId: args.agentId,
+      userId: agent.userId,
+      title: `Discord #${args.discordChannelId}`,
+    });
+
+    await ctx.db.insert("discordConversationMap", {
+      agentId: args.agentId,
+      discordChannelId: args.discordChannelId,
+      discordGuildId: args.discordGuildId,
+      conversationId,
+      mode: args.mode,
+    });
+
+    return conversationId;
+  },
+});
+
+/** Create a user message + assistant placeholder + agentJob for a Discord mention */
+export const createDiscordJob = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    conversationId: v.id("conversations"),
+    userContent: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    // Insert user message
+    await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "user",
+      content: args.userContent,
+      status: "done",
+    });
+
+    // Insert assistant placeholder
+    const assistantMessageId = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+    });
+
+    // Create job
+    const jobId = await ctx.db.insert("agentJobs", {
+      agentId: args.agentId,
+      conversationId: args.conversationId,
+      messageId: assistantMessageId,
+      userId: agent.userId,
+      status: "pending",
+    });
+
+    // Push dispatch
+    await ctx.scheduler.runAfter(0, internal.dispatch.notifyJobCreated, { jobId });
+
+    return { jobId, assistantMessageId };
+  },
+});
+
+/** Get the Discord channel info for a conversation (used by response handler) */
+export const getDiscordSourceForConversation = query({
+  args: {
+    serverToken: v.string(),
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    return await ctx.db
+      .query("discordConversationMap")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .first();
+  },
+});
+
+/** Update Discord gateway connection state for an agent */
+export const updateDiscordGatewayState = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    status: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+      v.literal("connecting")
+    ),
+    botUserId: v.optional(v.string()),
+    sessionId: v.optional(v.string()),
+    resumeGatewayUrl: v.optional(v.string()),
+    lastSequence: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const existing = await ctx.db
+      .query("discordGatewayState")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .first();
+
+    const patch: any = {
+      agentId: args.agentId,
+      status: args.status,
+      botUserId: args.botUserId,
+      sessionId: args.sessionId,
+      resumeGatewayUrl: args.resumeGatewayUrl,
+      lastSequence: args.lastSequence,
+    };
+
+    if (args.status === "connected") {
+      patch.connectedAt = Date.now();
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+    } else {
+      await ctx.db.insert("discordGatewayState", patch);
+    }
+  },
+});
+
+/** Update agent Discord bot settings (server-facing, called from gateway sync) */
+export const updateAgentDiscordConfig = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    discordBotEnabled: v.optional(v.boolean()),
+    discordBotPrompt: v.optional(v.string()),
+    discordBotModel: v.optional(v.string()),
+    discordAuthorizedUsers: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const { serverToken: _, agentId, ...patch } = args;
+    // Only patch defined fields
+    const update: any = {};
+    if (patch.discordBotEnabled !== undefined) update.discordBotEnabled = patch.discordBotEnabled;
+    if (patch.discordBotPrompt !== undefined) update.discordBotPrompt = patch.discordBotPrompt;
+    if (patch.discordBotModel !== undefined) update.discordBotModel = patch.discordBotModel;
+    if (patch.discordAuthorizedUsers !== undefined) update.discordAuthorizedUsers = patch.discordAuthorizedUsers;
+    await ctx.db.patch(agentId, update);
   },
 });

@@ -250,6 +250,24 @@ export const update = mutation({
   },
 });
 
+export const updateDiscordBot = mutation({
+  args: {
+    agentId: v.id("agents"),
+    discordBotEnabled: v.optional(v.boolean()),
+    discordBotPrompt: v.optional(v.string()),
+    discordBotModel: v.optional(v.string()),
+    discordAuthorizedUsers: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent || agent.userId !== user._id) throw new Error("Agent not found");
+    const { agentId, ...patch } = args;
+    const update = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    await ctx.db.patch(agentId, update);
+  },
+});
+
 export const remove = mutation({
   args: { agentId: v.id("agents") },
   handler: async (ctx, args) => {

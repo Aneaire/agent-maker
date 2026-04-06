@@ -131,6 +131,41 @@ export async function seedTimers({ ctx, agentId }: SeedContext) {
   return { timerIds: [id] };
 }
 
+// ── Custom HTTP Tools Seeder ─────────────────────────────────────────────
+
+export async function seedCustomHttpTools({ ctx, agentId }: SeedContext) {
+  const tools = [
+    {
+      name: "get_joke",
+      description: "Fetch a random programming joke from the public joke API",
+      endpoint: "https://official-joke-api.appspot.com/jokes/programming/random",
+      method: "GET" as const,
+      inputSchema: {},
+    },
+    {
+      name: "get_cat_fact",
+      description: "Get a random cat fact from the Cat Facts API",
+      endpoint: "https://catfact.ninja/fact",
+      method: "GET" as const,
+      inputSchema: {},
+    },
+    {
+      name: "get_ip_info",
+      description: "Look up geolocation and info for an IP address. Pass ?query=<ip> to look up a specific IP, or omit for the current IP.",
+      endpoint: "http://ip-api.com/json",
+      method: "GET" as const,
+      inputSchema: {},
+    },
+  ];
+
+  const ids = [];
+  for (const t of tools) {
+    const id = await ctx.db.insert("customTools", { agentId, ...t });
+    ids.push(id);
+  }
+  return { customToolIds: ids };
+}
+
 // ── Events Seeder ────────────────────────────────────────────────────────
 
 export async function seedEvents({ ctx, agentId }: SeedContext) {

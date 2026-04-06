@@ -6,6 +6,7 @@ import {
   seedSchedules,
   seedTimers,
   seedEvents,
+  seedCustomHttpTools,
 } from "./toolsetSeeders";
 import {
   seedTasks,
@@ -57,6 +58,7 @@ export const TOOLSET_SEEDERS: ToolSetSeeder[] = [
   { name: "automations", seed: seedAutomations },
   { name: "schedules", seed: seedSchedules },
   { name: "timers", seed: seedTimers },
+  { name: "custom_http_tools", seed: seedCustomHttpTools },
   // When you add a new tool set that stores data, add its seeder here ↑
 ];
 

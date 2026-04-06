@@ -8,6 +8,7 @@ import { runCreator } from "./run-creator.js";
 import { runApiEndpoint } from "./run-api-endpoint.js";
 import { processDocument } from "./document-processor.js";
 import { AgentConvexClient } from "./convex-client.js";
+import { DiscordGatewayManager } from "./discord-gateway-manager.js";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync } from "fs";
 
@@ -1153,6 +1154,35 @@ setInterval(pollForJobs, FALLBACK_POLL_MS);
 setInterval(executeScheduledActions, FALLBACK_POLL_MS);
 setInterval(executeTimers, FALLBACK_POLL_MS);
 console.log(`[server] Push-based dispatch active. Fallback poll every ${FALLBACK_POLL_MS / 1000}s`);
+
+// ── Discord Gateway Manager ──────────────────────────────────────────
+
+const discordGatewayManager = new DiscordGatewayManager(CONVEX_URL, SERVER_TOKEN);
+
+// Initialize after a short delay to let Convex connect
+setTimeout(() => {
+  discordGatewayManager.initialize().catch((err) => {
+    console.error("[server] Discord Gateway Manager init failed:", err.message);
+  });
+}, 3000);
+
+// Discord config sync endpoint — call this when an agent's Discord settings change
+app.post("/dispatch/discord-sync", async (c) => {
+  if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
+  const { agentId } = await c.req.json<{ agentId?: string }>();
+
+  if (agentId) {
+    discordGatewayManager.restartGateway(agentId).catch((err) => {
+      console.error(`[server] discord-sync restart error for ${agentId}:`, err.message);
+    });
+  } else {
+    discordGatewayManager.syncAll().catch((err) => {
+      console.error("[server] discord-sync syncAll error:", err.message);
+    });
+  }
+
+  return c.json({ ok: true });
+});
 
 // ── Start server ─────────────────────────────────────────────────────
 

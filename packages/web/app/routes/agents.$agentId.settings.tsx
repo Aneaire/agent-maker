@@ -181,6 +181,9 @@ export default function SettingsPage() {
                   <CredentialManager agent={agent} toolSetName={ts} />
                 </section>
               ))}
+            {(agent.enabledToolSets ?? []).includes("discord") && (
+              <DiscordBotSection agent={agent} />
+            )}
           </>
         )}
 
@@ -930,6 +933,183 @@ function IntegrationsSection({ agent }: { agent: Doc<"agents"> }) {
         enabledSets={enabledSets}
         onToggle={handleToggle}
       />
+    </section>
+  );
+}
+
+// ── Discord Bot (Gateway / two-way chat) ────────────────────────────
+
+function DiscordBotSection({ agent }: { agent: Doc<"agents"> }) {
+  const updateDiscordBot = useMutation(api.agents.updateDiscordBot);
+
+  const [enabled, setEnabled] = useState(agent.discordBotEnabled ?? false);
+  const [botPrompt, setBotPrompt] = useState(agent.discordBotPrompt ?? "");
+  const [botModel, setBotModel] = useState(agent.discordBotModel ?? "");
+  const [authorizedUsers, setAuthorizedUsers] = useState<string[]>(
+    agent.discordAuthorizedUsers ?? []
+  );
+  const [newUser, setNewUser] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateDiscordBot({
+        agentId: agent._id,
+        discordBotEnabled: enabled,
+        discordBotPrompt: botPrompt || undefined,
+        discordBotModel: botModel || undefined,
+        discordAuthorizedUsers: authorizedUsers,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function addUser() {
+    const username = newUser.trim();
+    if (!username || authorizedUsers.includes(username)) return;
+    setAuthorizedUsers([...authorizedUsers, username]);
+    setNewUser("");
+  }
+
+  function removeUser(username: string) {
+    setAuthorizedUsers(authorizedUsers.filter((u) => u !== username));
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6 space-y-5">
+      <div className="flex items-center gap-2">
+        <Bot className="h-4 w-4 text-zinc-400" />
+        <h2 className="text-sm font-medium">Discord Bot (Two-Way Chat)</h2>
+        <span className="text-xs text-zinc-600 ml-auto">
+          @mention the bot to chat
+        </span>
+      </div>
+
+      <p className="text-xs text-zinc-500">
+        When enabled, @mentioning the bot in Discord routes messages through this agent.
+        Authorized users get full agent access; everyone else gets the Bot Prompt below.
+      </p>
+
+      {/* Master toggle */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-400">Enable Discord Bot</span>
+        <button
+          type="button"
+          onClick={() => setEnabled(!enabled)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+            enabled ? "bg-neon-500" : "bg-zinc-700"
+          }`}
+        >
+          <span
+            className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+              enabled ? "translate-x-4.5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {enabled && (
+        <>
+          {/* Bot Prompt */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-zinc-400">Bot Prompt</label>
+            <textarea
+              value={botPrompt}
+              onChange={(e) => setBotPrompt(e.target.value)}
+              placeholder="You are a helpful assistant. Answer questions concisely..."
+              rows={4}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors resize-none"
+            />
+            <p className="text-xs text-zinc-600">
+              Used for non-authorized Discord users. Leave blank to use the agent's system prompt for everyone.
+            </p>
+          </div>
+
+          {/* Bot Model */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-zinc-400">Bot Model (optional)</label>
+            <input
+              type="text"
+              value={botModel}
+              onChange={(e) => setBotModel(e.target.value)}
+              placeholder={agent.model || "claude-sonnet-4-6"}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+            />
+            <p className="text-xs text-zinc-600">
+              Model to use for bot-mode responses. Defaults to the agent's model.
+            </p>
+          </div>
+
+          {/* Authorized Users */}
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-400">Authorized Discord Usernames</label>
+            <p className="text-xs text-zinc-600">
+              These users get full agent access (all tools, memory, etc.) when they @mention the bot.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newUser}
+                onChange={(e) => setNewUser(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addUser()}
+                placeholder="discord_username"
+                className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+              />
+              <button
+                type="button"
+                onClick={addUser}
+                className="text-xs bg-zinc-700 text-zinc-300 px-3 py-2 rounded-lg hover:bg-zinc-600 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            {authorizedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {authorizedUsers.map((u) => (
+                  <span
+                    key={u}
+                    className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-xs px-2.5 py-1 rounded-lg"
+                  >
+                    {u}
+                    <button
+                      type="button"
+                      onClick={() => removeUser(u)}
+                      className="text-zinc-500 hover:text-red-400 transition-colors ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all flex items-center gap-1.5"
+        >
+          {saving ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : saved ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <Save className="h-3 w-3" />
+          )}
+          {saved ? "Saved" : "Save"}
+        </button>
+      </div>
     </section>
   );
 }
