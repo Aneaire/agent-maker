@@ -643,6 +643,15 @@ export class AgentConvexClient {
     });
   }
 
+  async listOlderMessages(conversationId: string, beforeTimestamp: number, limit?: number) {
+    return this.client.query(api.agentApi.listOlderMessages, {
+      serverToken: this.serverToken,
+      conversationId: conversationId as any,
+      beforeTimestamp,
+      limit,
+    });
+  }
+
   async getMessageStatus(messageId: string): Promise<{ status: string; content: string; error?: string } | null> {
     return this.client.query(api.agentApi.getMessageStatus, {
       serverToken: this.serverToken,
@@ -662,7 +671,9 @@ export class AgentConvexClient {
     agentId: string,
     discordChannelId: string,
     discordGuildId: string,
-    mode: "agent" | "bot"
+    mode: "agent" | "bot",
+    mentionerUsername?: string,
+    mentionerUserId?: string
   ) {
     return this.client.mutation(api.agentApi.getOrCreateDiscordConversation, {
       serverToken: this.serverToken,
@@ -670,6 +681,8 @@ export class AgentConvexClient {
       discordChannelId,
       discordGuildId,
       mode,
+      mentionerUsername,
+      mentionerUserId,
     });
   }
 

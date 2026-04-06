@@ -41,6 +41,41 @@ You can manage tasks, notes, spreadsheets, and documentation through workspace p
 - **Documentation** — Project overview and architecture reference
 - **Agent API** — REST endpoints for external integrations`;
 
+// ── Discord Bot — enable/configure for sandbox agent ────────────────────
+
+export const configureDiscordBot = internalMutation({
+  args: {
+    enabled: v.boolean(),
+    botPrompt: v.optional(v.string()),
+    botModel: v.optional(v.string()),
+    authorizedUsers: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const agent = await getSandboxAgent(ctx);
+    const patch: any = { discordBotEnabled: args.enabled };
+    if (args.botPrompt !== undefined) patch.discordBotPrompt = args.botPrompt;
+    if (args.botModel !== undefined) patch.discordBotModel = args.botModel;
+    if (args.authorizedUsers !== undefined) patch.discordAuthorizedUsers = args.authorizedUsers;
+    await ctx.db.patch(agent._id, patch);
+    return { agentId: agent._id, ...patch };
+  },
+});
+
+export const resetDiscordConversations = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const mappings = await ctx.db
+      .query("discordConversationMap")
+      .withIndex("by_agent_channel", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+    for (const m of mappings) {
+      await ctx.db.delete(m._id);
+    }
+    return { deleted: mappings.length };
+  },
+});
+
 // ── Debug: list users (for finding correct email) ───────────────────────
 
 export const listUsers = internalQuery({
@@ -78,6 +113,10 @@ export const debugSandboxAgent = internalQuery({
       name: agent.name,
       enabledToolSets: agent.enabledToolSets,
       linkedCredentials: creds,
+      discordBotEnabled: (agent as any).discordBotEnabled ?? false,
+      discordBotPrompt: (agent as any).discordBotPrompt ?? null,
+      discordBotModel: (agent as any).discordBotModel ?? null,
+      discordAuthorizedUsers: (agent as any).discordAuthorizedUsers ?? [],
     };
   },
 });
@@ -1296,6 +1335,8 @@ export const verifyDiscordGateway = internalQuery({
         guildId: m.discordGuildId,
         mode: m.mode,
         conversationId: m.conversationId,
+        lastMentionerUsername: m.lastMentionerUsername ?? null,
+        lastMentionerUserId: m.lastMentionerUserId ?? null,
       })),
     };
   },

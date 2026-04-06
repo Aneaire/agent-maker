@@ -134,7 +134,7 @@ export class DiscordGatewayManager {
   private async handleMention(
     agentId: string,
     botToken: string,
-    agentConfig: any,
+    _agentConfig: any,
     event: MentionEvent
   ) {
     const { guildId, channelId, content, author } = event;
@@ -145,16 +145,19 @@ export class DiscordGatewayManager {
     if (!content) return;
 
     try {
-      // Determine mode: authorized users get full agent, everyone else gets bot prompt
-      const authorizedUsers: string[] = agentConfig.discordAuthorizedUsers ?? [];
-      const mode: "agent" | "bot" = authorizedUsers.includes(author.username) ? "agent" : "bot";
+      // Fetch fresh agent config on every mention so authorized users list is never stale
+      const freshAgent = await this.convexClient.getAgent(agentId);
+      const authorizedUsers: string[] = ((freshAgent as any)?.discordAuthorizedUsers ?? []).map((u: string) => u.toLowerCase());
+      const mode: "agent" | "bot" = authorizedUsers.includes(author.username.toLowerCase()) ? "agent" : "bot";
 
       // Get or create a persistent conversation for this channel
       const conversationId = await this.convexClient.getOrCreateDiscordConversation(
         agentId,
         channelId,
         guildId,
-        mode
+        mode,
+        author.username,
+        author.id
       );
 
       // Show typing indicator while processing

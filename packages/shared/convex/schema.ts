@@ -627,6 +627,8 @@ export default defineSchema({
     discordGuildId: v.string(),
     conversationId: v.id("conversations"),
     mode: v.union(v.literal("agent"), v.literal("bot")),
+    lastMentionerUsername: v.optional(v.string()),
+    lastMentionerUserId: v.optional(v.string()),
   })
     .index("by_agent_channel", ["agentId", "discordChannelId"])
     .index("by_conversation", ["conversationId"]),

@@ -87,6 +87,25 @@ export const getMessageStatus = query({
   },
 });
 
+export const listOlderMessages = query({
+  args: {
+    serverToken: v.string(),
+    conversationId: v.id("conversations"),
+    beforeTimestamp: v.number(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const all = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .collect();
+    // Filter to messages older than the timestamp, take the most recent N
+    const older = all.filter((m) => m._creationTime < args.beforeTimestamp);
+    return older.slice(-(args.limit ?? 50));
+  },
+});
+
 // ── MUTATIONS ────────────────────────────────────────────────────────
 
 export const updateMessage = mutation({
@@ -1113,6 +1132,8 @@ export const getOrCreateDiscordConversation = mutation({
     discordChannelId: v.string(),
     discordGuildId: v.string(),
     mode: v.union(v.literal("agent"), v.literal("bot")),
+    mentionerUsername: v.optional(v.string()),
+    mentionerUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireServerAuth(ctx, args.serverToken);
@@ -1125,7 +1146,16 @@ export const getOrCreateDiscordConversation = mutation({
       )
       .first();
 
-    if (existing) return existing.conversationId;
+    if (existing) {
+      // Update mode and log the mentioner's username for debugging
+      const patch: any = {
+        lastMentionerUsername: args.mentionerUsername,
+        lastMentionerUserId: args.mentionerUserId,
+      };
+      if (existing.mode !== args.mode) patch.mode = args.mode;
+      await ctx.db.patch(existing._id, patch);
+      return existing.conversationId;
+    }
 
     // Need a userId — use the agent's owner
     const agent = await ctx.db.get(args.agentId);
@@ -1143,6 +1173,8 @@ export const getOrCreateDiscordConversation = mutation({
       discordGuildId: args.discordGuildId,
       conversationId,
       mode: args.mode,
+      lastMentionerUsername: args.mentionerUsername,
+      lastMentionerUserId: args.mentionerUserId,
     });
 
     return conversationId;
