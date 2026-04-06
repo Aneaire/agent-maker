@@ -1035,15 +1035,23 @@ function DiscordBotSection({ agent }: { agent: Doc<"agents"> }) {
           {/* Bot Model */}
           <div className="space-y-1.5">
             <label className="text-xs text-zinc-400">Bot Model (optional)</label>
-            <input
-              type="text"
+            <select
               value={botModel}
               onChange={(e) => setBotModel(e.target.value)}
-              placeholder={agent.model || "claude-sonnet-4-6"}
               className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
-            />
+            >
+              <option value="">Use agent's default ({ALL_MODELS.find((m) => m.id === agent.model)?.name ?? agent.model})</option>
+              {(agent.enabledModels ?? ALL_MODELS.map((m) => m.id)).map((modelId) => {
+                const model = ALL_MODELS.find((m) => m.id === modelId);
+                return (
+                  <option key={modelId} value={modelId}>
+                    {model ? `${model.name} — ${model.description}` : modelId}
+                  </option>
+                );
+              })}
+            </select>
             <p className="text-xs text-zinc-600">
-              Model to use for bot-mode responses. Defaults to the agent's model.
+              Model to use for bot-mode responses. Only shows models enabled for this agent.
             </p>
           </div>
 
