@@ -122,6 +122,11 @@ const SECTIONS: DocSection[] = [
         content: <SlackContent />,
       },
       {
+        id: "discord",
+        title: "Discord",
+        content: <DiscordContent />,
+      },
+      {
         id: "google-calendar",
         title: "Google Calendar",
         content: <GCalContent />,
@@ -503,6 +508,7 @@ function QuickStartContent() {
         rows={[
           ["Notion", "Search, read, create & update Notion pages/databases"],
           ["Slack", "Send messages, read channels, search & react in Slack"],
+          ["Discord", "Send messages, read channels, manage threads & react in Discord"],
           ["Google Calendar", "List events, schedule meetings, check availability"],
           ["Google Drive", "Search, read, create & manage files and folders"],
           ["Google Sheets", "Read, write & manage spreadsheet data"],
@@ -538,6 +544,10 @@ function QuickStartContent() {
       <DocH3>Slack</DocH3>
       <DocP>
         Enable "Slack", then add your Slack Bot token in <strong className="text-zinc-200">Settings</strong>. Create a Slack app, add the required bot scopes, install to your workspace, and paste the Bot User OAuth Token.
+      </DocP>
+      <DocH3>Discord</DocH3>
+      <DocP>
+        Enable "Discord", then add your Discord Bot token in <strong className="text-zinc-200">Settings</strong>. Go to <strong className="text-zinc-200">discord.com/developers/applications</strong>, create an app, go to the Bot page, reset the token, and invite the bot to your server via OAuth2 → URL Generator.
       </DocP>
       <DocH3>Google Calendar</DocH3>
       <DocP>
@@ -830,6 +840,8 @@ function AutomationsContent() {
         ["notion.page_created", "A Notion page is created"],
         ["notion.page_updated", "A Notion page is updated"],
         ["slack.message_sent", "A message is posted to Slack"],
+        ["discord.message_sent", "A message is sent to a Discord channel"],
+        ["discord.thread_created", "A thread is created in Discord"],
         ["gcal.event_created", "A Google Calendar event is created"],
         ["gcal.event_updated", "A Google Calendar event is modified"],
         ["gdrive.file_created", "A Google Drive file is created"],
@@ -1166,6 +1178,99 @@ search:read       — Search messages`}</DocCode>
       <DocH2>Integration Ideas</DocH2>
       <DocP>
         Combine with <AppLink to="/docs/tools/automations">Automations</AppLink> for event-driven Slack notifications (e.g., "when a task is completed → post to #done"). Use with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> for daily standups or weekly reports posted to Slack.
+      </DocP>
+    </div>
+  );
+}
+
+function DiscordContent() {
+  return (
+    <div>
+      <DocH1>Discord</DocH1>
+      <div className="flex gap-2 mb-4">
+        <DocBadge>Tool set: discord</DocBadge>
+        <DocBadge>Default: Disabled</DocBadge>
+        <DocBadge>Requires: Discord Bot Token</DocBadge>
+      </div>
+      <DocP>
+        Connect your agent to Discord to send messages, read channels, manage threads, and add reactions. Perfect for community updates, automated notifications, and bot-powered workflows inside your Discord server.
+      </DocP>
+
+      <DocH2>Setup</DocH2>
+      <DocP>
+        1. Go to <strong className="text-zinc-200">discord.com/developers/applications</strong> and click <strong className="text-zinc-200">New Application</strong>.
+      </DocP>
+      <DocP>
+        2. In your new app, go to <strong className="text-zinc-200">Bot</strong> in the left sidebar. Click <strong className="text-zinc-200">Reset Token</strong> and copy the token.
+      </DocP>
+      <DocP>
+        3. On the same Bot page, enable <strong className="text-zinc-200">Message Content Intent</strong> so the bot can read message content.
+      </DocP>
+      <DocP>
+        4. Go to <strong className="text-zinc-200">OAuth2 → URL Generator</strong>. Check the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">bot</code> scope, then check these permissions:
+      </DocP>
+      <DocCode>{`Send Messages
+Read Message History
+View Channels
+Add Reactions
+Create Public Threads
+Send Messages in Threads`}</DocCode>
+      <DocP>
+        5. Copy the generated URL, open it in your browser, and invite the bot to your server.
+      </DocP>
+      <DocP>
+        6. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Discord and paste the Bot Token.
+      </DocP>
+
+      <DocH2>Tools</DocH2>
+      <DocTable
+        headers={["Tool", "Description"]}
+        rows={[
+          ["discord_list_guilds", "List all servers the bot is a member of"],
+          ["discord_list_channels", "List channels in a server — use this to find channel IDs"],
+          ["discord_send_message", "Send a message to a channel (supports Discord markdown)"],
+          ["discord_read_messages", "Read recent messages from a channel (up to 100)"],
+          ["discord_add_reaction", "React to a message with an emoji (Unicode or custom)"],
+          ["discord_create_thread", "Create a thread from a message or standalone in a channel"],
+          ["discord_reply_in_thread", "Send a message inside an existing thread"],
+        ]}
+      />
+
+      <DocH2>Sending Messages</DocH2>
+      <DocP>
+        Discord messages support markdown formatting:
+      </DocP>
+      <DocCode>{`**bold**  *italic*  ~~strikethrough~~  \`code\`
+> blockquote
+\`\`\`code block\`\`\`
+- bullet list`}</DocCode>
+      <DocP>
+        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord_list_guilds</code> first to find your server ID, then <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord_list_channels</code> to find a channel ID before sending.
+      </DocP>
+
+      <DocH2>Events</DocH2>
+      <DocP>
+        Discord actions emit events to the <AppLink to="/docs/advanced/event-bus">Event Bus</AppLink>:
+      </DocP>
+      <DocTable
+        headers={["Event", "When"]}
+        rows={[
+          ["discord.message_sent", "A message or thread reply is sent"],
+          ["discord.thread_created", "A new thread is created"],
+        ]}
+      />
+
+      <DocH2>Example</DocH2>
+      <DocP>
+        <strong className="text-zinc-200">User:</strong> "Post the weekly summary to #general in my Discord server"
+      </DocP>
+      <DocP>
+        <strong className="text-zinc-200">Agent:</strong> Lists guilds to find your server, lists channels to find #general's ID, then sends the message.
+      </DocP>
+
+      <DocH2>Integration Ideas</DocH2>
+      <DocP>
+        Combine with <AppLink to="/docs/tools/automations">Automations</AppLink> for event-driven Discord notifications (e.g., "when a task is completed → post to #updates"). Use with <AppLink to="/docs/tools/schedules">Scheduled Actions</AppLink> for daily digests or announcements posted to your server.
       </DocP>
     </div>
   );
