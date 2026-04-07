@@ -167,6 +167,22 @@ export const test = action({
   },
 });
 
+// ── User-facing decrypt (for editing in the UI) ───────────────────────
+
+export const getDecryptedForUser = action({
+  args: { credentialId: v.id("credentials") },
+  handler: async (ctx, args): Promise<any> => {
+    const cred: any = await ctx.runQuery(internal.credentials._getForOwner, {
+      credentialId: args.credentialId,
+    });
+    try {
+      return JSON.parse(decrypt(cred.encryptedData, cred.iv));
+    } catch {
+      throw new Error("Failed to decrypt credential");
+    }
+  },
+});
+
 // ── Server-facing decrypt (agent runtime) ─────────────────────────────
 
 export const getDecryptedForAgent = action({

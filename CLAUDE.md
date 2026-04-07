@@ -52,7 +52,7 @@ Monorepo with 3 packages:
 
 ## Adding a New Tool Set (Checklist)
 
-When adding a new feature or tool set, **all 8 steps are required** or the agent won't fully know about or use it:
+When adding a new feature or tool set, **all 10 steps are required** or the agent won't fully know about or use it:
 
 1. **Tool file** — Create `packages/agent/src/tools/<name>-tools.ts` exporting `create<Name>Tools()`
 2. **MCP server** — Wire into `packages/agent/src/mcp-server.ts`: import + conditional registration in `buildMcpServer()` and `buildAllowedTools()`
@@ -62,6 +62,8 @@ When adding a new feature or tool set, **all 8 steps are required** or the agent
 6. **Tool Sets list** — Add the new key to the `enabledToolSets` list in this file (and `AGENTS.md`)
 7. **Event Bus** — Every meaningful tool action must emit an event (see Event Bus Rules below)
 8. **Sandbox seed** — Add a seeder function in `packages/shared/convex/seed/toolsetSeeders.ts` and register it in `seed/registry.ts` → `TOOLSET_SEEDERS` (see Sandbox Seed System below)
+9. **Markdown docs** — Create/update `docs/tools/<name>.md` with setup, credential acquisition steps, scopes, tools table, and emitted events
+10. **In-app docs page** — Update `packages/web/app/routes/docs.tsx`: add/extend the tool's `*Content()` function (e.g. `SlackContent`), register it in the docs sections array, and add a row to the integrations summary table. This is the user-facing `/docs` page in the web UI — keep it in sync with `docs/tools/<name>.md`.
 
 > **Critical**: Step 3 is the most commonly missed. Without system prompt updates, the agent has the tool but doesn't know to use it effectively. The `allIntegrations` map is also important — it lets the agent tell users about available integrations they haven't enabled yet.
 
@@ -82,6 +84,7 @@ When adding support for a new AI model, **all 4 steps are required**:
 4. Add any new Convex endpoints needed
 5. **Emit an event** for every meaningful action (see Event Bus Rules below)
 6. If the tool's UI mutation should trigger automations, call `internal.processAutomation.processEvent` (see Dispatch Architecture below)
+7. **Update docs** — add the new tool name + description to **both** `docs/tools/<name>.md` and the matching `*Content()` function in `packages/web/app/routes/docs.tsx`. If it requires a new scope/permission, document that in the Setup section of both
 
 ## Event Bus Rules
 

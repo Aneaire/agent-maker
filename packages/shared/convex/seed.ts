@@ -1172,6 +1172,104 @@ Report the message ID, thread ID, and whether each step succeeded.`;
 });
 
 /**
+ * Ad-hoc: send a DM to a Slack user by name.
+ */
+export const slackDmKiko = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Find the Slack user named "kiko". Try slack_search_users first; if that fails or returns nothing, fall back to slack_list_users and filter by name. Once found, use slack_send_dm to send him: "👋 Hi Kiko!" Report his user ID and confirm the DM was sent.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TASK: DM kiko"
+    );
+
+    return { status: "dispatched", ...result };
+  },
+});
+
+/**
+ * Test: Slack — exercises send_message, list_channels, get_permalink, add_reaction.
+ * Run: npx convex run seed:testSlack '{}'
+ */
+export const testSlack = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please test the Slack integration end-to-end and report each step:
+1. Use slack_list_channels to find the channel named "all-aneaire" and report its ID.
+2. Use slack_send_message to post "👋 Hello from Agent Maker — Slack integration test." to that channel. Report the message timestamp.
+3. Use slack_get_permalink on the message you just posted and report the URL.
+4. Use slack_add_reaction with emoji "white_check_mark" on that message.
+5. Use slack_update_message to change the text to "✅ Slack integration test complete."
+Report the result of each step concisely.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Slack Integration"
+    );
+
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Slack test job dispatched. Check seed:verifyConversation in ~25s, then seed:verifySlackEvents.",
+    };
+  },
+});
+
+/**
+ * Verify slack events were emitted to the event bus.
+ */
+export const verifySlackEvents = internalQuery({
+  args: { agentId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const agent = args.agentId
+      ? await ctx.db.get(args.agentId as any)
+      : await (async () => {
+          const agents = await ctx.db
+            .query("agents")
+            .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+            .collect();
+          return agents[0];
+        })();
+
+    if (!agent) throw new Error("Agent not found.");
+
+    const allEvents = await ctx.db
+      .query("agentEvents")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .order("desc")
+      .take(30);
+
+    const slackEvents = allEvents.filter((e: any) =>
+      e.event?.startsWith("slack.")
+    );
+
+    return {
+      totalRecentEvents: allEvents.length,
+      slackEventCount: slackEvents.length,
+      slackEvents: slackEvents.map((e: any) => ({
+        event: e.event,
+        source: e.source,
+        payload: e.payload,
+        createdAt: new Date(e._creationTime).toISOString(),
+      })),
+    };
+  },
+});
+
+/**
  * Verify discord events were emitted to the event bus.
  */
 export const verifyDiscordEvents = internalQuery({

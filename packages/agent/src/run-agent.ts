@@ -239,16 +239,23 @@ export async function runAgent(params: RunAgentParams) {
     const gmailConfig = configs.gmail ?? null;
     const imageGenConfig = configs.image_generation ?? null;
 
-    // Check if this conversation is Discord-sourced (needed early for history filtering)
-    const discordSource = await convexClient.getDiscordSourceForConversation(params.conversationId);
+    // Check if this conversation is Discord- or Slack-sourced (needed early for history filtering)
+    const [discordSource, slackSource] = await Promise.all([
+      convexClient.getDiscordSourceForConversation(params.conversationId),
+      convexClient.getSlackSourceForConversation(params.conversationId),
+    ]);
     const isDiscordBot = discordSource?.mode === "bot";
     const isDiscordAgent = discordSource?.mode === "agent";
     const isDiscord = isDiscordBot || isDiscordAgent;
+    const isSlackBot = slackSource?.mode === "bot";
+    const isSlackAgent = slackSource?.mode === "agent";
+    const isSlack = isSlackBot || isSlackAgent;
+    const isExternalChat = isDiscord || isSlack;
 
-    // For Discord conversations, limit history to last 24 hours for context window optimization
+    // For Discord/Slack conversations, limit history to last 24 hours for context window optimization
     let effectiveMessages = allMessages;
     let olderMessageCount = 0;
-    if (isDiscord) {
+    if (isExternalChat) {
       const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
       const recent = allMessages.filter((m: any) => m._creationTime >= twentyFourHoursAgo);
       olderMessageCount = allMessages.length - recent.length;
@@ -343,8 +350,15 @@ export async function runAgent(params: RunAgentParams) {
 ## Context
 You are responding in a Discord channel. Keep responses concise and use Discord markdown where appropriate.
 You have conversation history from this channel above. Reference it naturally when the user asks about previous messages.`;
+    } else if (isSlackBot && (agent as any).slackBotPrompt) {
+      // Slack bot mode: use the custom Slack bot prompt + conversation history
+      systemPrompt = `${(agent as any).slackBotPrompt}${conversationHistory}${olderHistoryNote}
+
+## Context
+You are responding in Slack${slackSource?.channelType === "im" ? " (a direct message)" : " (a channel)"}. Keep responses concise and use Slack mrkdwn (\`*bold*\`, \`_italic_\`, \`\`\`code blocks\`\`\`) for formatting — not standard Markdown.
+You have conversation history from this channel above. Reference it naturally when the user asks about previous messages.`;
     } else {
-      // Normal agent mode (including Discord agent mode)
+      // Normal agent mode (including Discord/Slack agent mode)
       const basePrompt = buildSystemPrompt(
         {
           name: agent.name,
@@ -367,6 +381,12 @@ You have conversation history from this channel above. Reference it naturally wh
 ## Discord Channel Context
 You are responding to a message in a Discord channel. Keep responses concise. Use Discord markdown (bold, code blocks, etc.) for formatting.
 You have conversation history from this channel. Reference it naturally when the user asks about previous messages.`;
+      } else if (isSlackAgent) {
+        systemPrompt = `${basePrompt}${olderHistoryNote}
+
+## Slack ${slackSource?.channelType === "im" ? "DM" : "Channel"} Context
+You are responding to a message in Slack. Keep responses concise. Use Slack mrkdwn (\`*bold*\`, \`_italic_\`, \`\`\`code blocks\`\`\`) — not standard Markdown.
+You have conversation history from this channel. Reference it naturally when the user asks about previous messages.`;
       } else {
         systemPrompt = basePrompt;
       }
@@ -376,7 +396,9 @@ You have conversation history from this channel. Reference it naturally when the
     const effectiveModel =
       isDiscordBot && (agent as any).discordBotModel
         ? (agent as any).discordBotModel
-        : agent.model;
+        : isSlackBot && (agent as any).slackBotModel
+          ? (agent as any).slackBotModel
+          : agent.model;
 
     // Create progress callback for tools that support streaming progress
     const onToolProgress: ToolProgressCallback = (toolName, progress) => {
@@ -403,7 +425,7 @@ You have conversation history from this channel. Reference it naturally when the
       imageGenConfig: imageGenConfig as any,
       imageGenModel: agent.imageGenModel,
       onToolProgress,
-      isDiscordConversation: isDiscord,
+      isDiscordConversation: isExternalChat,
     });
 
     const allowedTools = buildAllowedTools(

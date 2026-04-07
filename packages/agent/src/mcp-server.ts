@@ -212,7 +212,7 @@ export function buildMcpServer(deps: McpServerDeps) {
     tools.push(
       tool(
         "recall_channel_history",
-        "Load older messages from this Discord channel beyond the 24-hour context window. Use this when the user references something from a previous day or you need deeper conversation history.",
+        "Load older messages from this channel (Discord or Slack) beyond the 24-hour context window. Use this when the user references something from a previous day or you need deeper conversation history.",
         {
           hours_ago: z.number().default(48).describe("How many hours back to look (from now). Default 48."),
           limit: z.number().default(50).describe("Max number of messages to retrieve. Default 50."),
@@ -404,7 +404,22 @@ export function buildAllowedTools(
       "mcp__agent-tools__slack_read_messages",
       "mcp__agent-tools__slack_add_reaction",
       "mcp__agent-tools__slack_set_topic",
-      "mcp__agent-tools__slack_search_messages"
+      "mcp__agent-tools__slack_search_messages",
+      "mcp__agent-tools__slack_search_files",
+      "mcp__agent-tools__slack_search_users",
+      "mcp__agent-tools__slack_list_users",
+      "mcp__agent-tools__slack_send_dm",
+      "mcp__agent-tools__slack_upload_file",
+      "mcp__agent-tools__slack_update_message",
+      "mcp__agent-tools__slack_delete_message",
+      "mcp__agent-tools__slack_schedule_message",
+      "mcp__agent-tools__slack_get_permalink",
+      "mcp__agent-tools__slack_lookup_user_by_email",
+      "mcp__agent-tools__slack_pin_message",
+      "mcp__agent-tools__slack_unpin_message",
+      "mcp__agent-tools__slack_create_channel",
+      "mcp__agent-tools__slack_join_channel",
+      "mcp__agent-tools__slack_invite_to_channel"
     );
   }
 

@@ -718,4 +718,61 @@ export class AgentConvexClient {
       ...state,
     });
   }
+
+  // ── Slack Gateway ──────────────────────────────────────────────────
+
+  async listSlackEnabledAgents() {
+    return this.client.query(api.agentApi.listSlackEnabledAgents, {
+      serverToken: this.serverToken,
+    });
+  }
+
+  async getOrCreateSlackConversation(
+    agentId: string,
+    slackTeamId: string,
+    slackChannelId: string,
+    channelType: "channel" | "im",
+    mode: "agent" | "bot",
+    mentionerUserId?: string
+  ) {
+    return this.client.mutation(api.agentApi.getOrCreateSlackConversation, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      slackTeamId,
+      slackChannelId,
+      channelType,
+      mode,
+      mentionerUserId,
+    });
+  }
+
+  async createSlackJob(agentId: string, conversationId: string, userContent: string) {
+    return this.client.mutation(api.agentApi.createSlackJob, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      conversationId: conversationId as any,
+      userContent,
+    });
+  }
+
+  async getSlackSourceForConversation(conversationId: string) {
+    return this.client.query(api.agentApi.getSlackSourceForConversation, {
+      serverToken: this.serverToken,
+      conversationId: conversationId as any,
+    });
+  }
+
+  async updateSlackGatewayState(
+    agentId: string,
+    state: {
+      status: "connected" | "disconnected" | "connecting";
+      botUserId?: string;
+    }
+  ) {
+    return this.client.mutation(api.agentApi.updateSlackGatewayState, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      ...state,
+    });
+  }
 }

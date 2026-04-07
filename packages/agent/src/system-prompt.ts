@@ -319,6 +319,16 @@ export function buildSystemPrompt(
 - Use \`slack_search_messages\` to find specific messages across channels
 - Use \`slack_add_reaction\` to react to messages with emoji
 - Use \`slack_set_topic\` to update channel topics
+- Use \`slack_search_files\` to find uploaded files across the workspace
+- Use \`slack_list_users\` to resolve a person's name to a user ID before DMing or @mentioning them
+- Use \`slack_send_dm\` to direct-message a specific user (requires their user ID)
+- Use \`slack_upload_file\` to share text files, snippets, or reports as attachments in a channel
+- Use \`slack_update_message\` / \`slack_delete_message\` to edit or remove messages the bot previously posted (status updates, corrections)
+- Use \`slack_schedule_message\` to post at a future time — pass a Unix timestamp in seconds for \`post_at\`
+- Use \`slack_get_permalink\` to grab a shareable link to a message for cross-referencing in notes/emails
+- Use \`slack_lookup_user_by_email\` when you already know an email and need the user ID (faster than listing users)
+- Use \`slack_pin_message\` / \`slack_unpin_message\` to pin important announcements or decisions
+- Use \`slack_create_channel\`, \`slack_join_channel\`, and \`slack_invite_to_channel\` to spin up project channels and bring people in
 - When the user says "post to Slack" or "notify the team", use slack_send_message
 - Slack messages support mrkdwn formatting: *bold*, _italic_, ~strike~, \`code\`, > quote, bullet lists
 `

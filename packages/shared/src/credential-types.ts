@@ -88,6 +88,14 @@ export const CREDENTIAL_TYPE_REGISTRY: Record<string, CredentialTypeDef> = {
         required: true,
         helpText: "From your Slack app's OAuth & Permissions page",
       },
+      {
+        key: "appToken",
+        label: "App-Level Token (Socket Mode)",
+        type: "password",
+        placeholder: "xapp-...",
+        required: false,
+        helpText: "Required only for the conversational bot (mentions + DMs). Generate from Basic Information → App-Level Tokens with the connections:write scope.",
+      },
     ],
     compatibleToolSets: ["slack"],
     test: {

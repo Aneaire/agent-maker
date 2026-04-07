@@ -9,6 +9,7 @@ import { runApiEndpoint } from "./run-api-endpoint.js";
 import { processDocument } from "./document-processor.js";
 import { AgentConvexClient } from "./convex-client.js";
 import { DiscordGatewayManager } from "./discord-gateway-manager.js";
+import { SlackGatewayManager } from "./slack-gateway-manager.js";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync } from "fs";
 
@@ -1178,6 +1179,34 @@ app.post("/dispatch/discord-sync", async (c) => {
   } else {
     discordGatewayManager.syncAll().catch((err) => {
       console.error("[server] discord-sync syncAll error:", err.message);
+    });
+  }
+
+  return c.json({ ok: true });
+});
+
+// ── Slack Gateway Manager ────────────────────────────────────────────
+
+const slackGatewayManager = new SlackGatewayManager(CONVEX_URL, SERVER_TOKEN);
+
+setTimeout(() => {
+  slackGatewayManager.initialize().catch((err) => {
+    console.error("[server] Slack Gateway Manager init failed:", err.message);
+  });
+}, 3500);
+
+// Slack config sync endpoint — call this when an agent's Slack settings change
+app.post("/dispatch/slack-sync", async (c) => {
+  if (!verifyDispatchAuth(c)) return c.json({ error: "Unauthorized" }, 401);
+  const { agentId } = await c.req.json<{ agentId?: string }>();
+
+  if (agentId) {
+    slackGatewayManager.restartGateway(agentId).catch((err) => {
+      console.error(`[server] slack-sync restart error for ${agentId}:`, err.message);
+    });
+  } else {
+    slackGatewayManager.syncAll().catch((err) => {
+      console.error("[server] slack-sync syncAll error:", err.message);
     });
   }
 

@@ -174,6 +174,17 @@ export const _update = internalMutation({
   },
 });
 
+/** Owner-checked fetch for the edit-credential UI flow */
+export const _getForOwner = internalQuery({
+  args: { credentialId: v.id("credentials") },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const cred = await ctx.db.get(args.credentialId);
+    if (!cred || cred.userId !== user._id) throw new Error("Credential not found");
+    return cred;
+  },
+});
+
 export const _get = internalQuery({
   args: { credentialId: v.id("credentials") },
   handler: async (ctx, args) => {

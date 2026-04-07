@@ -33,6 +33,11 @@ export default defineSchema({
     discordBotPrompt: v.optional(v.string()),
     discordBotModel: v.optional(v.string()),
     discordAuthorizedUsers: v.optional(v.array(v.string())),
+    // ── Slack Bot (Socket Mode / two-way chat) ──────────────────────
+    slackBotEnabled: v.optional(v.boolean()),
+    slackBotPrompt: v.optional(v.string()),
+    slackBotModel: v.optional(v.string()),
+    slackAuthorizedUsers: v.optional(v.array(v.string())),
   })
     .index("by_user", ["userId"])
     .index("by_slug", ["slug"]),
@@ -644,6 +649,31 @@ export default defineSchema({
     sessionId: v.optional(v.string()),
     resumeGatewayUrl: v.optional(v.string()),
     lastSequence: v.optional(v.number()),
+    connectedAt: v.optional(v.number()),
+  }).index("by_agent", ["agentId"]),
+
+  // ── Slack Gateway (Socket Mode) ─────────────────────────────────────
+
+  slackConversationMap: defineTable({
+    agentId: v.id("agents"),
+    slackTeamId: v.string(),
+    slackChannelId: v.string(),
+    channelType: v.union(v.literal("channel"), v.literal("im")),
+    conversationId: v.id("conversations"),
+    mode: v.union(v.literal("agent"), v.literal("bot")),
+    lastMentionerUserId: v.optional(v.string()),
+  })
+    .index("by_agent_channel", ["agentId", "slackChannelId"])
+    .index("by_conversation", ["conversationId"]),
+
+  slackGatewayState: defineTable({
+    agentId: v.id("agents"),
+    status: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+      v.literal("connecting")
+    ),
+    botUserId: v.optional(v.string()),
     connectedAt: v.optional(v.number()),
   }).index("by_agent", ["agentId"]),
 });

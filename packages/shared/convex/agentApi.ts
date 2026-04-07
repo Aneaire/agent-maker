@@ -1286,6 +1286,171 @@ export const updateDiscordGatewayState = mutation({
   },
 });
 
+// ── SLACK GATEWAY (Socket Mode) ──────────────────────────────────────
+
+/** List all active agents that have Slack enabled and slackBotEnabled = true */
+export const listSlackEnabledAgents = query({
+  args: { serverToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const allAgents = await ctx.db.query("agents").collect();
+    return allAgents.filter(
+      (a) =>
+        a.status === "active" &&
+        a.enabledToolSets.includes("slack") &&
+        (a as any).slackBotEnabled === true
+    );
+  },
+});
+
+/** Get or create a Convex conversation for a (agentId, slackChannelId) pair */
+export const getOrCreateSlackConversation = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    slackTeamId: v.string(),
+    slackChannelId: v.string(),
+    channelType: v.union(v.literal("channel"), v.literal("im")),
+    mode: v.union(v.literal("agent"), v.literal("bot")),
+    mentionerUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const existing = await ctx.db
+      .query("slackConversationMap")
+      .withIndex("by_agent_channel", (q) =>
+        q.eq("agentId", args.agentId).eq("slackChannelId", args.slackChannelId)
+      )
+      .first();
+
+    if (existing) {
+      const patch: any = { lastMentionerUserId: args.mentionerUserId };
+      if (existing.mode !== args.mode) patch.mode = args.mode;
+      await ctx.db.patch(existing._id, patch);
+      return existing.conversationId;
+    }
+
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    const conversationId = await ctx.db.insert("conversations", {
+      agentId: args.agentId,
+      userId: agent.userId,
+      title:
+        args.channelType === "im"
+          ? `Slack DM ${args.slackChannelId}`
+          : `Slack #${args.slackChannelId}`,
+    });
+
+    await ctx.db.insert("slackConversationMap", {
+      agentId: args.agentId,
+      slackTeamId: args.slackTeamId,
+      slackChannelId: args.slackChannelId,
+      channelType: args.channelType,
+      conversationId,
+      mode: args.mode,
+      lastMentionerUserId: args.mentionerUserId,
+    });
+
+    return conversationId;
+  },
+});
+
+/** Create a user message + assistant placeholder + agentJob for a Slack inbound */
+export const createSlackJob = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    conversationId: v.id("conversations"),
+    userContent: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "user",
+      content: args.userContent,
+      status: "done",
+    });
+
+    const assistantMessageId = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+    });
+
+    const jobId = await ctx.db.insert("agentJobs", {
+      agentId: args.agentId,
+      conversationId: args.conversationId,
+      messageId: assistantMessageId,
+      userId: agent.userId,
+      status: "pending",
+    });
+
+    await ctx.scheduler.runAfter(0, internal.dispatch.notifyJobCreated, { jobId });
+
+    return { jobId, assistantMessageId };
+  },
+});
+
+/** Get the Slack channel info for a conversation (used by run-agent for system prompt branching) */
+export const getSlackSourceForConversation = query({
+  args: {
+    serverToken: v.string(),
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    return await ctx.db
+      .query("slackConversationMap")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .first();
+  },
+});
+
+/** Update Slack gateway connection state for an agent */
+export const updateSlackGatewayState = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    status: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+      v.literal("connecting")
+    ),
+    botUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+
+    const existing = await ctx.db
+      .query("slackGatewayState")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .first();
+
+    const patch: any = {
+      agentId: args.agentId,
+      status: args.status,
+      botUserId: args.botUserId,
+    };
+    if (args.status === "connected") {
+      patch.connectedAt = Date.now();
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+    } else {
+      await ctx.db.insert("slackGatewayState", patch);
+    }
+  },
+});
+
 /** Update agent Discord bot settings (server-facing, called from gateway sync) */
 export const updateAgentDiscordConfig = mutation({
   args: {

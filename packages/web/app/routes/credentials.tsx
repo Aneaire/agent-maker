@@ -18,6 +18,7 @@ import {
   ExternalLink,
   ChevronDown,
   Image,
+  Pencil,
 } from "lucide-react";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Route } from "./+types/credentials";
@@ -146,6 +147,7 @@ export default function CredentialsPage() {
   const removeCredential = useMutation(api.credentials.remove);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("resend");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Check for OAuth callback params
   const [oauthMessage, setOauthMessage] = useState<string | null>(null);
@@ -241,41 +243,69 @@ export default function CredentialsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {credentials.map((cred) => (
-              <div
-                key={cred._id}
-                className="group rounded-xl border border-zinc-800/60 glass-card p-4 hover:border-zinc-700/60 transition-all"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-zinc-800 border border-zinc-700/50 shrink-0">
-                    <ServiceIcon type={cred.type} className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{cred.name}</span>
-                      <StatusBadge status={cred.status} />
+            {credentials.map((cred) => {
+              const isEditing = editingId === cred._id;
+              const typeDef = CREDENTIAL_TYPE_REGISTRY[cred.type];
+              return (
+                <div
+                  key={cred._id}
+                  className={`group rounded-xl border border-zinc-800/60 glass-card p-4 hover:border-zinc-700/60 transition-all ${isEditing ? "sm:col-span-2" : ""}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-zinc-800 border border-zinc-700/50 shrink-0">
+                      <ServiceIcon type={cred.type} className="h-5 w-5" />
                     </div>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      {CREDENTIAL_TYPE_REGISTRY[cred.type]?.label ?? cred.type}
-                    </p>
-                    {cred.lastTestedAt && (
-                      <p className="text-[10px] text-zinc-600 mt-1">
-                        Tested {new Date(cred.lastTestedAt).toLocaleDateString()}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">{cred.name}</span>
+                        <StatusBadge status={cred.status} />
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        {typeDef?.label ?? cred.type}
                       </p>
-                    )}
+                      {cred.lastTestedAt && (
+                        <p className="text-[10px] text-zinc-600 mt-1">
+                          Tested {new Date(cred.lastTestedAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {isEditing && typeDef && (
+                    <div className="mt-4 pt-4 border-t border-zinc-800/40">
+                      <EditCredentialForm
+                        credentialId={cred._id as Id<"credentials">}
+                        currentName={cred.name}
+                        typeDef={typeDef}
+                        onDone={() => setEditingId(null)}
+                      />
+                    </div>
+                  )}
+
+                  {!isEditing && (
+                    <div className="flex items-center justify-end gap-1.5 mt-3 pt-3 border-t border-zinc-800/40">
+                      <TestButton credentialId={cred._id as Id<"credentials">} />
+                      {typeDef && typeDef.authMethod !== "oauth2" && (
+                        <button
+                          onClick={() => setEditingId(cred._id)}
+                          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1.5 rounded-lg hover:bg-zinc-800"
+                          title="Edit credential"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(cred._id)}
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-end gap-1.5 mt-3 pt-3 border-t border-zinc-800/40">
-                  <TestButton credentialId={cred._id as Id<"credentials">} />
-                  <button
-                    onClick={() => handleDelete(cred._id)}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -461,6 +491,137 @@ function StandaloneCredentialForm({
           {saving ? "Saving..." : "Create"}
         </button>
         <button onClick={onCancel} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit existing credential form ────────────────────────────────────
+
+function EditCredentialForm({
+  credentialId,
+  currentName,
+  typeDef,
+  onDone,
+}: {
+  credentialId: Id<"credentials">;
+  currentName: string;
+  typeDef: CredentialTypeDef;
+  onDone: () => void;
+}) {
+  const updateCredential = useAction(api.credentialActions.update);
+  const getDecrypted = useAction(api.credentialActions.getDecryptedForUser);
+
+  const [name, setName] = useState(currentName);
+  const [fields, setFields] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const f of typeDef.fields) init[f.key] = "";
+    return init;
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load current values once on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getDecrypted({ credentialId });
+        if (cancelled) return;
+        const init: Record<string, string> = {};
+        for (const f of typeDef.fields) init[f.key] = (data?.[f.key] ?? "") as string;
+        setFields(init);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentialId]);
+
+  const requiredFilled = typeDef.fields
+    .filter((f) => f.required)
+    .every((f) => fields[f.key]?.trim());
+
+  async function handleSave() {
+    if (!requiredFilled || !name.trim()) return;
+    setSaving(true);
+    try {
+      await updateCredential({
+        credentialId,
+        name: name.trim() !== currentName ? name.trim() : undefined,
+        data: fields,
+      });
+      onDone();
+    } catch (err: any) {
+      alert(err.message);
+    }
+    setSaving(false);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-zinc-500 py-2">
+        <Loader2 className="h-3 w-3 animate-spin" /> Loading current values…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-red-400">{error}</p>
+        <button onClick={onDone} className="text-xs text-zinc-500 hover:text-zinc-300">
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1.5">Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+        />
+      </div>
+      {typeDef.fields.map((field) => (
+        <div key={field.key}>
+          <label className="block text-xs text-zinc-500 mb-1.5">
+            {field.label}
+            {!field.required && <span className="text-zinc-600 ml-1">(optional)</span>}
+          </label>
+          <input
+            type={field.type === "password" ? "password" : "text"}
+            value={fields[field.key]}
+            onChange={(e) => setFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
+            placeholder={field.placeholder}
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          />
+          {field.helpText && <p className="text-[11px] text-zinc-600 mt-1">{field.helpText}</p>}
+        </div>
+      ))}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={handleSave}
+          disabled={saving || !requiredFilled || !name.trim()}
+          className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+        <button onClick={onDone} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">
           Cancel
         </button>
       </div>

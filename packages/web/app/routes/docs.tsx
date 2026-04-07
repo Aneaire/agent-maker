@@ -21,6 +21,7 @@ import {
   Shield,
   Settings,
   Plug,
+  Bot,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -140,6 +141,28 @@ const SECTIONS: DocSection[] = [
         id: "google-sheets",
         title: "Google Sheets",
         content: <GSheetsContent />,
+      },
+    ],
+  },
+  {
+    id: "bots",
+    title: "Bot Integrations",
+    icon: <Bot className="h-4 w-4" />,
+    pages: [
+      {
+        id: "overview",
+        title: "Overview",
+        content: <BotsOverviewContent />,
+      },
+      {
+        id: "discord-bot",
+        title: "Discord Bot",
+        content: <DiscordBotContent />,
+      },
+      {
+        id: "slack-bot",
+        title: "Slack Bot",
+        content: <SlackBotContent />,
       },
     ],
   },
@@ -1107,26 +1130,88 @@ function SlackContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        1. Create a Slack app at <strong className="text-zinc-200">api.slack.com/apps</strong>.
+        1. Create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">api.slack.com/apps</a> — click <strong className="text-zinc-200">Create an App</strong> → <strong className="text-zinc-200">From scratch</strong>.
       </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-create-app.png"
+          alt="Slack Your Apps page with the Create an App button"
+          className="w-full"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          The "Your Apps" page on api.slack.com — click <strong className="text-zinc-300">Create an App</strong> to begin.
+        </figcaption>
+      </figure>
       <DocP>
-        2. Under <strong className="text-zinc-200">OAuth & Permissions</strong>, add these bot token scopes:
+        2. In the dialog that appears, choose <strong className="text-zinc-200">From scratch</strong>, then enter an app name (e.g. "Agent Maker") and pick the workspace where the bot will live. Click <strong className="text-zinc-200">Create App</strong>.
       </DocP>
-      <DocCode>{`chat:write        — Send messages
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-from-scratch.png"
+          alt="Slack Create an app dialog with From manifest and From scratch options"
+          className="w-full"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          Pick <strong className="text-zinc-300">From scratch</strong> — manifests are optional and not needed here.
+        </figcaption>
+      </figure>
+      <DocP>
+        3. In the left sidebar, click <strong className="text-zinc-200">OAuth & Permissions</strong>.
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-sidebar-oauth.png"
+          alt="Slack app left sidebar with OAuth & Permissions highlighted"
+          className="w-full max-w-xs mx-auto"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          The <strong className="text-zinc-300">OAuth & Permissions</strong> link in the sidebar.
+        </figcaption>
+      </figure>
+      <DocP>
+        4. Scroll to <strong className="text-zinc-200">Scopes → Bot Token Scopes</strong> and click <strong className="text-zinc-200">Add an OAuth Scope</strong> for each scope below. Ignore <strong className="text-zinc-200">User Token Scopes</strong> unless you need <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack_search_messages</code>.
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-scopes.png"
+          alt="Slack OAuth Scopes page showing Bot Token Scopes and User Token Scopes sections"
+          className="w-full"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          Add bot scopes one by one — the list starts empty.
+        </figcaption>
+      </figure>
+      <DocCode>{`chat:write        — Send messages and DMs
 channels:read     — List public channels
 channels:history  — Read public channel messages
 groups:read       — List private channels
 groups:history    — Read private channel messages
 reactions:write   — Add emoji reactions
-search:read       — Search messages`}</DocCode>
+search:read.public   — Search public channel messages
+search:read.private  — Search private channels the bot is in
+search:read.im       — Search direct messages (optional)
+search:read.mpim     — Search group DMs (optional)
+search:read.files    — Search files (slack_search_files)
+search:read.users    — Search workspace users (slack_search_users)
+users:read        — List workspace users (slack_list_users)
+users:read.email  — Include user emails (optional)
+im:write          — Open DMs for slack_send_dm
+files:write       — Upload files via slack_upload_file
+pins:write        — Pin / unpin messages
+channels:manage   — Create channels, invite users (public)
+groups:write      — Create / invite for private channels
+channels:join     — slack_join_channel`}</DocCode>
       <DocP>
-        3. Install the app to your workspace and copy the <strong className="text-zinc-200">Bot User OAuth Token</strong> (starts with xoxb-).
+        <strong className="text-zinc-200">Note:</strong> Slack split the legacy <code className="text-zinc-200 bg-zinc-800 px-1 rounded">search:read</code> into granular scopes. Pick the ones matching the surfaces you want searchable (public/private channels, DMs, files). If your workspace only exposes search scopes under <strong className="text-zinc-200">User Token Scopes</strong>, you'll need to install with a user token (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">xoxp-</code>) for the search tools to work.
       </DocP>
       <DocP>
-        4. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Slack and paste the token.
+        5. Scroll up to the <strong className="text-zinc-200">OAuth Tokens</strong> section and click the green <strong className="text-zinc-200">Install to [YourWorkspace]</strong> button (Slack labels it with your workspace name, e.g. "Install to Aneaire"). Approve the prompt. After install, the page will show a <strong className="text-zinc-200">Bot User OAuth Token</strong> starting with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xoxb-</code> — copy it.
       </DocP>
       <DocP>
-        5. Invite the bot to channels it should access: type <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/invite @YourBotName</code> in each channel.
+        6. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Slack and paste the token.
+      </DocP>
+      <DocP>
+        7. Invite the bot to channels it should access: type <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/invite @YourBotName</code> in each channel.
       </DocP>
 
       <DocH2>Tools</DocH2>
@@ -1139,6 +1224,21 @@ search:read       — Search messages`}</DocCode>
           ["slack_add_reaction", "Add an emoji reaction to a message"],
           ["slack_set_topic", "Set a channel's topic"],
           ["slack_search_messages", "Search messages across channels"],
+          ["slack_search_files", "Search uploaded files across the workspace"],
+          ["slack_search_users", "Search workspace users by name (faster than list_users)"],
+          ["slack_list_users", "List workspace users (resolve names → user IDs)"],
+          ["slack_send_dm", "Send a direct message to a user by user ID"],
+          ["slack_upload_file", "Upload a text file or snippet to a channel"],
+          ["slack_update_message", "Edit a message previously posted by the bot"],
+          ["slack_delete_message", "Delete a message previously posted by the bot"],
+          ["slack_schedule_message", "Schedule a message for a future Unix timestamp"],
+          ["slack_get_permalink", "Get a shareable permalink URL for a message"],
+          ["slack_lookup_user_by_email", "Look up a user by email address"],
+          ["slack_pin_message", "Pin a message in a channel"],
+          ["slack_unpin_message", "Unpin a message from a channel"],
+          ["slack_create_channel", "Create a new public or private channel"],
+          ["slack_join_channel", "Bot joins a public channel"],
+          ["slack_invite_to_channel", "Invite users to a channel by ID"],
         ]}
       />
 
@@ -1164,6 +1264,18 @@ search:read       — Search messages`}</DocCode>
         rows={[
           ["slack.message_sent", "A message is posted to Slack"],
           ["slack.topic_set", "A channel topic is updated"],
+          ["slack.dm_sent", "A direct message is sent to a user"],
+          ["slack.file_uploaded", "A file is uploaded to a channel"],
+          ["slack.message_updated", "Bot edited a message"],
+          ["slack.message_deleted", "Bot deleted a message"],
+          ["slack.message_scheduled", "A message was scheduled for future delivery"],
+          ["slack.message_pinned", "A message was pinned"],
+          ["slack.message_unpinned", "A message was unpinned"],
+          ["slack.channel_created", "A new channel was created"],
+          ["slack.channel_joined", "Bot joined a channel"],
+          ["slack.users_invited", "Users were invited to a channel"],
+          ["slack.mention_received", "Bot was @mentioned in a channel (Socket Mode bot)"],
+          ["slack.dm_received", "Bot received a direct message (Socket Mode bot)"],
         ]}
       />
 
@@ -1173,6 +1285,50 @@ search:read       — Search messages`}</DocCode>
       </DocP>
       <DocP>
         <strong className="text-zinc-200">Agent:</strong> Lists channels to find #team-updates, reads the task board, composes a summary, and posts it.
+      </DocP>
+
+      <DocH2>Conversational Bot (Socket Mode)</DocH2>
+      <DocP>
+        In addition to the outbound tools above, you can run the agent as a <strong className="text-zinc-200">two-way conversational bot</strong> that replies when @mentioned in a channel or sent a DM. This uses Slack <strong className="text-zinc-200">Socket Mode</strong> — a persistent WebSocket, no public URL required.
+      </DocP>
+
+      <DocH3>One-time Slack app setup</DocH3>
+      <DocP>
+        1. In <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">api.slack.com/apps</a> → your app → <strong className="text-zinc-200">Socket Mode</strong> → toggle <strong className="text-zinc-200">Enable Socket Mode</strong> on. Generate a token (e.g. "agent-maker") with the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">connections:write</code> scope. Copy the <strong className="text-zinc-200">App-Level Token</strong> (starts with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-</code>).
+      </DocP>
+      <DocP>
+        2. <strong className="text-zinc-200">Event Subscriptions</strong> → toggle on → under <strong className="text-zinc-200">Subscribe to bot events</strong> add <code className="text-zinc-200 bg-zinc-800 px-1 rounded">app_mention</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">message.im</code>.
+      </DocP>
+      <DocP>
+        3. <strong className="text-zinc-200">App Home</strong> → Show Tabs → enable <strong className="text-zinc-200">Messages Tab</strong> and check "Allow users to send Slash commands and messages from the messages tab". Without this, DMs to the bot are blocked.
+      </DocP>
+      <DocP>
+        4. Add these additional bot scopes under <strong className="text-zinc-200">OAuth & Permissions</strong>:
+      </DocP>
+      <DocCode>{`app_mentions:read  — receive @mention events
+im:history         — read DMs the bot receives
+im:read            — list DM channels`}</DocCode>
+      <DocP>
+        5. Reinstall the app to your workspace when Slack prompts.
+      </DocP>
+
+      <DocH3>Configure in Agent Maker</DocH3>
+      <DocP>
+        1. Open the Slack credential and paste the new <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-…</code> token into the <strong className="text-zinc-200">App-Level Token (Socket Mode)</strong> field.
+      </DocP>
+      <DocP>
+        2. Open the agent's <strong className="text-zinc-200">Settings</strong> page → enable <strong className="text-zinc-200">Slack Bot (Two-Way Chat)</strong>.
+      </DocP>
+      <DocP>
+        3. Optionally fill in <strong className="text-zinc-200">Bot Prompt</strong> (used for unauthorized users), <strong className="text-zinc-200">Bot Model</strong> (override), and <strong className="text-zinc-200">Authorized Slack User IDs</strong> (people who get full agent access — everyone else falls back to Bot mode).
+      </DocP>
+      <DocP>
+        4. Save. The agent server picks up the change on its next sync (within 60s).
+      </DocP>
+
+      <DocH3>How it works</DocH3>
+      <DocP>
+        Inbound messages arrive on the persistent Socket Mode WebSocket and are routed to a Convex conversation that's persistent per <code className="text-zinc-200 bg-zinc-800 px-1 rounded">(agent, channel)</code>. Threaded back-and-forth keeps context across mentions. Each inbound message emits <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.mention_received</code> or <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.dm_received</code> to the event bus so you can wire automations off them. Replies are posted via <code className="text-zinc-200 bg-zinc-800 px-1 rounded">chat.postMessage</code>; if the inbound was in a thread, the reply is posted in the same thread.
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1871,6 +2027,303 @@ function TemplatesContent() {
       <DocP>
         After applying a template, everything is fully customizable — change the name, tweak the prompt, add or remove tools, and modify pages as needed.
       </DocP>
+    </div>
+  );
+}
+
+// ── Bot Integrations ─────────────────────────────────────────────────
+
+function BotsOverviewContent() {
+  return (
+    <div>
+      <DocH1>Bot Integrations</DocH1>
+      <DocP>
+        Bot Integrations turn your agent into a <strong className="text-zinc-200">two-way conversational presence</strong> on chat platforms. Instead of only sending outbound messages via tools, the agent can <strong className="text-zinc-200">listen for mentions and DMs</strong>, hold a multi-turn conversation, and use any of its tools to respond — all from inside Discord or Slack.
+      </DocP>
+
+      <DocH2>What it gives you</DocH2>
+      <DocP>
+        A bot integration is the difference between an agent that <em>sends notifications</em> and an agent that your team can <em>actually talk to</em>. Once enabled, the bot:
+      </DocP>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
+        <li>Replies in real time when @mentioned in any channel it's in</li>
+        <li>Holds private 1:1 DMs with team members</li>
+        <li>Persists conversation history per channel — threaded back-and-forth keeps context</li>
+        <li>Has access to <em>all</em> the agent's tools (memory, pages, search, integrations) when responding</li>
+        <li>Can be locked down to an <strong className="text-zinc-200">authorized user list</strong> — strangers get a different (limited) prompt instead of full agent access</li>
+        <li>Emits inbound events (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord.mention_received</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.mention_received</code>, etc.) so you can wire automations off them</li>
+      </ul>
+
+      <DocH2>Common use cases</DocH2>
+      <DocTable
+        headers={["Use case", "Example"]}
+        rows={[
+          ["On-call assistant", "DM the bot \"what's the status of yesterday's deploy\" — it queries logs, summarizes, and replies in Slack."],
+          ["Team standup helper", "@mention in #standup with \"summarize what I shipped this week\" — it pulls from your task page and posts a digest."],
+          ["Knowledge concierge", "Anyone can DM the bot to ask questions answered from your RAG knowledge base."],
+          ["Automation router", "Use slack.mention_received as an automation trigger to kick off custom workflows."],
+          ["Cross-tool dispatcher", "\"@bot create a Notion page from this thread, then post the link in #design\" — one message, multiple tools."],
+          ["Scoped public bot", "Authorized teammates get full agent access; visitors get a narrow Bot Prompt that only answers FAQs about your product."],
+        ]}
+      />
+
+      <DocH2>How it works</DocH2>
+      <DocP>
+        Both Discord and Slack bots use a <strong className="text-zinc-200">persistent WebSocket gateway</strong> (no public webhook URL required, no ngrok). Inbound messages route through Convex into a per-channel conversation, the agent runs against the same pipeline as the chat UI, and replies are posted back to the original channel (or thread).
+      </DocP>
+      <DocP>
+        Authorization is per-agent: you maintain a list of user identifiers who get <strong className="text-zinc-200">"agent" mode</strong> (full system prompt + every enabled tool). Anyone else gets <strong className="text-zinc-200">"bot" mode</strong> — a separate, simpler prompt you define in agent settings, optionally with a different model. This lets you safely deploy a bot in a shared workspace without exposing tools or memory to people you don't trust.
+      </DocP>
+
+      <DocH2>Pick a platform</DocH2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        <Link
+          to="/docs/bots/discord-bot"
+          className="block rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-4 hover:border-zinc-700/60 transition-colors"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Bot className="h-4 w-4 text-zinc-300" />
+            <strong className="text-zinc-200">Discord Bot</strong>
+          </div>
+          <p className="text-xs text-zinc-500">Setup, scopes, and authorized users for the Discord gateway bot.</p>
+        </Link>
+        <Link
+          to="/docs/bots/slack-bot"
+          className="block rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-4 hover:border-zinc-700/60 transition-colors"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Bot className="h-4 w-4 text-zinc-300" />
+            <strong className="text-zinc-200">Slack Bot</strong>
+          </div>
+          <p className="text-xs text-zinc-500">Socket Mode setup, scopes, App Home, and DM enablement for Slack.</p>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function DiscordBotContent() {
+  return (
+    <div>
+      <DocH1>Discord Bot</DocH1>
+      <div className="flex gap-2 mb-4">
+        <DocBadge>Two-way chat</DocBadge>
+        <DocBadge>Discord Gateway</DocBadge>
+        <DocBadge>Requires: Discord Bot Token</DocBadge>
+      </div>
+      <DocP>
+        The Discord bot opens a persistent <strong className="text-zinc-200">Gateway WebSocket</strong> connection (no public URL needed). When you @mention the bot in a channel, the message is routed to your agent and the reply is posted back. Conversations are persistent per-channel — threaded back-and-forth keeps full context.
+      </DocP>
+
+      <DocH2>Use cases</DocH2>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
+        <li>Community Q&A bot in a public Discord server</li>
+        <li>Private "ops assistant" inside a team server — DMs only authorized members</li>
+        <li>Game / project channel helper that summarizes activity, manages tasks, and pings tools</li>
+        <li>Automation entrypoint — use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord.mention_received</code> as a trigger</li>
+      </ul>
+
+      <DocH2>One-time Discord setup</DocH2>
+      <DocP>
+        1. Go to <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">discord.com/developers/applications</a> → <strong className="text-zinc-200">New Application</strong> → name it.
+      </DocP>
+      <DocP>
+        2. In the left sidebar, click <strong className="text-zinc-200">Bot</strong> → <strong className="text-zinc-200">Reset Token</strong> and copy the token. Save it for step 6.
+      </DocP>
+      <DocP>
+        3. On the same Bot page, scroll to <strong className="text-zinc-200">Privileged Gateway Intents</strong> and enable <strong className="text-zinc-200">MESSAGE CONTENT INTENT</strong>. Without this, the bot can't read messages it's mentioned in.
+      </DocP>
+      <DocP>
+        4. Go to <strong className="text-zinc-200">OAuth2 → URL Generator</strong>. Under <strong className="text-zinc-200">Scopes</strong> check <code className="text-zinc-200 bg-zinc-800 px-1 rounded">bot</code>. Under <strong className="text-zinc-200">Bot Permissions</strong> check at minimum: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">View Channels</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Send Messages</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Read Message History</code>, and (for thread support) <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Send Messages in Threads</code> + <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Create Public Threads</code>.
+      </DocP>
+      <DocP>
+        5. Copy the generated URL at the bottom, open it in a new tab, and invite the bot to your server.
+      </DocP>
+
+      <DocH2>Configure in Agent Maker</DocH2>
+      <DocP>
+        6. In Agent Maker → <AppLink to="/credentials">Credentials</AppLink>, create a new <strong className="text-zinc-200">Discord Bot</strong> credential and paste the token from step 2.
+      </DocP>
+      <DocP>
+        7. Open the agent's <strong className="text-zinc-200">Settings</strong> page → enable the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord</code> tool set → link the credential.
+      </DocP>
+      <DocP>
+        8. Scroll to <strong className="text-zinc-200">Discord Bot (Two-Way Chat)</strong> → toggle <strong className="text-zinc-200">Enable Discord Bot</strong>.
+      </DocP>
+      <DocP>
+        9. (Optional) Fill in:
+      </DocP>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
+        <li><strong className="text-zinc-200">Bot Prompt</strong> — the system prompt used when an unauthorized user @mentions the bot. Leave blank to use the agent's full prompt for everyone.</li>
+        <li><strong className="text-zinc-200">Bot Model</strong> — model override for unauthorized users (e.g. use a cheaper/faster model for the public).</li>
+        <li><strong className="text-zinc-200">Authorized Discord Usernames</strong> — usernames (case-insensitive) that get full agent access with every tool enabled.</li>
+      </ul>
+      <DocP>
+        10. Save. The agent server picks up the new bot on its next sync (within 60s) and opens the Gateway connection.
+      </DocP>
+
+      <DocH2>How authorization works</DocH2>
+      <DocP>
+        On every @mention, the gateway looks up the author's username and checks the <strong className="text-zinc-200">Authorized Discord Usernames</strong> list. Match → "agent" mode (full system prompt + all tools + memory). No match → "bot" mode (uses <strong className="text-zinc-200">Bot Prompt</strong> + optional <strong className="text-zinc-200">Bot Model</strong>, no tools beyond what the bot prompt allows).
+      </DocP>
+
+      <DocH2>Events emitted</DocH2>
+      <DocTable
+        headers={["Event", "When"]}
+        rows={[
+          ["discord.mention_received", "Bot was @mentioned in a channel"],
+          ["discord.message_sent", "Bot posted a reply"],
+        ]}
+      />
+    </div>
+  );
+}
+
+function SlackBotContent() {
+  return (
+    <div>
+      <DocH1>Slack Bot</DocH1>
+      <div className="flex gap-2 mb-4">
+        <DocBadge>Two-way chat</DocBadge>
+        <DocBadge>Socket Mode</DocBadge>
+        <DocBadge>Requires: Bot Token + App Token</DocBadge>
+      </div>
+      <DocP>
+        The Slack bot uses <strong className="text-zinc-200">Socket Mode</strong> — a persistent WebSocket connection from the agent server to Slack. No public URL or ngrok required. The bot replies when @mentioned in any channel it's a member of, and to direct messages.
+      </DocP>
+
+      <DocH2>Use cases</DocH2>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
+        <li>Workspace assistant — DM the bot to query data, run tasks, get summaries</li>
+        <li>Per-channel helper — invite the bot to <code className="text-zinc-200 bg-zinc-800 px-1 rounded">#design</code> and @mention it for design-doc questions</li>
+        <li>Automation entrypoint — wire <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.mention_received</code> / <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.dm_received</code> as triggers</li>
+        <li>Public-facing FAQ bot — use the unauthorized "Bot Prompt" to answer common questions while reserving full agent power for the team</li>
+      </ul>
+
+      <DocH2>One-time Slack app setup</DocH2>
+      <DocP>
+        Follow the full app creation flow at <AppLink to="/docs/integrations/slack">Slack integration setup</AppLink> first (create the app, add bot scopes, install to workspace, copy the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xoxb-</code> bot token). Then add the conversational-bot pieces below.
+      </DocP>
+
+      <DocP>
+        1. In <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">api.slack.com/apps</a> → your app → <strong className="text-zinc-200">Socket Mode</strong> in the left sidebar.
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-socket-mode-page.png"
+          alt="Slack Socket Mode settings page with the Enable Socket Mode toggle"
+          className="w-full"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          The Socket Mode page. Click <strong className="text-zinc-300">Enable Socket Mode</strong>.
+        </figcaption>
+      </figure>
+      <DocP>
+        Toggling it on prompts you to generate an App-Level Token. Give it a name (e.g. "HiGantic"), confirm the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">connections:write</code> scope is listed, and click <strong className="text-zinc-200">Generate</strong>.
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-app-token-generate.png"
+          alt="Generate an app-level token dialog with token name and connections:write scope"
+          className="w-full max-w-md mx-auto"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          Generate dialog. The <code className="text-zinc-300">connections:write</code> scope is required.
+        </figcaption>
+      </figure>
+      <DocP>
+        Copy the resulting <strong className="text-zinc-200">App-Level Token</strong> — it starts with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-</code>. Save it for step 6 below; you'll only see it once.
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-app-token-copy.png"
+          alt="Slack app-level token details dialog showing the xapp- token and Copy button"
+          className="w-full max-w-md mx-auto"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          Click <strong className="text-zinc-300">Copy</strong>, then store it securely — you can't view it again.
+        </figcaption>
+      </figure>
+      <DocP>
+        2. <strong className="text-zinc-200">Event Subscriptions</strong> in the left sidebar → toggle <strong className="text-zinc-200">Enable Events</strong> on. Because Socket Mode is on, Slack skips the Request URL field. Expand <strong className="text-zinc-200">Subscribe to bot events</strong> and add both <code className="text-zinc-200 bg-zinc-800 px-1 rounded">app_mention</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">message.im</code> — Slack auto-adds the matching scopes (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">app_mentions:read</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">im:history</code>).
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-event-subscriptions.png"
+          alt="Slack Event Subscriptions page with app_mention and message.im subscribed under bot events"
+          className="w-full"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          Both events listed under <strong className="text-zinc-300">Subscribe to bot events</strong>. Save changes at the bottom.
+        </figcaption>
+      </figure>
+      <DocP>
+        3. <strong className="text-zinc-200">App Home</strong> in the left sidebar → scroll to <strong className="text-zinc-200">Show Tabs</strong> → toggle <strong className="text-zinc-200">Messages Tab</strong> on, then check <em>"Allow users to send Slash commands and messages from the messages tab"</em>. Without this checkbox, Slack shows "Sending messages to this app has been turned off" when anyone tries to DM the bot.
+      </DocP>
+      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+        <img
+          src="/docs/slack-app-home-tabs.png"
+          alt="Slack App Home Show Tabs section with Messages Tab enabled and the allow checkbox ticked"
+          className="w-full max-w-md mx-auto"
+        />
+        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+          Messages Tab enabled <strong className="text-zinc-300">and</strong> the "Allow users…" checkbox ticked. Both are required for DMs.
+        </figcaption>
+      </figure>
+      <DocP>
+        4. <strong className="text-zinc-200">OAuth & Permissions</strong> → add these bot scopes (in addition to the ones from Slack integration setup):
+      </DocP>
+      <DocCode>{`app_mentions:read   — receive @mention events
+im:history          — read DMs the bot receives
+im:read             — list DM channels`}</DocCode>
+      <DocP>
+        5. <strong className="text-zinc-200">Reinstall to Workspace</strong> when Slack prompts you to apply the new scopes.
+      </DocP>
+
+      <DocH2>Configure in Agent Maker</DocH2>
+      <DocP>
+        6. In <AppLink to="/credentials">Credentials</AppLink>, click <strong className="text-zinc-200">Edit</strong> on your existing Slack credential and paste the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-</code> token into the new <strong className="text-zinc-200">App-Level Token (Socket Mode)</strong> field. Save.
+      </DocP>
+      <DocP>
+        7. Open the agent's <strong className="text-zinc-200">Settings</strong> page → enable the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack</code> tool set if it isn't already.
+      </DocP>
+      <DocP>
+        8. Scroll to <strong className="text-zinc-200">Slack Bot (Two-Way Chat)</strong> → toggle <strong className="text-zinc-200">Enable Slack Bot</strong>.
+      </DocP>
+      <DocP>
+        9. (Optional) Fill in:
+      </DocP>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
+        <li><strong className="text-zinc-200">Bot Prompt</strong> — system prompt for unauthorized users.</li>
+        <li><strong className="text-zinc-200">Bot Model</strong> — model override for unauthorized users.</li>
+        <li><strong className="text-zinc-200">Authorized Slack User IDs</strong> — Slack user IDs (e.g. <code className="text-zinc-200 bg-zinc-800 px-1 rounded">U0AR2KKC2Q3</code>) that get full agent access. Find IDs by opening a profile → "Copy member ID", or call <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack_list_users</code>.</li>
+      </ul>
+      <DocP>
+        10. Save. Restart your agent server (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">cd packages/agent && bun run dev</code>) so the Socket Mode connection opens. Look for <code className="text-zinc-200 bg-zinc-800 px-1 rounded">[slack-gateway] connected as U…</code> in the logs.
+      </DocP>
+
+      <DocH2>How authorization works</DocH2>
+      <DocP>
+        On every inbound message, the gateway checks the sender's Slack <strong className="text-zinc-200">user ID</strong> against the authorized list. Match → "agent" mode (full system prompt + every enabled tool). No match → "bot" mode (uses <strong className="text-zinc-200">Bot Prompt</strong>, no tools). User IDs are stable — they don't change when someone renames themselves.
+      </DocP>
+
+      <DocH2>Events emitted</DocH2>
+      <DocTable
+        headers={["Event", "When"]}
+        rows={[
+          ["slack.mention_received", "Bot was @mentioned in a channel"],
+          ["slack.dm_received", "Bot received a direct message"],
+          ["slack.message_sent", "Bot posted a reply"],
+        ]}
+      />
+
+      <DocH2>Troubleshooting</DocH2>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
+        <li><strong className="text-zinc-200">"Sending messages to this app has been turned off"</strong> when DMing — re-check step 3 (App Home → Messages Tab + the checkbox).</li>
+        <li><strong className="text-zinc-200">Bot doesn't respond to channel mentions</strong> — invite it to the channel: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/invite @YourBotName</code>.</li>
+        <li><strong className="text-zinc-200">Gateway never connects</strong> — verify the credential has both <code className="text-zinc-200 bg-zinc-800 px-1 rounded">botToken</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">appToken</code> set, and Socket Mode is enabled in your Slack app.</li>
+        <li><strong className="text-zinc-200">Unauthorized users get full access</strong> — make sure you're using <em>user IDs</em>, not display names, in the authorized list.</li>
+      </ul>
     </div>
   );
 }

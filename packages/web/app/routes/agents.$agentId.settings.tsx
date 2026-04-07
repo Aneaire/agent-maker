@@ -184,6 +184,9 @@ export default function SettingsPage() {
             {(agent.enabledToolSets ?? []).includes("discord") && (
               <DiscordBotSection agent={agent} />
             )}
+            {(agent.enabledToolSets ?? []).includes("slack") && (
+              <SlackBotSection agent={agent} />
+            )}
           </>
         )}
 
@@ -1068,6 +1071,193 @@ function DiscordBotSection({ agent }: { agent: Doc<"agents"> }) {
                 onChange={(e) => setNewUser(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addUser()}
                 placeholder="discord_username"
+                className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+              />
+              <button
+                type="button"
+                onClick={addUser}
+                className="text-xs bg-zinc-700 text-zinc-300 px-3 py-2 rounded-lg hover:bg-zinc-600 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            {authorizedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {authorizedUsers.map((u) => (
+                  <span
+                    key={u}
+                    className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-xs px-2.5 py-1 rounded-lg"
+                  >
+                    {u}
+                    <button
+                      type="button"
+                      onClick={() => removeUser(u)}
+                      className="text-zinc-500 hover:text-red-400 transition-colors ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all flex items-center gap-1.5"
+        >
+          {saving ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : saved ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <Save className="h-3 w-3" />
+          )}
+          {saved ? "Saved" : "Save"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ── Slack Bot (Socket Mode / two-way chat) ──────────────────────────
+
+function SlackBotSection({ agent }: { agent: Doc<"agents"> }) {
+  const updateSlackBot = useMutation(api.agents.updateSlackBot);
+
+  const [enabled, setEnabled] = useState((agent as any).slackBotEnabled ?? false);
+  const [botPrompt, setBotPrompt] = useState((agent as any).slackBotPrompt ?? "");
+  const [botModel, setBotModel] = useState((agent as any).slackBotModel ?? "");
+  const [authorizedUsers, setAuthorizedUsers] = useState<string[]>(
+    (agent as any).slackAuthorizedUsers ?? []
+  );
+  const [newUser, setNewUser] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateSlackBot({
+        agentId: agent._id,
+        slackBotEnabled: enabled,
+        slackBotPrompt: botPrompt || undefined,
+        slackBotModel: botModel || undefined,
+        slackAuthorizedUsers: authorizedUsers,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function addUser() {
+    const id = newUser.trim();
+    if (!id || authorizedUsers.includes(id)) return;
+    setAuthorizedUsers([...authorizedUsers, id]);
+    setNewUser("");
+  }
+
+  function removeUser(id: string) {
+    setAuthorizedUsers(authorizedUsers.filter((u) => u !== id));
+  }
+
+  return (
+    <section className="rounded-xl border border-zinc-800/60 glass-card p-6 space-y-5">
+      <div className="flex items-center gap-2">
+        <Bot className="h-4 w-4 text-zinc-400" />
+        <h2 className="text-sm font-medium">Slack Bot (Two-Way Chat)</h2>
+        <span className="text-xs text-zinc-600 ml-auto">
+          @mention or DM the bot to chat
+        </span>
+      </div>
+
+      <p className="text-xs text-zinc-500">
+        When enabled, @mentioning the bot in a Slack channel or sending it a DM routes
+        messages through this agent. Authorized users get full agent access; everyone
+        else gets the Bot Prompt below. Requires an App-Level Token (xapp-…) on the
+        Slack credential and Socket Mode enabled in your Slack app.
+      </p>
+
+      {/* Master toggle */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-400">Enable Slack Bot</span>
+        <button
+          type="button"
+          onClick={() => setEnabled(!enabled)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+            enabled ? "bg-neon-500" : "bg-zinc-700"
+          }`}
+        >
+          <span
+            className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+              enabled ? "translate-x-4.5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {enabled && (
+        <>
+          {/* Bot Prompt */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-zinc-400">Bot Prompt</label>
+            <textarea
+              value={botPrompt}
+              onChange={(e) => setBotPrompt(e.target.value)}
+              placeholder="You are a helpful assistant. Answer questions concisely..."
+              rows={4}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors resize-none"
+            />
+            <p className="text-xs text-zinc-600">
+              Used for non-authorized Slack users. Leave blank to use the agent's system prompt for everyone.
+            </p>
+          </div>
+
+          {/* Bot Model */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-zinc-400">Bot Model (optional)</label>
+            <select
+              value={botModel}
+              onChange={(e) => setBotModel(e.target.value)}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+            >
+              <option value="">Use agent's default ({ALL_MODELS.find((m) => m.id === agent.model)?.name ?? agent.model})</option>
+              {(agent.enabledModels ?? ALL_MODELS.map((m) => m.id)).map((modelId) => {
+                const model = ALL_MODELS.find((m) => m.id === modelId);
+                return (
+                  <option key={modelId} value={modelId}>
+                    {model ? `${model.name} — ${model.description}` : modelId}
+                  </option>
+                );
+              })}
+            </select>
+            <p className="text-xs text-zinc-600">
+              Model to use for bot-mode responses. Only shows models enabled for this agent.
+            </p>
+          </div>
+
+          {/* Authorized Users */}
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-400">Authorized Slack User IDs</label>
+            <p className="text-xs text-zinc-600">
+              Slack user IDs (e.g. <code className="text-zinc-400 bg-zinc-800 px-1 rounded">U0AR2KKC2Q3</code>) get full agent access. Find IDs by opening a profile in Slack → "More" → "Copy member ID", or call <code className="text-zinc-400 bg-zinc-800 px-1 rounded">slack_list_users</code>.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newUser}
+                onChange={(e) => setNewUser(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addUser()}
+                placeholder="U01234ABCDE"
                 className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
               />
               <button
