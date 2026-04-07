@@ -1229,6 +1229,122 @@ Report the result of each step concisely.`;
 });
 
 /**
+ * List ALL agents with slackBotEnabled and their gateway state — used to find
+ * which agent actually picked up an inbound mention.
+ */
+export const listAllSlackBots = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const agents = await ctx.db.query("agents").collect();
+    const enabled = agents.filter((a: any) => a.slackBotEnabled === true);
+    const out = [];
+    for (const a of enabled) {
+      const gw = await ctx.db
+        .query("slackGatewayState")
+        .withIndex("by_agent", (q: any) => q.eq("agentId", a._id))
+        .first();
+      const convs = await ctx.db
+        .query("slackConversationMap")
+        .withIndex("by_agent_channel", (q: any) => q.eq("agentId", a._id))
+        .collect();
+      const events = await ctx.db
+        .query("agentEvents")
+        .withIndex("by_agent", (q: any) => q.eq("agentId", a._id))
+        .order("desc")
+        .take(10);
+      out.push({
+        agentId: a._id,
+        name: a.name,
+        slug: a.slug,
+        authorizedUsers: (a as any).slackAuthorizedUsers ?? [],
+        gateway: gw ? { status: gw.status, botUserId: gw.botUserId } : null,
+        conversationMapCount: convs.length,
+        recentSlackEvents: events
+          .filter((e: any) => e.event?.startsWith("slack."))
+          .map((e: any) => ({
+            event: e.event,
+            createdAt: new Date(e._creationTime).toISOString(),
+            payload: e.payload,
+          })),
+      });
+    }
+    return out;
+  },
+});
+
+/**
+ * Programmatically enable Slack bot on the sandbox agent (skips needing the UI).
+ * Adds aneaire010 + kiko as authorized users.
+ */
+export const enableSlackBotOnSandbox = internalMutation({
+  handler: async (ctx) => {
+    const agent = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+      .first();
+    if (!agent) throw new Error("sandbox agent not found");
+
+    await ctx.db.patch(agent._id, {
+      slackBotEnabled: true,
+      slackBotPrompt:
+        "You are HiGantic, a friendly Slack assistant for the Aneaire workspace. You only have access to public knowledge — you cannot run tools or access the team's internal data. Keep replies short, helpful, and use Slack mrkdwn formatting (*bold*, _italic_, `code`).",
+      slackAuthorizedUsers: ["U0AS3996N00"], // aneaire010 (kiko intentionally NOT authorized so we can test bot mode)
+    } as any);
+
+    return { ok: true, agentId: agent._id };
+  },
+});
+
+/**
+ * Inspect Slack bot state — agent flags + gateway connection status.
+ */
+export const verifySlackBotState = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const agent = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+      .first();
+    if (!agent) return { error: "sandbox agent not found" };
+
+    const state = await ctx.db
+      .query("slackGatewayState")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .first();
+
+    const convs = await ctx.db
+      .query("slackConversationMap")
+      .withIndex("by_agent_channel", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+
+    return {
+      agentId: agent._id,
+      enabledToolSets: agent.enabledToolSets,
+      slackInToolSets: agent.enabledToolSets?.includes("slack") ?? false,
+      slackBotEnabled: (agent as any).slackBotEnabled ?? false,
+      slackAuthorizedUsers: (agent as any).slackAuthorizedUsers ?? [],
+      slackBotPrompt: (agent as any).slackBotPrompt ?? null,
+      slackBotModel: (agent as any).slackBotModel ?? null,
+      gatewayState: state
+        ? {
+            status: state.status,
+            botUserId: state.botUserId,
+            connectedAt: state.connectedAt
+              ? new Date(state.connectedAt).toISOString()
+              : null,
+          }
+        : null,
+      conversationMaps: convs.map((c: any) => ({
+        channelId: c.slackChannelId,
+        channelType: c.channelType,
+        mode: c.mode,
+        lastMentioner: c.lastMentionerUserId,
+      })),
+    };
+  },
+});
+
+/**
  * Verify slack events were emitted to the event bus.
  */
 export const verifySlackEvents = internalQuery({

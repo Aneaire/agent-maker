@@ -2067,10 +2067,50 @@ function BotsOverviewContent() {
         ]}
       />
 
-      <DocH2>How it works</DocH2>
+      <DocH2>How this differs from the Integrations pages</DocH2>
+      <DocP>
+        There are <strong className="text-zinc-200">two layers</strong> to chat platform support and they often confuse new users. They build on the same credential but do opposite things:
+      </DocP>
+      <DocTable
+        headers={["Layer", "Direction", "What it gives you"]}
+        rows={[
+          [
+            "Integrations → Slack / Discord",
+            "agent → platform",
+            "The outbound tool set (slack_send_message, discord_create_thread, etc.). The agent uses these when it decides to act on the platform during a chat in the web UI.",
+          ],
+          [
+            "Bot Integrations → Slack Bot / Discord Bot",
+            "platform → agent",
+            "The persistent gateway connection that lets people in Slack/Discord talk to the agent via @mentions and DMs. The agent then uses the outbound tools to compose its reply.",
+          ],
+        ]}
+      />
+      <DocP>
+        <strong className="text-zinc-200">They build on each other.</strong> The Bot layer requires the Integration layer to be enabled too — replies are posted using the outbound tools (e.g. <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack_send_message</code>) and both layers share the same credential.
+      </DocP>
+      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
+        <li><strong className="text-zinc-200">Want notifications only?</strong> Enable just the Integration. The agent can post to channels from the web UI but no one can chat back.</li>
+        <li><strong className="text-zinc-200">Want a two-way bot?</strong> Enable the Integration <em>and</em> the Bot Integration. The Integration page is step 1 (get the workspace connection); the Bot page is step 2 (turn on the conversational layer on top).</li>
+      </ul>
+
+      <DocH2>How the gateway works</DocH2>
       <DocP>
         Both Discord and Slack bots use a <strong className="text-zinc-200">persistent WebSocket gateway</strong> (no public webhook URL required, no ngrok). Inbound messages route through Convex into a per-channel conversation, the agent runs against the same pipeline as the chat UI, and replies are posted back to the original channel (or thread).
       </DocP>
+      <DocP>
+        <strong className="text-zinc-200">Slack vs Discord — small but real differences:</strong>
+      </DocP>
+      <DocTable
+        headers={["", "Discord", "Slack"]}
+        rows={[
+          ["Tokens needed", "One bot token", "Bot token + app-level token (xapp-)"],
+          ["Inbound transport", "Discord Gateway WebSocket", "Socket Mode WebSocket"],
+          ["Authorized-user identifier", "Username (case-insensitive)", "User ID (stable across renames)"],
+          ["DM enablement", "Works automatically", "Requires App Home → Messages Tab + checkbox"],
+          ["Special intent/scope", "MESSAGE CONTENT INTENT in Dev Portal", "app_mentions:read + im:history scopes"],
+        ]}
+      />
       <DocP>
         Authorization is per-agent: you maintain a list of user identifiers who get <strong className="text-zinc-200">"agent" mode</strong> (full system prompt + every enabled tool). Anyone else gets <strong className="text-zinc-200">"bot" mode</strong> — a separate, simpler prompt you define in agent settings, optionally with a different model. This lets you safely deploy a bot in a shared workspace without exposing tools or memory to people you don't trust.
       </DocP>
@@ -2277,8 +2317,11 @@ function SlackBotContent() {
 im:history          — read DMs the bot receives
 im:read             — list DM channels`}</DocCode>
       <DocP>
-        5. <strong className="text-zinc-200">Reinstall to Workspace</strong> when Slack prompts you to apply the new scopes.
+        5. <strong className="text-zinc-200">Reinstall the app to your workspace</strong> — this step is <strong className="text-zinc-200">required</strong> and easy to miss. After adding the new scopes and event subscriptions, Slack will not deliver any events until you reinstall. Go to <strong className="text-zinc-200">OAuth & Permissions</strong> → click <strong className="text-zinc-200">Reinstall to [YourWorkspace]</strong> → approve.
       </DocP>
+      <div className="my-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3 text-xs text-yellow-200/90">
+        <strong className="text-yellow-200">⚠ Common gotcha:</strong> If the bot connects (logs say <code className="text-yellow-100 bg-yellow-900/40 px-1 rounded">[slack-gateway] connected</code>) but never replies to mentions or DMs, you almost certainly skipped the reinstall. Slack silently drops events for new scopes until the app is reinstalled.
+      </div>
 
       <DocH2>Configure in Agent Maker</DocH2>
       <DocP>
@@ -2320,6 +2363,7 @@ im:read             — list DM channels`}</DocCode>
       <DocH2>Troubleshooting</DocH2>
       <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
         <li><strong className="text-zinc-200">"Sending messages to this app has been turned off"</strong> when DMing — re-check step 3 (App Home → Messages Tab + the checkbox).</li>
+        <li><strong className="text-zinc-200">Bot connects but never replies</strong> — you forgot to reinstall the app after adding scopes/events. Go to <strong className="text-zinc-200">OAuth & Permissions</strong> → <strong className="text-zinc-200">Reinstall to [YourWorkspace]</strong>. This is the #1 cause.</li>
         <li><strong className="text-zinc-200">Bot doesn't respond to channel mentions</strong> — invite it to the channel: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/invite @YourBotName</code>.</li>
         <li><strong className="text-zinc-200">Gateway never connects</strong> — verify the credential has both <code className="text-zinc-200 bg-zinc-800 px-1 rounded">botToken</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">appToken</code> set, and Socket Mode is enabled in your Slack app.</li>
         <li><strong className="text-zinc-200">Unauthorized users get full access</strong> — make sure you're using <em>user IDs</em>, not display names, in the authorized list.</li>

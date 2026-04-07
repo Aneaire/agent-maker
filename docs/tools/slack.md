@@ -111,7 +111,9 @@ In addition to the outbound tools above, you can run the agent as a **two-way co
    - `app_mentions:read`
    - `im:history`
    - `im:read`
-5. Reinstall the app to your workspace when Slack prompts.
+5. **Reinstall the app to your workspace** — this step is required and the #1 reason bots fail to receive events. After adding scopes or event subscriptions, Slack will not deliver events until you click **Reinstall to [YourWorkspace]** under **OAuth & Permissions** and approve.
+
+> ⚠️ **Common gotcha:** If the gateway logs say `[slack-gateway] connected` but the bot never replies to mentions, you almost certainly skipped the reinstall.
 
 ### Configure in Agent Maker
 

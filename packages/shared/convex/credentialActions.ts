@@ -167,6 +167,31 @@ export const test = action({
   },
 });
 
+// ── Internal: peek slack credential keys for diagnostic purposes ──────
+
+import { internalAction } from "./_generated/server";
+
+export const _peekSlackCredentialKeys = internalAction({
+  args: { agentId: v.id("agents") },
+  handler: async (ctx, args): Promise<string[] | null> => {
+    const link: any = await ctx.runQuery(internal.credentials._getLinkByAgentToolset, {
+      agentId: args.agentId,
+      toolSetName: "slack",
+    });
+    if (!link) return null;
+    const cred: any = await ctx.runQuery(internal.credentials._get, {
+      credentialId: link.credentialId,
+    });
+    if (!cred) return null;
+    try {
+      const data = JSON.parse(decrypt(cred.encryptedData, cred.iv));
+      return Object.keys(data).filter((k) => data[k]);
+    } catch {
+      return null;
+    }
+  },
+});
+
 // ── User-facing decrypt (for editing in the UI) ───────────────────────
 
 export const getDecryptedForUser = action({

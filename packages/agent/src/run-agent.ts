@@ -400,38 +400,47 @@ You have conversation history from this channel. Reference it naturally when the
           ? (agent as any).slackBotModel
           : agent.model;
 
+    // In bot mode (unauthorized external user), strip ALL tools so the agent
+    // can't access memory, pages, integrations, or anything else. The bot
+    // prompt is purely advisory otherwise — Claude will happily call tools
+    // if they're available.
+    const isBotMode = isDiscordBot || isSlackBot;
+    const effectiveToolSets = isBotMode ? [] : agent.enabledToolSets;
+    const effectiveTabs = isBotMode ? [] : tabs;
+    const effectiveCustomTools = isBotMode ? [] : customTools;
+
     // Create progress callback for tools that support streaming progress
     const onToolProgress: ToolProgressCallback = (toolName, progress) => {
       flusher.updateToolProgress(toolName, progress);
     };
 
-    // Create MCP server with dynamic tools
+    // Create MCP server with dynamic tools (no tools at all in bot mode)
     const mcpServer = buildMcpServer({
       convexClient,
       agentId: params.agentId,
       messageId: params.assistantMessageId,
       conversationId: params.conversationId,
-      enabledToolSets: agent.enabledToolSets,
-      tabs: tabs as any,
-      customTools: customTools as any,
-      emailConfig: emailConfig as any,
-      notionConfig: notionConfig as any,
-      slackConfig: slackConfig as any,
-      discordConfig: discordConfig as any,
-      gcalConfig: gcalConfig as any,
-      gdriveConfig: gdriveConfig as any,
-      gsheetsConfig: gsheetsConfig as any,
-      gmailConfig: gmailConfig as any,
-      imageGenConfig: imageGenConfig as any,
-      imageGenModel: agent.imageGenModel,
+      enabledToolSets: effectiveToolSets,
+      tabs: effectiveTabs as any,
+      customTools: effectiveCustomTools as any,
+      emailConfig: isBotMode ? null : (emailConfig as any),
+      notionConfig: isBotMode ? null : (notionConfig as any),
+      slackConfig: isBotMode ? null : (slackConfig as any),
+      discordConfig: isBotMode ? null : (discordConfig as any),
+      gcalConfig: isBotMode ? null : (gcalConfig as any),
+      gdriveConfig: isBotMode ? null : (gdriveConfig as any),
+      gsheetsConfig: isBotMode ? null : (gsheetsConfig as any),
+      gmailConfig: isBotMode ? null : (gmailConfig as any),
+      imageGenConfig: isBotMode ? null : (imageGenConfig as any),
+      imageGenModel: isBotMode ? undefined : agent.imageGenModel,
       onToolProgress,
       isDiscordConversation: isExternalChat,
     });
 
     const allowedTools = buildAllowedTools(
-      agent.enabledToolSets,
-      tabs as any,
-      customTools as any
+      effectiveToolSets,
+      effectiveTabs as any,
+      effectiveCustomTools as any
     );
 
     // Ensure workspace directory exists
