@@ -23,6 +23,9 @@ import {
   ImageIcon,
   GitBranch,
   Lock,
+  Hash,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useRef, useMemo } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -77,6 +80,9 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const conversations = useQuery(api.conversations.list, {
     agentId: agent._id,
   });
+  const slackConversations = useQuery(api.conversations.listSlackConversationsForAgent, {
+    agentId: agent._id,
+  });
   const tabs = useQuery(api.sidebarTabs.list, { agentId: agent._id });
   const user = useQuery(api.users.me);
   const createConversation = useMutation(api.conversations.create);
@@ -93,13 +99,60 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const [deleteTabConfirm, setDeleteTabConfirm] = useState("");
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renamingTabLabel, setRenamingTabLabel] = useState("");
+  const [slackSectionOpen, setSlackSectionOpen] = useState(true);
+  const [expandedSlackChannels, setExpandedSlackChannels] = useState<Set<string>>(new Set());
   const editInputRef = useRef<HTMLInputElement>(null);
   const tabRenameInputRef = useRef<HTMLInputElement>(null);
 
-  const conversationGroups = useMemo(
-    () => (conversations ? groupConversationsByTime(conversations) : null),
-    [conversations]
-  );
+  // IDs of conversations that come from Slack — we surface these under a
+  // dedicated "Slack Threads" section and hide them from the main time-grouped
+  // list to avoid duplication.
+  const slackConversationIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of slackConversations ?? []) set.add(s.conversationId as string);
+    return set;
+  }, [slackConversations]);
+
+  const conversationGroups = useMemo(() => {
+    if (!conversations) return null;
+    const filtered = conversations.filter(
+      (c) => !slackConversationIds.has(c._id as string)
+    );
+    return groupConversationsByTime(filtered);
+  }, [conversations, slackConversationIds]);
+
+  // Group Slack conversations by channel so each channel becomes an expandable
+  // dropdown with its threads inside. Each group is labeled with the channel's
+  // human-readable name (or the DM user's display name for IMs).
+  const slackByChannel = useMemo(() => {
+    if (!slackConversations) return null;
+    const map = new Map<
+      string,
+      {
+        channelId: string;
+        channelType: "channel" | "im";
+        label: string;
+        threads: typeof slackConversations;
+      }
+    >();
+    for (const s of slackConversations) {
+      const key = s.slackChannelId;
+      if (!map.has(key)) {
+        const label =
+          s.channelType === "im"
+            ? `DM · ${s.lastMentionerUserName ?? s.lastMentionerUserId ?? s.slackChannelId}`
+            : s.slackChannelName ?? s.slackChannelId;
+        map.set(key, {
+          channelId: s.slackChannelId,
+          channelType: s.channelType,
+          label,
+          threads: [],
+        });
+      }
+      map.get(key)!.threads.push(s);
+    }
+    return Array.from(map.values());
+  }, [slackConversations]);
 
   const plan = (user?.plan as "free" | "pro" | "enterprise") ?? "free";
 
@@ -365,6 +418,97 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
           </div>
         )}
       </div>
+
+      {/* Slack Threads */}
+      {slackByChannel && slackByChannel.length > 0 && (
+        <div className="px-2 pb-1">
+          <button
+            onClick={() => setSlackSectionOpen((v) => !v)}
+            className="flex w-full items-center gap-1.5 px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            {slackSectionOpen ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+            Slack Threads
+            <span className="ml-auto text-zinc-700">{slackConversations?.length ?? 0}</span>
+          </button>
+          {slackSectionOpen && (
+            <div className="space-y-1">
+              {slackByChannel.map((channel) => {
+                const isExpanded = expandedSlackChannels.has(channel.channelId);
+                const channelLabel = channel.label;
+                return (
+                  <div
+                    key={channel.channelId}
+                    className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => {
+                        setExpandedSlackChannels((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(channel.channelId)) next.delete(channel.channelId);
+                          else next.add(channel.channelId);
+                          return next;
+                        });
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 transition-colors"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-3 w-3 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3 shrink-0" />
+                      )}
+                      {channel.channelType === "im" ? (
+                        <MessageSquare className="h-3 w-3 shrink-0 opacity-60" />
+                      ) : (
+                        <Hash className="h-3 w-3 shrink-0 opacity-60" />
+                      )}
+                      <span className="truncate flex-1 text-left">{channelLabel}</span>
+                      <span className="text-[10px] text-zinc-600">
+                        {channel.threads.length}
+                      </span>
+                    </button>
+                    {isExpanded && (
+                      <div className="border-t border-zinc-800/60 py-1">
+                        {channel.threads.map((thread) => {
+                          const isActive = conversationId === thread.conversationId;
+                          const requester =
+                            thread.lastMentionerUserName ??
+                            thread.lastMentionerUserId ??
+                            "user";
+                          return (
+                            <Link
+                              key={thread._id}
+                              to={`/agents/${agent._id}/chat/${thread.conversationId}`}
+                              className={`flex items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
+                                isActive
+                                  ? "bg-neon-400/10 text-neon-400 border-l-2 border-neon-400"
+                                  : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+                              }`}
+                            >
+                              <MessageSquare className="h-3 w-3 shrink-0 opacity-50" />
+                              <div className="flex-1 min-w-0">
+                                <div className="truncate">{requester}</div>
+                                {thread.mode === "bot" && (
+                                  <div className="text-[9px] text-zinc-600 truncate">
+                                    bot mode
+                                  </div>
+                                )}
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Conversations */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
