@@ -1499,6 +1499,68 @@ export const updateSlackGatewayState = mutation({
   },
 });
 
+/**
+ * Add a Slack user ID to the agent's slackAuthorizedUsers list. Idempotent —
+ * if the user is already authorized, returns the existing list unchanged.
+ * Called by the slack_authorize_user tool.
+ */
+export const addSlackAuthorizedUser = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    slackUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    const current: string[] = ((agent as any).slackAuthorizedUsers ?? []) as string[];
+    if (current.includes(args.slackUserId)) {
+      return { alreadyAuthorized: true, authorizedUsers: current };
+    }
+    const next = [...current, args.slackUserId];
+    await ctx.db.patch(args.agentId, { slackAuthorizedUsers: next } as any);
+    return { alreadyAuthorized: false, authorizedUsers: next };
+  },
+});
+
+/**
+ * Remove a Slack user ID from the agent's slackAuthorizedUsers list.
+ * Returns {removed: false} if the user wasn't in the list.
+ */
+export const removeSlackAuthorizedUser = mutation({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+    slackUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    const current: string[] = ((agent as any).slackAuthorizedUsers ?? []) as string[];
+    if (!current.includes(args.slackUserId)) {
+      return { removed: false, authorizedUsers: current };
+    }
+    const next = current.filter((u) => u !== args.slackUserId);
+    await ctx.db.patch(args.agentId, { slackAuthorizedUsers: next } as any);
+    return { removed: true, authorizedUsers: next };
+  },
+});
+
+/** Read the current slackAuthorizedUsers list for an agent (server-facing). */
+export const listSlackAuthorizedUsers = query({
+  args: { serverToken: v.string(), agentId: v.id("agents") },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) throw new Error("Agent not found");
+    return ((agent as any).slackAuthorizedUsers ?? []) as string[];
+  },
+});
+
 /** Update agent Discord bot settings (server-facing, called from gateway sync) */
 export const updateAgentDiscordConfig = mutation({
   args: {

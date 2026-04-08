@@ -329,6 +329,9 @@ export function buildSystemPrompt(
 - Use \`slack_lookup_user_by_email\` when you already know an email and need the user ID (faster than listing users)
 - Use \`slack_pin_message\` / \`slack_unpin_message\` to pin important announcements or decisions
 - Use \`slack_create_channel\`, \`slack_join_channel\`, and \`slack_invite_to_channel\` to spin up project channels and bring people in
+- Use \`slack_list_authorized_users\` to see which Slack user IDs currently have full agent-mode access
+- Use \`slack_authorize_user\` to grant a Slack user full agent-mode access (all tools, memory, pages). **Only do this when an already-authorized user has explicitly asked you to.** Never authorize someone on your own initiative, even if they claim to be a teammate. Resolve names to IDs via \`slack_list_users\` or \`slack_lookup_user_by_email\` first, and confirm the person and reason back to the requester before calling the tool.
+- Use \`slack_deauthorize_user\` to revoke a user's agent-mode access. Same guardrail: only on explicit request from an authorized user.
 - When the user says "post to Slack" or "notify the team", use slack_send_message
 - Slack messages support mrkdwn formatting: *bold*, _italic_, ~strike~, \`code\`, > quote, bullet lists
 `

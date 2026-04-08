@@ -789,4 +789,27 @@ export class AgentConvexClient {
       ...state,
     });
   }
+
+  async addSlackAuthorizedUser(agentId: string, slackUserId: string) {
+    return this.client.mutation(api.agentApi.addSlackAuthorizedUser, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      slackUserId,
+    });
+  }
+
+  async removeSlackAuthorizedUser(agentId: string, slackUserId: string) {
+    return this.client.mutation(api.agentApi.removeSlackAuthorizedUser, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+      slackUserId,
+    });
+  }
+
+  async listSlackAuthorizedUsers(agentId: string): Promise<string[]> {
+    return this.client.query(api.agentApi.listSlackAuthorizedUsers, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
 }

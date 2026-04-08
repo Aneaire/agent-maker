@@ -916,6 +916,97 @@ export function createSlackTools(
     }
   );
 
+  // ── Authorize User ──────────────────────────────────────────────────
+  // Grant an existing Slack user full agent-mode access to this agent.
+  // Only callable from agent-mode (bot-mode has all tools stripped), so by
+  // construction the caller is already authorized. Idempotent.
+  const authorizeUser = tool(
+    "slack_authorize_user",
+    "Grant a Slack user full agent-mode access to this agent. They will get access to all enabled tools when they @mention the bot or DM it. Use slack_list_users first to resolve a name to a user ID. Requires confirmation from the person requesting — never grant access unless the current requester (who is already authorized) has explicitly asked for it.",
+    {
+      user_id: z
+        .string()
+        .describe("Slack user ID to authorize (e.g. 'U0AR2KKC2Q3'). Use slack_list_users to resolve names first."),
+      reason: z
+        .string()
+        .optional()
+        .describe("Optional short note explaining why this user was granted access (for the audit event)."),
+    },
+    async (input) => {
+      try {
+        const result = await convexClient.addSlackAuthorizedUser(agentId, input.user_id);
+        await convexClient.emitEvent(agentId, "slack.user_authorized", "slack_tools", {
+          userId: input.user_id,
+          reason: input.reason,
+          alreadyAuthorized: result.alreadyAuthorized,
+          totalAuthorized: result.authorizedUsers.length,
+        });
+        const msg = result.alreadyAuthorized
+          ? `User ${input.user_id} was already authorized. Current list: ${result.authorizedUsers.join(", ")}`
+          : `✅ Authorized ${input.user_id}. They now have full agent access. Current list: ${result.authorizedUsers.join(", ")}`;
+        return { content: [{ type: "text" as const, text: msg }] };
+      } catch (err: any) {
+        return {
+          content: [{ type: "text" as const, text: `Failed to authorize user: ${err.message}` }],
+        };
+      }
+    }
+  );
+
+  // ── Deauthorize User ────────────────────────────────────────────────
+  const deauthorizeUser = tool(
+    "slack_deauthorize_user",
+    "Revoke a Slack user's agent-mode access. After this, the user falls back to bot-mode (restricted, no tools) when they interact with the bot. Use slack_list_authorized_users to see who currently has access.",
+    {
+      user_id: z
+        .string()
+        .describe("Slack user ID to deauthorize (e.g. 'U0AR2KKC2Q3')."),
+      reason: z
+        .string()
+        .optional()
+        .describe("Optional short note explaining why access was revoked (for the audit event)."),
+    },
+    async (input) => {
+      try {
+        const result = await convexClient.removeSlackAuthorizedUser(agentId, input.user_id);
+        await convexClient.emitEvent(agentId, "slack.user_deauthorized", "slack_tools", {
+          userId: input.user_id,
+          reason: input.reason,
+          removed: result.removed,
+          totalAuthorized: result.authorizedUsers.length,
+        });
+        const msg = result.removed
+          ? `🔒 Deauthorized ${input.user_id}. Remaining authorized users: ${result.authorizedUsers.join(", ") || "(none)"}`
+          : `User ${input.user_id} was not in the authorized list. No change.`;
+        return { content: [{ type: "text" as const, text: msg }] };
+      } catch (err: any) {
+        return {
+          content: [{ type: "text" as const, text: `Failed to deauthorize user: ${err.message}` }],
+        };
+      }
+    }
+  );
+
+  // ── List Authorized Users ───────────────────────────────────────────
+  const listAuthorizedUsers = tool(
+    "slack_list_authorized_users",
+    "List the Slack user IDs that currently have full agent-mode access to this agent. Use this before authorizing/deauthorizing so you know the current state.",
+    {},
+    async () => {
+      try {
+        const ids = await convexClient.listSlackAuthorizedUsers(agentId);
+        const text = ids.length
+          ? `Authorized Slack user IDs (${ids.length}):\n${ids.map((id) => `• ${id}`).join("\n")}`
+          : "No Slack users are currently authorized for agent mode.";
+        return { content: [{ type: "text" as const, text }] };
+      } catch (err: any) {
+        return {
+          content: [{ type: "text" as const, text: `Failed to list authorized users: ${err.message}` }],
+        };
+      }
+    }
+  );
+
   return [
     sendMessage,
     listChannels,
@@ -938,5 +1029,8 @@ export function createSlackTools(
     createChannel,
     joinChannel,
     inviteToChannel,
+    authorizeUser,
+    deauthorizeUser,
+    listAuthorizedUsers,
   ];
 }

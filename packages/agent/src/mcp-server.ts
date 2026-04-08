@@ -419,7 +419,10 @@ export function buildAllowedTools(
       "mcp__agent-tools__slack_unpin_message",
       "mcp__agent-tools__slack_create_channel",
       "mcp__agent-tools__slack_join_channel",
-      "mcp__agent-tools__slack_invite_to_channel"
+      "mcp__agent-tools__slack_invite_to_channel",
+      "mcp__agent-tools__slack_authorize_user",
+      "mcp__agent-tools__slack_deauthorize_user",
+      "mcp__agent-tools__slack_list_authorized_users"
     );
   }
 
