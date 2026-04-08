@@ -8,6 +8,7 @@
 import { AgentConvexClient } from "./convex-client.js";
 import { DiscordGateway, type MentionEvent } from "./discord-gateway.js";
 import { sendDiscordReply, sendDiscordTyping } from "./discord-response-handler.js";
+import { formatBotError } from "./bot-error-format.js";
 
 interface GatewayEntry {
   gateway: DiscordGateway;
@@ -190,7 +191,11 @@ export class DiscordGatewayManager {
 
     const poll = async (): Promise<void> => {
       if (Date.now() - startTime > maxWaitMs) {
-        await sendDiscordReply(botToken, channelId, "⏱️ Request timed out.").catch(() => {});
+        await sendDiscordReply(
+          botToken,
+          channelId,
+          "⏱️ **Taking longer than expected.**\nThe model is still thinking — this can happen when the provider is overloaded or the request is complex. If it finishes, you'll see the reply in the Agent Maker dashboard. Try again in a moment."
+        ).catch(() => {});
         return;
       }
 
@@ -208,7 +213,7 @@ export class DiscordGatewayManager {
           await sendDiscordReply(
             botToken,
             channelId,
-            `❌ ${msg.error ?? "An error occurred."}`
+            formatBotError(msg.error, "Discord")
           ).catch(() => {});
           return;
         }
