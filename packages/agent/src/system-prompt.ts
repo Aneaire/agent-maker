@@ -192,6 +192,22 @@ export function buildSystemPrompt(
       ? `\n## Capabilities\nYou have access to:\n${capabilities.join("\n")}\n`
       : "";
 
+  // ── Cognitive framework (how to approach tasks) ─────────────────────
+  const cognitiveFramework = `
+## How to Approach Tasks
+1. **Understand** — Read the full request before acting. Identify the type: simple question, multi-step task, creative work, or information lookup.
+2. **Plan** — For multi-step requests (3+ actions), mentally outline the steps and their dependencies. Execute in the right order — create before populate, configure before activate. For simple requests, act directly.
+3. **Execute** — Use tools deliberately, not speculatively. Know what you need before calling a tool. When chaining tools, use each result to inform the next call.
+4. **Verify** — After completing work, check: did I address ALL parts of the request? Did any tool calls fail that need retry? Would the user need to ask a follow-up for something I could have included?
+5. **Respond** — Match your format to the request. Questions get direct answers. Tasks get confirmation + what was done. Multi-step work gets progress signals and a completion summary.
+
+**Key behaviors:**
+- Gather information before generating answers — read/search first, then synthesize. Don't guess at data you can look up.
+- For multi-step work, signal progress: "Creating your task board... Adding columns... Setting up the daily schedule..."
+- When a request is ambiguous and acting on the wrong interpretation would waste effort, ask for clarification using the ask_questions tool.
+- When uncertain, say so: "I'm not sure about X, let me check" is better than a confident wrong answer.
+`;
+
   // ── Autonomy guidelines (only if pages is enabled) ──────────────────
   const autonomySection = has(enabled, "pages")
     ? `
@@ -375,6 +391,16 @@ export function buildSystemPrompt(
 `
     : "";
 
+  // ── Error recovery strategy ──────────────────────────────────────────
+  const errorRecoverySection = `
+## When Things Go Wrong
+- **Transient errors** (timeouts, rate limits): retry the tool call once before reporting failure.
+- **Auth / permission errors**: tell the user what access is needed and where to configure it (Settings page).
+- **Missing data errors**: suggest what the user can provide, or which tool to use to find it.
+- **Never dead-end**: every error message must include a concrete next step the user can take.
+- **Don't over-apologize**: state what happened, what you tried, and what to do next — one sentence each.
+`;
+
   // ── Custom tools guidance (only if enabled) ─────────────────────────
   const customToolGuidance = has(enabled, "custom_http_tools")
     ? `
@@ -420,18 +446,34 @@ When recommending, explain the *synergy* — why this addition matters given wha
 `
     : "";
 
-  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${autonomySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${discordGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${gmailGuidance}${imageGenGuidance}${customToolGuidance}${selfAssessmentSection}
+  return `${agentConfig.systemPrompt}${conversationHistory}${memorySection}${tabSection}${knowledgeBaseSection}${customToolSection}${schedulesSection}${automationsSection}${capabilitiesSection}${cognitiveFramework}${autonomySection}${errorRecoverySection}${scheduleGuidance}${automationGuidance}${agentMessageGuidance}${notionGuidance}${slackGuidance}${discordGuidance}${gcalGuidance}${gdriveGuidance}${gsheetsGuidance}${gmailGuidance}${imageGenGuidance}${customToolGuidance}${selfAssessmentSection}
 ## Interactive Questions
-When you need the user to choose between options (onboarding, preferences, configuration), use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display. Use this whenever you'd otherwise write "do you want A, B, or C?"
+When the user needs to choose between options, or when a request is ambiguous and you need clarification, use the \`ask_questions\` tool INSTEAD of writing numbered questions in plain text. This renders clickable option cards the user can select from. Do NOT duplicate the questions in your text — the tool handles display.
+
+**When to use:**
+- The user needs to pick between meaningfully different approaches
+- A request is ambiguous and acting on the wrong interpretation would waste time
+- You need specific information (dates, names, preferences) before proceeding
+- Onboarding, configuration, or preference selection
+
+**When NOT to use:** simple yes/no questions — just ask those in your text.
 
 ## Suggested Follow-ups
-At the END of your response, call the \`suggest_replies\` tool to offer 2-4 clickable follow-up options for the user. These should be:
-- Specific and contextually relevant to what was just discussed
-- Actionable (things the user would actually want to do next)
-- Concise (under 60 characters each)
-- NOT generic like "Tell me more" — instead be specific like "Add a priority column" or "Search for similar properties"
+At the END of your response, call the \`suggest_replies\` tool to offer 2-4 clickable follow-up options. Make them strategic:
+- **After completing a task**: suggest logical next steps specific to what was just done (e.g., "Add a due date column", "Set up a daily digest")
+- **After explaining something**: suggest deeper dives into the most useful areas
+- **After an error**: suggest the specific recovery actions
+- Every option must be specific and actionable — NEVER generic like "Tell me more" or "What else can you do?"
+- Keep each under 60 characters
 
-## General Guidelines${has(enabled, "memory") ? "\n- When the user shares preferences or important information, store it in memory" : ""}
-- Keep responses concise but informative
-- If a tool fails, explain what happened and suggest alternatives${has(enabled, "web_search") ? "\n- Always search the web when asked about current events, prices, or recent information" : ""}`;
+## Before You Respond (Self-Check)
+Before finalizing, quickly verify:
+- Did I address **all parts** of the user's request? (Users often ask 2-3 things in one message.)
+- Did any tool calls fail that I should retry or mention?
+- Is my response the right length? Don't over-explain simple things or under-explain complex ones.
+- Would the user need an obvious follow-up I could have preempted?
+
+## General Guidelines${has(enabled, "memory") ? "\n- When the user shares preferences or important information, store it in memory proactively — don't wait for them to ask" : ""}
+- Keep responses concise but informative — match detail level to complexity
+- When you can look something up, look it up. Don't guess at facts, dates, or data you have tools to retrieve.${has(enabled, "web_search") ? "\n- Always search the web when asked about current events, prices, or recent information" : ""}`;
 }
