@@ -621,14 +621,14 @@ const ALL_MODELS = [
     tier: "$",
   },
   {
-    id: "gemini-3.1-pro",
+    id: "gemini-3.1-pro-preview",
     name: "Gemini 3.1 Pro",
     description: "Most capable Gemini model",
     provider: "Google",
     tier: "$$$",
   },
   {
-    id: "gemini-3-flash",
+    id: "gemini-3-flash-preview",
     name: "Gemini 3 Flash",
     description: "Lightning-fast with agentic capability",
     provider: "Google",

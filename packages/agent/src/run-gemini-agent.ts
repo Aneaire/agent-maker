@@ -276,7 +276,7 @@ export async function runGeminiAgent(params: RunGeminiAgentParams) {
     if (!apiKey) throw new Error("GEMINI_API_KEY environment variable is required");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelId = params.modelOverride || agent.model || "gemini-3-flash";
+    const modelId = params.modelOverride || agent.model || "gemini-2.5-flash";
 
     const tools =
       declarations.length > 0

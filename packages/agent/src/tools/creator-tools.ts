@@ -124,7 +124,7 @@ function createUpdateConfigTool(ctx: CreatorContext) {
         .string()
         .optional()
         .describe(
-          'The AI model to use. Claude: "claude-sonnet-4-6" (balanced), "claude-opus-4-6" (most capable), "claude-haiku-4-5-20251001" (fastest). Gemini: "gemini-3.1-pro" (most capable), "gemini-3-flash" (fast, agentic), "gemini-2.5-flash" (balanced)'
+          'The AI model to use. Claude: "claude-sonnet-4-6" (balanced), "claude-opus-4-6" (most capable), "claude-haiku-4-5-20251001" (fastest). Gemini: "gemini-3.1-pro-preview" (most capable), "gemini-3-flash-preview" (fast, agentic), "gemini-2.5-flash" (balanced)'
         ),
       enabledToolSets: z
         .array(z.string())

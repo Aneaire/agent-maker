@@ -78,12 +78,12 @@ const CHAT_MODELS: ModelEntry[] = [
     group: "Claude", tier: "$", capabilities: ["vision"], type: "chat",
   },
   {
-    value: "gemini-3.1-pro", label: "Gemini 3.1 Pro",
+    value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro",
     description: "Most capable Gemini model",
     group: "Gemini", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat",
   },
   {
-    value: "gemini-3-flash", label: "Gemini 3 Flash",
+    value: "gemini-3-flash-preview", label: "Gemini 3 Flash",
     description: "Lightning-fast with agentic capability",
     group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat",
   },
