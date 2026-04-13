@@ -38,6 +38,25 @@ interface AutomationInfo {
   isActive: boolean;
 }
 
+// ── Keyword map for lazy integration guide loading ────────────────────
+const INTEGRATION_KEYWORDS: Record<string, string[]> = {
+  notion: ["notion"],
+  slack: ["slack", "post to channel", "send a message to #", "dm "],
+  discord: ["discord", "server", "guild"],
+  google_calendar: ["calendar", "meeting", "schedule a", "book a", "gcal", "availability", "free time"],
+  google_drive: ["drive", "gdrive", "google drive"],
+  google_sheets: ["gsheets", "google sheets", "google sheet"],
+  gmail: ["gmail", "inbox", "check my email", "send an email", "reply to"],
+  image_generation: ["generate image", "generate a image", "create an image", "make an image", "draw ", "picture of", "generate a picture"],
+};
+
+function messageRelatesToIntegration(message: string, integration: string): boolean {
+  const lower = message.toLowerCase();
+  const keywords = INTEGRATION_KEYWORDS[integration];
+  if (!keywords) return true; // no keywords defined = always include
+  return keywords.some((kw) => lower.includes(kw));
+}
+
 export function buildSystemPrompt(
   agentConfig: AgentConfig,
   memories: Memory[],
@@ -46,9 +65,19 @@ export function buildSystemPrompt(
   conversationHistory: string = "",
   documents: DocumentInfo[] = [],
   schedules: ScheduleInfo[] = [],
-  automations: AutomationInfo[] = []
+  automations: AutomationInfo[] = [],
+  latestMessage: string = ""
 ): string {
   const enabled = agentConfig.enabledToolSets ?? [];
+
+  // If there's conversation history and a latest message, only include full
+  // integration guides for integrations the user is actively referencing.
+  // On the first message (no history), include all guides for full context.
+  const hasHistory = conversationHistory.length > 0;
+  const shouldIncludeGuide = (integration: string): boolean => {
+    if (!hasHistory || !latestMessage) return true; // first message = show all
+    return messageRelatesToIntegration(latestMessage, integration);
+  };
 
   // ── Memory section (only if memory toolset is enabled) ──────────────
   const memorySection =
@@ -274,7 +303,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Notion guidelines ──────────────────────────────────────────────
-  const notionGuidance = has(enabled, "notion")
+  const notionGuidance = has(enabled, "notion") && shouldIncludeGuide("notion")
     ? `
 ## Notion Integration
 - Use \`notion_search\` to find pages and databases by keyword
@@ -289,7 +318,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Google Calendar guidelines ─────────────────────────────────────
-  const gcalGuidance = has(enabled, "google_calendar")
+  const gcalGuidance = has(enabled, "google_calendar") && shouldIncludeGuide("google_calendar")
     ? `
 ## Google Calendar
 - Use \`gcal_list_events\` to check what's on the user's calendar — defaults to the next 7 days
@@ -305,7 +334,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Google Drive guidelines ────────────────────────────────────────
-  const gdriveGuidance = has(enabled, "google_drive")
+  const gdriveGuidance = has(enabled, "google_drive") && shouldIncludeGuide("google_drive")
     ? `
 ## Google Drive
 - Use \`gdrive_search\` to find files by name or content
@@ -319,7 +348,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Google Sheets guidelines ─────────────────────────────────────
-  const gsheetsGuidance = has(enabled, "google_sheets")
+  const gsheetsGuidance = has(enabled, "google_sheets") && shouldIncludeGuide("google_sheets")
     ? `
 ## Google Sheets
 - Use \`gsheets_list_spreadsheets\` to list all Google Sheets spreadsheets in the user's Drive — always start here when the user asks to "list" or "find" spreadsheets
@@ -335,7 +364,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Discord guidelines ──────────────────────────────────────────────
-  const discordGuidance = has(enabled, "discord")
+  const discordGuidance = has(enabled, "discord") && shouldIncludeGuide("discord")
     ? `
 ## Discord Integration
 - Use \`discord_list_guilds\` to find server IDs the bot is in
@@ -351,7 +380,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Slack guidelines ───────────────────────────────────────────────
-  const slackGuidance = has(enabled, "slack")
+  const slackGuidance = has(enabled, "slack") && shouldIncludeGuide("slack")
     ? `
 ## Slack Integration
 - Use \`slack_list_channels\` to find channel IDs before sending messages
@@ -379,7 +408,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Gmail guidelines ───────────────────────────────────────────────
-  const gmailGuidance = has(enabled, "gmail")
+  const gmailGuidance = has(enabled, "gmail") && shouldIncludeGuide("gmail")
     ? `
 ## Gmail
 - Use \`gmail_list_messages\` to check the inbox (supports label filters like INBOX, UNREAD, STARRED)
@@ -398,7 +427,7 @@ When a request involves setting up a system, building a workflow, or creating mu
     : "";
 
   // ── Image Generation guidelines ─────────────────────────────────────
-  const imageGenGuidance = has(enabled, "image_generation")
+  const imageGenGuidance = has(enabled, "image_generation") && shouldIncludeGuide("image_generation")
     ? `
 ## Image Generation
 - Use \`generate_image\` to create images from detailed text prompts

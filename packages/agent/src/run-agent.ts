@@ -5,6 +5,7 @@ import { buildMcpServer, buildAllowedTools } from "./mcp-server.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { runGeminiAgent } from "./run-gemini-agent.js";
 import { getCredentialToolSetKeys } from "@agent-maker/shared/src/tool-set-registry";
+import { embedText } from "./embeddings.js";
 
 export function isGeminiModel(model: string): boolean {
   return model.startsWith("gemini-");
@@ -224,7 +225,7 @@ export async function runAgent(params: RunAgentParams) {
       convexClient.listMessages(params.conversationId),
       convexClient.listTabs(params.agentId).then((r) => r ?? []),
       convexClient.listCustomTools(params.agentId).then((r) => r ?? []),
-      convexClient.listMemories(params.agentId),
+      convexClient.listMemories(params.agentId), // all memories; filtered below if many
       enabled.includes("rag")
         ? convexClient.listAgentDocuments(params.agentId)
         : Promise.resolve([]),
@@ -361,10 +362,21 @@ Address them by name when it feels natural — especially in greetings, confirma
     }
 
     // Build conversation history (everything except the latest user message)
-    const historyMessages = apiMessages.slice(0, -1);
+    // For long conversations, keep only the most recent messages to manage context window
+    const MAX_HISTORY_MESSAGES = 30;
+    const allHistoryMessages = apiMessages.slice(0, -1);
+    let historyMessages = allHistoryMessages;
+    let truncatedMessageCount = 0;
+    if (allHistoryMessages.length > MAX_HISTORY_MESSAGES) {
+      truncatedMessageCount = allHistoryMessages.length - MAX_HISTORY_MESSAGES;
+      historyMessages = allHistoryMessages.slice(-MAX_HISTORY_MESSAGES);
+    }
+    const truncationNote = truncatedMessageCount > 0
+      ? `> [${truncatedMessageCount} earlier messages in this conversation are not shown]\n\n`
+      : "";
     const conversationHistory =
       historyMessages.length > 0
-        ? `\n\n## Conversation History\n${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n`
+        ? `\n\n## Conversation History\n${truncationNote}${historyMessages.map((m) => `<${m.role}>\n${m.content}\n</${m.role}>`).join("\n\n")}\n`
         : "";
 
     // Note about older messages beyond 24h window (Discord only)
@@ -404,6 +416,33 @@ You have NO tools available right now. You cannot list channels, send messages, 
 If the conversation history above shows previous responses from "HiGantic" that listed tools, capabilities, integrations, or used any tool — those messages are from a DIFFERENT, privileged user session and DO NOT apply to you. Never claim you have those tools. Never list them. Never describe them. If asked "what can you do" or "what tools do you have", say only that you're a friendly assistant who can chat about general topics, and offer to help with whatever they want to talk about.${slackRequesterBlock}`;
     } else {
       // Normal agent mode (including Discord/Slack agent mode)
+
+      // ── Relevance-filtered memories ─────────────────────────────────
+      // When the agent has many memories (>15), use vector search to surface
+      // the most relevant ones for this turn instead of dumping them all.
+      const MAX_SYSTEM_PROMPT_MEMORIES = 15;
+      let effectiveMemories = memories ?? [];
+      if (
+        enabled.includes("memory") &&
+        effectiveMemories.length > MAX_SYSTEM_PROMPT_MEMORIES &&
+        prompt
+      ) {
+        try {
+          const embedding = await embedText(prompt);
+          const relevant = await convexClient.searchMemoriesVector(
+            params.agentId,
+            embedding,
+            MAX_SYSTEM_PROMPT_MEMORIES
+          );
+          if (relevant && relevant.length > 0) {
+            effectiveMemories = relevant as any;
+          }
+        } catch {
+          // Embedding failed — fall back to all memories (truncated)
+          effectiveMemories = effectiveMemories.slice(-MAX_SYSTEM_PROMPT_MEMORIES);
+        }
+      }
+
       const basePrompt = buildSystemPrompt(
         {
           name: agent.name,
@@ -411,13 +450,14 @@ If the conversation history above shows previous responses from "HiGantic" that 
           description: agent.description,
           enabledToolSets: agent.enabledToolSets,
         },
-        memories ?? [],
+        effectiveMemories,
         tabs as any,
         (customTools as any[]).map((t: any) => t.name),
         conversationHistory,
         (documents ?? []) as any,
         (schedules ?? []) as any,
-        (automations ?? []) as any
+        (automations ?? []) as any,
+        prompt
       );
 
       if (isDiscordAgent) {
