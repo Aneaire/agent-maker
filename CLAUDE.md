@@ -57,14 +57,18 @@ When adding a new feature or tool set, **all 9 steps are required** or the agent
 1. **Registry entry** — Add the tool set to `TOOL_SET_REGISTRY` in `packages/shared/src/tool-set-registry.ts` with key, label, description, category, subcategory, enabledByDefault, canDisable, requiresPlan, requiresCredential, creatorDescription, and order. This **single entry** automatically propagates to the Settings UI, Editor/Creator labels, Creator AI tool list, system prompt allIntegrations map, and credential checks.
 2. **Tool file** — Create `packages/agent/src/tools/<name>-tools.ts` exporting `create<Name>Tools()`
 3. **MCP server** — Wire into `packages/agent/src/mcp-server.ts`: import + conditional registration in `buildMcpServer()` and `buildAllowedTools()`
-4. **System prompt** — Update `packages/agent/src/system-prompt.ts`: add capability description and usage guidelines (the `allIntegrations` map entry is automatic from step 1)
+4. **System prompt** — Update `packages/agent/src/system-prompt.ts`:
+   - Add a `capabilities.push(...)` entry (conditional on `has(enabled, "key")`)
+   - Add a full usage-guide section (the `const <name>Guidance = ...` variable) — gate it with `has(enabled, "key") && shouldIncludeGuide("key")`
+   - Add a keyword entry to `INTEGRATION_KEYWORDS` map at the top of the file so the guide lazy-loads only when the user's message is relevant
+   - Wire the new guidance variable into the `return` template string
 5. **Schema** — Add any new tables/indexes in `packages/shared/convex/schema.ts`, plus server-facing and user-facing endpoints
 6. **Tool Sets list** — Add the new key to the `enabledToolSets` list in this file (and `AGENTS.md`)
 7. **Event Bus** — Every meaningful tool action must emit an event (see Event Bus Rules below)
 8. **Sandbox seed** — Add a seeder function in `packages/shared/convex/seed/toolsetSeeders.ts` and register it in `seed/registry.ts` → `TOOLSET_SEEDERS` (see Sandbox Seed System below)
 9. **Docs** — Create/update `docs/tools/<name>.md` and the matching `*Content()` function in `packages/web/app/routes/docs.tsx`
 
-> **Critical**: Step 1 is the most important — it replaces what was previously spread across 5+ files. Step 4 (system prompt guidance) is the most commonly missed after that; without it the agent has the tool but doesn't know to use it effectively.
+> **Critical**: Step 1 is the most important — it replaces what was previously spread across 5+ files. Step 4 (system prompt guidance) is the most commonly missed after that; without it the agent has the tool but doesn't know to use it effectively. Don't forget the `INTEGRATION_KEYWORDS` entry in step 4 — without it the guide loads every turn instead of lazily.
 
 ## Adding a New AI Model (Checklist)
 
@@ -79,7 +83,7 @@ When adding support for a new AI model, **all 4 steps are required**:
 
 1. Add the tool function in the existing `*-tools.ts` file
 2. Add the tool name to `buildAllowedTools()` in `mcp-server.ts`
-3. Update system prompt guidance if the tool introduces new behavior the agent should know about
+3. Update system prompt guidance if the tool introduces new behavior the agent should know about (add to the existing integration guide variable, which is already lazy-loaded)
 4. Add any new Convex endpoints needed
 5. **Emit an event** for every meaningful action (see Event Bus Rules below)
 6. If the tool's UI mutation should trigger automations, call `internal.processAutomation.processEvent` (see Dispatch Architecture below)
@@ -185,15 +189,29 @@ All page components follow these patterns — match them exactly for visual cons
 
 **Tech stack:** Tailwind 4, Lucide React icons, Convex `useQuery`/`useMutation`, React 19, React Router 7. No shadcn/ui. Dark theme only (zinc-900/950 base, neon-400 accent).
 
-## System Prompt: Available Integrations
+## System Prompt Architecture
 
-The system prompt (`packages/agent/src/system-prompt.ts`) has two integration-related sections:
-- **Capabilities** — lists what's *enabled* so the agent knows what it can do
-- **Available Integrations** — lists what's *not enabled* so the agent can inform users about features they could turn on, and directs them to the Settings page in the Agent Maker dashboard
+The system prompt (`packages/agent/src/system-prompt.ts`) is built dynamically per turn. Key sections in order:
 
-When adding a new tool set, you must add it to **both**:
-1. The `capabilities` array (conditional on `has(enabled, "key")`)
-2. The `allIntegrations` map (always present, used to compute disabled integrations)
+1. **User's custom systemPrompt** — the agent's identity/persona
+2. **Conversation history** — capped at 30 messages; older noted with count
+3. **Context sections** — memories (top-15 by vector relevance when >15 exist), pages, knowledge base, schedules, automations
+4. **Capabilities** — bullet list of what's enabled
+5. **Persona framework** — tells agent to stay in character, adapt to audience, maintain consistent voice
+6. **Cognitive framework** — 5-step reasoning approach (Understand → Plan → Execute → Verify → Respond) + complex workflow scaffolding
+7. **Error recovery** — retry transients, explain auth issues, never dead-end
+8. **Per-integration guides** — **lazy-loaded**: full guide only included when user's message matches keywords in `INTEGRATION_KEYWORDS` map. First message always gets all guides.
+9. **Self-check** — verification checklist before finalizing responses
+
+**When adding a new integration tool set**, you must update **three things** in this file:
+1. Add a `capabilities.push(...)` entry (conditional on `has(enabled, "key")`)
+2. Add a full usage-guide variable gated with `has(enabled, "key") && shouldIncludeGuide("key")`
+3. Add keyword entry to `INTEGRATION_KEYWORDS` map for lazy loading
+
+**Context management in `run-agent.ts`:**
+- Conversation history capped at 30 messages (`MAX_HISTORY_MESSAGES`)
+- Memories filtered by vector search when >15 exist (`MAX_SYSTEM_PROMPT_MEMORIES`) using `embedText()` + `searchMemoriesVector()`
+- Latest user message passed to `buildSystemPrompt()` for lazy guide loading
 
 ## Sandbox Seed System
 
