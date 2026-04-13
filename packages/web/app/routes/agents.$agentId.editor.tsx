@@ -21,15 +21,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
+import { getToolSetLabelsMap } from "@agent-maker/shared/src/tool-set-registry";
 
-const TOOL_LABELS: Record<string, string> = {
-  memory: "Memory",
-  web_search: "Web Search",
-  pages: "Pages (Tasks, Notes, Spreadsheets)",
-  custom_http_tools: "Custom HTTP Tools",
-  rest_api: "REST API",
-  postgres: "PostgreSQL",
-};
+const TOOL_LABELS = getToolSetLabelsMap();
 
 export default function AgentEditorPage() {
   const { agentId } = useParams();
@@ -96,12 +90,15 @@ function EditorView({
   onDone: () => void;
   onAbandon: () => void;
 }) {
+  const navigate = useNavigate();
   const session = useQuery(api.creatorSessions.get, { sessionId });
   const agent = useQuery(api.agents.get, { agentId });
   const messages = useQuery(api.messages.list, { conversationId });
   const sendMessage = useMutation(api.messages.send);
   const stopMessage = useMutation(api.messages.stop);
+  const createConversation = useMutation(api.conversations.create);
   const pastSessions = useQuery(api.creatorSessions.listByAgent, { agentId });
+  const [creatingChat, setCreatingChat] = useState(false);
 
   const [showHistory, setShowHistory] = useState(
     typeof window !== "undefined" && window.innerWidth >= 1024
@@ -133,6 +130,18 @@ function EditorView({
       await stopMessage({ conversationId });
     } catch (err: any) {
       console.error("Failed to stop:", err);
+    }
+  }
+
+  async function handleNewChat() {
+    setCreatingChat(true);
+    try {
+      const convId = await createConversation({ agentId });
+      navigate(`/agents/${agentId}/chat/${convId}`);
+    } catch (err: any) {
+      console.error("Failed to create chat:", err);
+    } finally {
+      setCreatingChat(false);
     }
   }
 
@@ -183,6 +192,18 @@ function EditorView({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleNewChat}
+              disabled={creatingChat}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors disabled:opacity-40"
+            >
+              {creatingChat ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MessageSquare className="h-3.5 w-3.5" />
+              )}
+              New Chat
+            </button>
             <button
               onClick={() => setShowHistory(!showHistory)}
               className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors ${

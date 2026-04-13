@@ -52,20 +52,19 @@ Monorepo with 3 packages:
 
 ## Adding a New Tool Set (Checklist)
 
-When adding a new feature or tool set, **all 10 steps are required** or the agent won't fully know about or use it:
+When adding a new feature or tool set, **all 9 steps are required** or the agent won't fully know about or use it:
 
-1. **Tool file** — Create `packages/agent/src/tools/<name>-tools.ts` exporting `create<Name>Tools()`
-2. **MCP server** — Wire into `packages/agent/src/mcp-server.ts`: import + conditional registration in `buildMcpServer()` and `buildAllowedTools()`
-3. **System prompt** — Update `packages/agent/src/system-prompt.ts`: add capability description, usage guidelines, **and** an entry in the `allIntegrations` map so disabled tool sets are advertised to users
-4. **UI settings** — Add entry to `TOOL_SET_INFO` in `packages/web/app/routes/agents.$agentId.settings.tsx`
+1. **Registry entry** — Add the tool set to `TOOL_SET_REGISTRY` in `packages/shared/src/tool-set-registry.ts` with key, label, description, category, subcategory, enabledByDefault, canDisable, requiresPlan, requiresCredential, creatorDescription, and order. This **single entry** automatically propagates to the Settings UI, Editor/Creator labels, Creator AI tool list, system prompt allIntegrations map, and credential checks.
+2. **Tool file** — Create `packages/agent/src/tools/<name>-tools.ts` exporting `create<Name>Tools()`
+3. **MCP server** — Wire into `packages/agent/src/mcp-server.ts`: import + conditional registration in `buildMcpServer()` and `buildAllowedTools()`
+4. **System prompt** — Update `packages/agent/src/system-prompt.ts`: add capability description and usage guidelines (the `allIntegrations` map entry is automatic from step 1)
 5. **Schema** — Add any new tables/indexes in `packages/shared/convex/schema.ts`, plus server-facing and user-facing endpoints
 6. **Tool Sets list** — Add the new key to the `enabledToolSets` list in this file (and `AGENTS.md`)
 7. **Event Bus** — Every meaningful tool action must emit an event (see Event Bus Rules below)
 8. **Sandbox seed** — Add a seeder function in `packages/shared/convex/seed/toolsetSeeders.ts` and register it in `seed/registry.ts` → `TOOLSET_SEEDERS` (see Sandbox Seed System below)
-9. **Markdown docs** — Create/update `docs/tools/<name>.md` with setup, credential acquisition steps, scopes, tools table, and emitted events
-10. **In-app docs page** — Update `packages/web/app/routes/docs.tsx`: add/extend the tool's `*Content()` function (e.g. `SlackContent`), register it in the docs sections array, and add a row to the integrations summary table. This is the user-facing `/docs` page in the web UI — keep it in sync with `docs/tools/<name>.md`.
+9. **Docs** — Create/update `docs/tools/<name>.md` and the matching `*Content()` function in `packages/web/app/routes/docs.tsx`
 
-> **Critical**: Step 3 is the most commonly missed. Without system prompt updates, the agent has the tool but doesn't know to use it effectively. The `allIntegrations` map is also important — it lets the agent tell users about available integrations they haven't enabled yet.
+> **Critical**: Step 1 is the most important — it replaces what was previously spread across 5+ files. Step 4 (system prompt guidance) is the most commonly missed after that; without it the agent has the tool but doesn't know to use it effectively.
 
 ## Adding a New AI Model (Checklist)
 

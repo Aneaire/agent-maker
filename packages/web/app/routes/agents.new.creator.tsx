@@ -15,20 +15,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
+import { getToolSetLabelsMap } from "@agent-maker/shared/src/tool-set-registry";
 
-const TOOL_LABELS: Record<string, string> = {
-  memory: "Memory",
-  web_search: "Web Search",
-  pages: "Pages (Tasks, Notes, Spreadsheets)",
-  custom_http_tools: "Custom HTTP Tools",
-  rest_api: "REST API",
-  postgres: "PostgreSQL",
-  notion: "Notion",
-  slack: "Slack",
-  google_calendar: "Google Calendar",
-  google_drive: "Google Drive",
-  google_sheets: "Google Sheets",
-};
+const TOOL_LABELS = getToolSetLabelsMap();
 
 export default function AgentCreatorPage() {
   const navigate = useNavigate();

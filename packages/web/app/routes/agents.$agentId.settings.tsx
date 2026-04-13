@@ -26,34 +26,11 @@ import { useState, useEffect, useRef } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import { CredentialManager } from "~/components/CredentialManager";
 import { TOOL_SETS_REQUIRING_CREDENTIALS } from "@agent-maker/shared/src/credential-types";
-
-interface ToolSetEntry {
-  label: string;
-  description: string;
-}
-
-// Flat lookup used by credential sections and other references
-const TOOL_SET_INFO: Record<string, ToolSetEntry> = {
-  memory: { label: "Memory", description: "Store and recall information across conversations" },
-  web_search: { label: "Web Search", description: "Search the internet and fetch web pages" },
-  pages: { label: "Pages", description: "Create and manage task boards, notes, spreadsheets, and markdown pages" },
-  rag: { label: "Knowledge Base", description: "Upload documents and let your agent search them" },
-  email: { label: "Resend Email", description: "Send transactional emails via Resend" },
-  gmail: { label: "Gmail", description: "Send and read emails via Gmail" },
-  custom_http_tools: { label: "Custom HTTP Tools", description: "Call external APIs configured below" },
-  schedules: { label: "Scheduled Actions", description: "Create recurring or one-time scheduled tasks (cron jobs, intervals)" },
-  automations: { label: "Automations", description: "Event-driven rules: when X happens → do Y automatically" },
-  timers: { label: "Timers & Delays", description: "Set delayed actions for follow-ups, reminders, and drip sequences" },
-  webhooks: { label: "Webhooks", description: "Fire outgoing webhooks to external services and view event history" },
-  agent_messages: { label: "Inter-Agent Messaging", description: "Communicate with other agents for delegation and coordination" },
-  notion: { label: "Notion", description: "Search, read, create, and update pages and databases in Notion" },
-  slack: { label: "Slack", description: "Send messages, read channels, search, and react in Slack" },
-  discord: { label: "Discord", description: "Send messages, read channels, manage threads, and react in Discord" },
-  google_calendar: { label: "Google Calendar", description: "List events, schedule meetings, check availability, and manage calendar" },
-  google_drive: { label: "Google Drive", description: "Search, read, create, and manage files and folders in Google Drive" },
-  google_sheets: { label: "Google Sheets", description: "Read, write, and manage spreadsheet data in Google Sheets" },
-  image_generation: { label: "Image Generation", description: "Generate images from text prompts using Gemini Imagen or Nano Banana" },
-};
+import {
+  TOOL_SET_REGISTRY,
+  getToolSetsByCategory,
+  getToolSetLabel,
+} from "@agent-maker/shared/src/tool-set-registry";
 
 type ToolSetCategory = {
   title: string;
@@ -61,56 +38,12 @@ type ToolSetCategory = {
   items: { key: string; label: string; description: string }[];
 };
 
-// Capabilities tab: Core features + Automation
 const CAPABILITY_CATEGORIES: ToolSetCategory[] = [
-  {
-    title: "Core",
-    description: "Built-in agent capabilities",
-    items: [
-      { key: "memory", label: "Memory", description: "Store and recall information across conversations" },
-      { key: "web_search", label: "Web Search", description: "Search the internet and fetch web pages" },
-      { key: "pages", label: "Pages", description: "Create and manage task boards, notes, spreadsheets, and markdown pages" },
-      { key: "rag", label: "Knowledge Base", description: "Upload documents and let your agent search them" },
-      { key: "image_generation", label: "Image Generation", description: "Generate images from text prompts" },
-      { key: "custom_http_tools", label: "Custom HTTP Tools", description: "Call external APIs configured below" },
-    ],
-  },
-  {
-    title: "Automation",
-    description: "Scheduling and event-driven workflows",
-    items: [
-      { key: "schedules", label: "Scheduled Actions", description: "Recurring or one-time scheduled tasks" },
-      { key: "automations", label: "Automations", description: "Event-driven rules: when X happens → do Y" },
-      { key: "timers", label: "Timers & Delays", description: "Delayed actions for follow-ups and reminders" },
-      { key: "webhooks", label: "Webhooks", description: "Fire outgoing webhooks to external services" },
-      { key: "agent_messages", label: "Inter-Agent Messaging", description: "Communicate with other agents" },
-    ],
-  },
+  ...getToolSetsByCategory("core"),
+  ...getToolSetsByCategory("automation"),
 ];
 
-// Integrations tab: Communication + Third-party services
-const INTEGRATION_CATEGORIES: ToolSetCategory[] = [
-  {
-    title: "Communication",
-    description: "Email providers",
-    items: [
-      { key: "email", label: "Resend Email", description: "Send transactional emails via Resend" },
-      { key: "gmail", label: "Gmail", description: "Send and read emails via Gmail" },
-    ],
-  },
-  {
-    title: "Third-Party Services",
-    description: "Connect to external services",
-    items: [
-      { key: "slack", label: "Slack", description: "Send messages, read channels, search, and react" },
-      { key: "discord", label: "Discord", description: "Send messages, read channels, manage threads, and react" },
-      { key: "notion", label: "Notion", description: "Search, read, create, and update pages and databases" },
-      { key: "google_calendar", label: "Google Calendar", description: "Schedule meetings and manage calendar" },
-      { key: "google_drive", label: "Google Drive", description: "Search, read, create, and manage files" },
-      { key: "google_sheets", label: "Google Sheets", description: "Read, write, and manage spreadsheet data" },
-    ],
-  },
-];
+const INTEGRATION_CATEGORIES: ToolSetCategory[] = getToolSetsByCategory("integration");
 
 const AGENT_SERVER_URL =
   typeof window !== "undefined"
@@ -175,7 +108,7 @@ export default function SettingsPage() {
                 <section key={ts} className="rounded-xl border border-zinc-800/60 glass-card p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <h2 className="text-sm font-medium">
-                      {TOOL_SET_INFO[ts]?.label ?? ts} Credentials
+                      {getToolSetLabel(ts)} Credentials
                     </h2>
                   </div>
                   <CredentialManager agent={agent} toolSetName={ts} />

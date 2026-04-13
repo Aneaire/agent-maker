@@ -4,6 +4,7 @@ import { AgentConvexClient } from "./convex-client.js";
 import { buildMcpServer, buildAllowedTools } from "./mcp-server.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { runGeminiAgent } from "./run-gemini-agent.js";
+import { getCredentialToolSetKeys } from "@agent-maker/shared/src/tool-set-registry";
 
 export function isGeminiModel(model: string): boolean {
   return model.startsWith("gemini-");
@@ -206,10 +207,7 @@ export async function runAgent(params: RunAgentParams) {
     const enabled = agent.enabledToolSets ?? [];
 
     // Credential loading (parallel)
-    const toolSetsNeedingCreds = [
-      "email", "notion", "slack", "discord", "google_calendar",
-      "google_drive", "google_sheets", "gmail", "image_generation",
-    ];
+    const toolSetsNeedingCreds = getCredentialToolSetKeys();
     const enabledCredToolSets = toolSetsNeedingCreds.filter((ts) => enabled.includes(ts));
 
     // Fire ALL queries in parallel — no waterfalls

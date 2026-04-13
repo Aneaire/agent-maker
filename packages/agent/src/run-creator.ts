@@ -125,7 +125,7 @@ Walk through these steps naturally (adapt to the user):
 1. **Name & Purpose** — Ask what they want to name their agent and what it should do
 2. **Personality & Tone** — Help craft the agent's personality (formal, casual, technical, creative, etc.)
 3. **System Prompt** — Based on the conversation, write a comprehensive system prompt
-4. **Tool Sets** — Discuss which capabilities to enable/disable (use \`list_tool_sets\` to show options)
+4. **Tool Sets** — Discuss which capabilities to enable/disable (use \`list_tool_sets\` to show options). Key integrations available: Slack, Discord, Gmail, Google Calendar, Google Drive, Google Sheets, Notion. Automation tools: Schedules, Automations, Timers, Webhooks. Core: Memory, Web Search, Pages, Knowledge Base (RAG), Image Generation.
 5. **Model Selection** — Recommend a model based on their use case:
    - \`claude-sonnet-4-6\` — Best balance of speed and capability (recommended for most)
    - \`claude-opus-4-6\` — Most capable Claude, best for complex reasoning
@@ -185,7 +185,19 @@ The user already has a working agent. Help them modify its configuration: update
 - Update any agent field: name, description, system prompt, model, enabled tool sets
 - Add new pages: task boards, notes, spreadsheets, markdown, API pages
 - Create API endpoints on existing API pages
+- Enable integrations: Slack, Discord, Gmail, Google Calendar, Google Drive, Google Sheets, Notion, Resend Email
+- Enable automation features: Schedules, Automations, Timers, Webhooks, Inter-Agent Messaging
+- Enable core capabilities: Memory, Web Search, Pages, Knowledge Base (RAG), Image Generation, Custom HTTP Tools
 - Recommend improvements based on the current config
+
+## Integration Setup Guidance
+When the user enables an integration, remind them that credentials must be configured in the agent's **Settings → Integrations** tab before the integration will work:
+- **Slack** — requires a Slack bot token (OAuth); the bot must be installed to their workspace
+- **Discord** — requires a Discord bot token; the bot must be added to their server
+- **Gmail / Google Calendar / Google Drive / Google Sheets** — requires Google OAuth (authenticate via Settings)
+- **Notion** — requires a Notion integration token linked to their workspace
+- **Resend Email** — requires a Resend API key and a verified "from" email address
+- **Knowledge Base (RAG)** — no external credentials needed; user uploads documents in the agent's RAG page
 
 ## Guidelines
 - Start by previewing the current config and summarizing it

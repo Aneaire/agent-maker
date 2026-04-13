@@ -251,15 +251,7 @@ export function getCredentialTypeDef(type: string): CredentialTypeDef | undefine
   return CREDENTIAL_TYPE_REGISTRY[type];
 }
 
-/** Tool sets that require credentials to function */
-export const TOOL_SETS_REQUIRING_CREDENTIALS: Record<string, boolean> = {
-  email: true,
-  slack: true,
-  discord: true,
-  notion: true,
-  google_calendar: true,
-  google_drive: true,
-  google_sheets: true,
-  gmail: true,
-  image_generation: true,
-};
+/** Tool sets that require credentials to function (derived from tool-set-registry) */
+import { getToolSetsRequiringCredentials } from "./tool-set-registry";
+export const TOOL_SETS_REQUIRING_CREDENTIALS: Record<string, boolean> =
+  getToolSetsRequiringCredentials();

@@ -6,6 +6,7 @@ import { ChatInput, type ChatAttachment } from "~/components/ChatInput";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import { useMemo } from "react";
+import { Pencil } from "lucide-react";
 
 export default function ChatPage() {
   const { conversationId } = useParams();
@@ -109,6 +110,13 @@ export default function ChatPage() {
           </h2>
           <p className="text-xs text-zinc-500">{agent.name}</p>
         </div>
+        <Link
+          to={`/agents/${agent._id}/editor`}
+          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 px-2.5 py-1.5 rounded-lg transition-colors"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Edit with AI
+        </Link>
       </div>
 
       {/* Messages */}

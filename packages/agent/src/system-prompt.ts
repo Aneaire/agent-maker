@@ -1,3 +1,5 @@
+import { getAllIntegrationsMap } from "@agent-maker/shared/src/tool-set-registry";
+
 interface AgentConfig {
   name: string;
   systemPrompt: string;
@@ -394,27 +396,7 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
     : "";
 
   // ── Available integrations (show what's NOT enabled yet) ────────────
-  const allIntegrations: Record<string, { label: string; description: string }> = {
-    memory: { label: "Memory", description: "Store and semantically recall information across conversations" },
-    web_search: { label: "Web Search", description: "Search the internet and fetch web pages" },
-    pages: { label: "Pages", description: "Create and manage task boards, notes, spreadsheets, and markdown pages" },
-    rag: { label: "Knowledge Base", description: "Upload documents and search them for answers" },
-    email: { label: "Email", description: "Send emails to users and contacts" },
-    custom_http_tools: { label: "Custom HTTP Tools", description: "Call external APIs with custom configurations" },
-    schedules: { label: "Scheduled Actions", description: "Create recurring or one-time scheduled tasks" },
-    automations: { label: "Automations", description: "Event-driven rules: when X happens → do Y" },
-    timers: { label: "Timers & Delays", description: "Set delayed actions for follow-ups and reminders" },
-    webhooks: { label: "Webhooks", description: "Fire outgoing webhooks to external services" },
-    agent_messages: { label: "Inter-Agent Messaging", description: "Communicate with other agents for delegation" },
-    notion: { label: "Notion", description: "Search, read, create, and update Notion pages and databases" },
-    slack: { label: "Slack", description: "Send messages, read channels, and search in Slack" },
-    discord: { label: "Discord", description: "Send messages, read channels, manage threads, and react in Discord" },
-    google_calendar: { label: "Google Calendar", description: "Schedule meetings, check availability, manage events" },
-    google_drive: { label: "Google Drive", description: "Search, read, create, and manage files in Google Drive" },
-    google_sheets: { label: "Google Sheets", description: "Read, write, and manage spreadsheet data" },
-    image_generation: { label: "Image Generation", description: "Generate images from text prompts using AI" },
-    gmail: { label: "Gmail", description: "Read, search, send, and reply to emails in Gmail" },
-  };
+  const allIntegrations = getAllIntegrationsMap();
 
   const disabledIntegrations = Object.entries(allIntegrations)
     .filter(([key]) => !has(enabled, key))
