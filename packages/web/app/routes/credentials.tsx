@@ -68,6 +68,24 @@ function ServiceIcon({ type, className = "h-4 w-4" }: { type: string; className?
       );
     case "image_gen_nano_banana":
       return <Image className={className} />;
+    case "anthropic":
+      return (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+          <path d="M13.827 3.52h3.603L24 20.48h-3.603l-6.57-16.96zm-7.258 0h3.767L16.906 20.48h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm1.21 5.175l-2.33 6.003h4.66l-2.33-6.003z" />
+        </svg>
+      );
+    case "google_ai":
+      return (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+          <path d="M12 11.366v3.38h5.32c-.235 1.395-.945 2.575-2.01 3.37l3.25 2.52c1.895-1.745 2.99-4.315 2.99-7.365 0-.71-.065-1.39-.185-2.045H12v.14zm-7.134 2.15a7.003 7.003 0 010-3.032L1.59 8.01A11.965 11.965 0 000 12c0 1.935.465 3.765 1.29 5.385l3.576-2.87zM12 4.83c1.77 0 3.355.61 4.605 1.8l3.455-3.455C17.955 1.185 15.235 0 12 0 7.31 0 3.255 2.69 1.59 6.615l3.575 2.87C6.145 6.665 8.835 4.83 12 4.83zM12 19.17c-3.165 0-5.855-1.835-6.835-4.655l-3.575 2.87C3.255 21.31 7.31 24 12 24c3.06 0 5.64-.995 7.55-2.73l-3.25-2.52c-.93.6-2.1.975-3.435.975l-.865-.555z" />
+        </svg>
+      );
+    case "openai":
+      return (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+          <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0L4.1 14.11A4.5 4.5 0 0 1 2.34 7.896zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.724 2.727a4.5 4.5 0 0 1-.679 8.122V12.48a.79.79 0 0 0-.398-.729zm2.0-3.293l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 8.959V6.63a.07.07 0 0 1 .028-.061L14.17 3.86a4.492 4.492 0 0 1 6.67 4.653zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.81a4.492 4.492 0 0 1 7.375-3.453l-.142.08L8.704 6.196a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z" />
+        </svg>
+      );
     default:
       return <KeyRound className={className} />;
   }
@@ -214,7 +232,7 @@ export default function CredentialsPage() {
 
         {/* Create new credential */}
         {showCreate && (
-          <section className="rounded-xl border border-zinc-800/60 glass-card p-6 space-y-4 fade-in-up">
+          <section className="relative z-20 rounded-xl border border-zinc-800/60 glass-card p-6 space-y-4 fade-in-up">
             <h2 className="text-sm font-medium">Create Credential</h2>
             <div>
               <label className="block text-xs text-zinc-500 mb-1.5">Type</label>
@@ -285,7 +303,9 @@ export default function CredentialsPage() {
                   {!isEditing && (
                     <div className="flex items-center justify-end gap-1.5 mt-3 pt-3 border-t border-zinc-800/40">
                       <TestButton credentialId={cred._id as Id<"credentials">} />
-                      {typeDef && typeDef.authMethod !== "oauth2" && (
+                      {typeDef && typeDef.authMethod === "oauth2" ? (
+                        <ReconnectButton typeDef={typeDef} credentialId={cred._id as Id<"credentials">} />
+                      ) : typeDef ? (
                         <button
                           onClick={() => setEditingId(cred._id)}
                           className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1.5 rounded-lg hover:bg-zinc-800"
@@ -294,7 +314,7 @@ export default function CredentialsPage() {
                           <Pencil className="h-3 w-3" />
                           Edit
                         </button>
-                      )}
+                      ) : null}
                       <button
                         onClick={() => handleDelete(cred._id)}
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
@@ -626,6 +646,49 @@ function EditCredentialForm({
         </button>
       </div>
     </div>
+  );
+}
+
+function ReconnectButton({
+  typeDef,
+  credentialId,
+}: {
+  typeDef: CredentialTypeDef;
+  credentialId: Id<"credentials">;
+}) {
+  const reconnectOAuth = useAction(api.credentialActions.reconnectOAuth);
+  const [loading, setLoading] = useState(false);
+
+  async function handleReconnect() {
+    if (!typeDef.oauth2) return;
+    setLoading(true);
+    try {
+      const { authUrl } = await reconnectOAuth({
+        provider: typeDef.type,
+        scopes: typeDef.oauth2.scopes,
+        credentialId,
+      });
+      window.location.href = authUrl;
+    } catch (err: any) {
+      alert(err.message);
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleReconnect}
+      disabled={loading}
+      className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-zinc-800 disabled:opacity-50"
+      title="Re-authorize to refresh tokens"
+    >
+      {loading ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <ExternalLink className="h-3 w-3" />
+      )}
+      Reconnect
+    </button>
   );
 }
 
