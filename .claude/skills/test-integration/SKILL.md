@@ -136,8 +136,29 @@ npx convex run --url ... --admin-key "..." seed:testDiscordAutomation '{}'
 
 ## Important notes
 
-- The Sandbox Test Agent must exist: run `seed:run` first if it's missing
+- The Sandbox Test Agent must exist: run `seed:run` first if it's missing (latest sandbox run: 2026-04-15 for `johnv@hometownroofingtx.com`; slug `sandbox-test-agent`, userId `k973cgefw5ehpy3kz733kzc8r582tbes`)
 - The agent server must be running (`cd packages/agent && bun run dev`) and built with latest code
 - If tools say "not available", the agent server likely needs a restart to pick up new code
-- The `toolSetsNeedingCreds` array in `run-agent.ts` must include the integration key or credentials won't load
+- Which tool-set credentials get fetched at run time is driven by `TOOL_SET_REGISTRY` entries with `requiresCredential: true` (via `getCredentialToolSetKeys()` in `packages/shared/src/tool-set-registry.ts`), NOT a hand-maintained array in `run-agent.ts`. If a new integration's credential isn't loading, check the registry entry.
 - Event field in `agentEvents` is `event`, not `name` — filter on `e.event`
+
+## AI model provider credentials (BYOK)
+
+As of the Vercel AI SDK migration, the three AI provider credential types — `anthropic`, `google_ai`, `openai` — are **user-scoped**, not tool-set-scoped (`compatibleToolSets: []` in `packages/shared/src/credential-types.ts`). They do NOT appear in `agentCredentialLinks`.
+
+Runtime lookup path:
+- `packages/shared/convex/credentials.ts` → `_getUserAiProviderCredential(userId, providerType)` internalQuery
+- `packages/shared/convex/credentialActions.ts` → `getAiProviderApiKey(serverToken, agentId, providerType)` action (gated by `AGENT_SERVER_TOKEN`, resolves the agent's `userId`, decrypts, returns `{ apiKey }`)
+- `packages/agent/src/convex-client.ts` → `AgentConvexClient.getAiProviderApiKey(agentId, providerType)` with 5-min cache
+- `packages/agent/src/model-factory.ts` → `providerTypeForModel(modelId)` maps `claude-*`→`anthropic`, `gemini-*`→`google_ai`, `gpt-*|o1|o3|o4`→`openai`, else→`openrouter`. `getLanguageModel(modelId, { apiKey? })` uses per-call `createAnthropic`/`createGoogleGenerativeAI`/`createOpenAI` when a key is provided; falls back to env-var singletons otherwise.
+- `assertProviderCredentialAvailable()` throws a user-friendly error before streaming when neither BYOK nor env-var fallback is present — surfaces in the assistant message bubble.
+
+Embeddings (memory search + RAG + document processing) also respect BYOK via the agent-owner's `google_ai` credential. The key is fetched once in `run-agent.ts` / `run-api-endpoint.ts` and threaded via `buildMcpServer({ googleApiKey })` into `createMemoryTools` / `createRagTools`, or passed directly into `embedText(text, apiKey?)`. `document-processor.ts` resolves its own key at call time since it runs outside the main agent flow.
+
+**Testing AI provider BYOK:**
+1. Store a provider credential via the UI (`listAiProviders` should return the type).
+2. Ensure the agent's `model` matches the provider (`claude-*` for Anthropic creds, etc.).
+3. Temporarily unset the server env var (e.g. `unset ANTHROPIC_API_KEY` in the agent-server process) and verify the agent still succeeds — that proves the BYOK path is live.
+4. Delete the credential while the env var is unset and confirm the fail-fast error appears in the chat message (not the raw server logs).
+
+**Note on the Agent Creator:** `packages/agent/src/run-creator.ts` intentionally stays on the env-var key — it is the app's meta-tool, not a user agent. Don't expect creator runs to consume user BYOK credentials.

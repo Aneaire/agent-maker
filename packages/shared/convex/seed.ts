@@ -1655,3 +1655,115 @@ export const verifyDiscordGateway = internalQuery({
     };
   },
 });
+
+// ── BYOK (AI model provider credential) tests ──────────────────────────
+
+/** Report which AI provider credentials the sandbox agent's owner has stored
+ * and confirm the new internalQuery round-trips. Does NOT decrypt — just
+ * reports status + type counts. */
+export const verifyByokCredentials = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const agent = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+      .first();
+    if (!agent) return { error: "sandbox agent not found" };
+
+    const AI_TYPES = ["anthropic", "google_ai", "openai"];
+    const creds = await ctx.db
+      .query("credentials")
+      .withIndex("by_user", (q: any) => q.eq("userId", agent.userId))
+      .collect();
+
+    const byType: Record<string, any[]> = {};
+    for (const t of AI_TYPES) byType[t] = [];
+    for (const c of creds) {
+      if (AI_TYPES.includes(c.type)) {
+        byType[c.type].push({
+          name: c.name,
+          status: c.status,
+          lastTestedAt: c.lastTestedAt
+            ? new Date(c.lastTestedAt).toISOString()
+            : null,
+          createdAt: new Date(c.createdAt).toISOString(),
+        });
+      }
+    }
+
+    return {
+      agentId: agent._id,
+      agentModel: (agent as any).model,
+      userId: agent.userId,
+      totalCredentials: creds.length,
+      aiProviderCredentials: byType,
+    };
+  },
+});
+
+/** Switch the sandbox agent's model and dispatch a tiny prompt. Used to
+ * exercise BYOK end-to-end for the given provider. */
+export const testByokGemini = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const originalModel = (agent as any).model;
+    await ctx.db.patch(agent._id, { model: "gemini-2.5-flash" } as any);
+
+    const prompt =
+      "Say exactly: 'BYOK check OK — Gemini.' Do not call any tools.";
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: BYOK Gemini"
+    );
+    return {
+      status: "dispatched",
+      originalModel,
+      switchedTo: "gemini-2.5-flash",
+      note: "After verifying, call seed:restoreSandboxModel to revert.",
+      ...result,
+    };
+  },
+});
+
+/** Test: image generation via Nano Banana (or whichever provider is linked). */
+export const testImageGen = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const user = await ctx.db.get(agent.userId);
+    if (!user) throw new Error("Agent owner not found.");
+
+    const prompt = `Please test image generation end-to-end:
+1. Use generate_image with prompt "a neon-glowing robot holding a clipboard, retro poster style, 1024x1024" and save it to assets.
+2. Report the asset ID and public URL. Keep your final text under 200 chars.`;
+
+    const result = await dispatchAgentPrompt(
+      ctx,
+      agent._id,
+      user._id,
+      prompt,
+      "TEST: Image Gen (Nano Banana)"
+    );
+    return {
+      status: "dispatched",
+      ...result,
+      message: "Image gen test dispatched. Check seed:verifyConversation in ~40s.",
+    };
+  },
+});
+
+export const restoreSandboxModel = internalMutation({
+  args: { model: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const agent = await getSandboxAgent(ctx);
+    const model = args.model ?? "claude-sonnet-4-6";
+    await ctx.db.patch(agent._id, { model } as any);
+    return { restoredTo: model };
+  },
+});
