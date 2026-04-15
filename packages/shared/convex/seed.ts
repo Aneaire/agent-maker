@@ -1758,6 +1758,69 @@ export const testImageGen = internalMutation({
   },
 });
 
+/** Diagnostic: list all agentCredentialLinks for the sandbox agent + the
+ * credential type each one points at. Used to check whether image_generation
+ * (or any tool set) actually has a linked credential in place. */
+/** Diagnostic: call the _getLinkByAgentToolset internalQuery the same way
+ * the image-gen action does, to verify it returns a row when a link exists. */
+export const debugImageGenLinkLookup = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<any> => {
+    const agent = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+      .first();
+    if (!agent) return { error: "sandbox agent not found" };
+
+    // Direct index query
+    const direct = await ctx.db
+      .query("agentCredentialLinks")
+      .withIndex("by_agent_toolset", (q: any) =>
+        q.eq("agentId", agent._id).eq("toolSetName", "image_generation")
+      )
+      .unique();
+
+    return {
+      agentId: agent._id,
+      directLookup: direct
+        ? {
+            linkId: direct._id,
+            credentialId: direct.credentialId,
+            toolSetName: direct.toolSetName,
+          }
+        : null,
+    };
+  },
+});
+
+export const listSandboxCredentialLinks = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const agent = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+      .first();
+    if (!agent) return { error: "sandbox agent not found" };
+
+    const links = await ctx.db
+      .query("agentCredentialLinks")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+
+    const out: any[] = [];
+    for (const link of links) {
+      const cred: any = await ctx.db.get(link.credentialId);
+      out.push({
+        toolSetName: link.toolSetName,
+        credentialType: cred?.type ?? "(unknown)",
+        credentialName: cred?.name ?? null,
+        status: cred?.status ?? null,
+      });
+    }
+    return { agentId: agent._id, linkCount: links.length, links: out };
+  },
+});
+
 export const restoreSandboxModel = internalMutation({
   args: { model: v.optional(v.string()) },
   handler: async (ctx, args) => {

@@ -210,6 +210,160 @@ async function generateWithNanoBanana(
   throw new Error("Nano Banana image generation timed out");
 }
 
+/** Resolve the API key for an image-gen provider in this priority order:
+ *   1. Credential linked to the image_generation tool set on this agent,
+ *      accepted only if it matches the requested provider (Gemini-family
+ *      types → gemini provider; Nano Banana type → nano_banana provider).
+ *   2. For Gemini only: the owner's user-scoped `google_ai` credential
+ *      (same key that powers chat BYOK — avoid forcing users to store it twice).
+ *   3. For Gemini only: process.env.GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY.
+ * Returns undefined when nothing is configured. */
+async function resolveImageGenApiKey(
+  ctx: any,
+  agentId: any,
+  providerKey: string
+): Promise<string | undefined> {
+  // Different credential types store the key under different field names
+  // (geminiApiKey / nanoBananaApiKey / apiKey). Try each known variant.
+  const tryDecryptApiKey = (cred: any): string | undefined => {
+    if (!cred?.encryptedData || !cred?.iv) return undefined;
+    try {
+      const data = JSON.parse(decrypt(cred.encryptedData, cred.iv));
+      const k =
+        data?.apiKey ??
+        data?.geminiApiKey ??
+        data?.nanoBananaApiKey ??
+        data?.key;
+      return typeof k === "string" && k.length > 0 ? k : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // A linked credential is only usable when it matches the requested provider —
+  // otherwise a Nano Banana key could be handed to the Gemini API (or vice
+  // versa), which would fail with a confusing 401 from the wrong service.
+  const credTypeMatchesProvider = (credType: string, provider: string) => {
+    if (provider === "gemini") {
+      return credType === "image_gen_gemini" || credType === "google_ai";
+    }
+    if (provider === "nano_banana") {
+      return credType === "image_gen_nano_banana";
+    }
+    return false;
+  };
+
+  // (1) Linked image-generation credential
+  const link: any = await ctx.runQuery(internal.credentials._getLinkByAgentToolset, {
+    agentId,
+    toolSetName: "image_generation",
+  });
+  if (link) {
+    const cred: any = await ctx.runQuery(internal.credentials._get, {
+      credentialId: link.credentialId,
+    });
+    if (cred && credTypeMatchesProvider(cred.type, providerKey)) {
+      const linkedKey = tryDecryptApiKey(cred);
+      if (linkedKey) return linkedKey;
+    }
+  }
+
+  // (2 / 3) Gemini-only fallbacks. Nano Banana has no sensible fallback —
+  // it's a standalone API with no other credential type.
+  if (providerKey === "gemini") {
+    const agent: any = await ctx.runQuery(internal.agents._get, { agentId });
+    if (agent?.userId) {
+      const userCred: any = await ctx.runQuery(
+        internal.credentials._getUserAiProviderCredential,
+        { userId: agent.userId, providerType: "google_ai" }
+      );
+      const userKey = tryDecryptApiKey(userCred);
+      if (userKey) return userKey;
+    }
+    return (
+      process.env.GEMINI_API_KEY ??
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
+      undefined
+    );
+  }
+
+  return undefined;
+}
+
+/** Diagnostic: report which fallback layer supplies the API key for a given
+ * agent + provider, without exposing the key itself. Used by seed tests to
+ * verify the chain selects correctly after BYOK was added. */
+export const debugResolveImageGenKeySource = action({
+  args: {
+    agentId: v.id("agents"),
+    providerKey: v.string(),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    source: "linked_credential" | "user_google_ai" | "env" | "none";
+    keyLength: number | null;
+  }> => {
+    const tryDecryptApiKey = (cred: any): string | undefined => {
+      if (!cred?.encryptedData || !cred?.iv) return undefined;
+      try {
+        const data = JSON.parse(decrypt(cred.encryptedData, cred.iv));
+        const k =
+          data?.apiKey ??
+          data?.geminiApiKey ??
+          data?.nanoBananaApiKey ??
+          data?.key;
+        return typeof k === "string" && k.length > 0 ? k : undefined;
+      } catch {
+        return undefined;
+      }
+    };
+    const credTypeMatchesProvider = (credType: string, provider: string) => {
+      if (provider === "gemini") {
+        return credType === "image_gen_gemini" || credType === "google_ai";
+      }
+      if (provider === "nano_banana") {
+        return credType === "image_gen_nano_banana";
+      }
+      return false;
+    };
+
+    const link: any = await ctx.runQuery(
+      internal.credentials._getLinkByAgentToolset,
+      { agentId: args.agentId, toolSetName: "image_generation" }
+    );
+    if (link) {
+      const cred: any = await ctx.runQuery(internal.credentials._get, {
+        credentialId: link.credentialId,
+      });
+      if (cred && credTypeMatchesProvider(cred.type, args.providerKey)) {
+        const k = tryDecryptApiKey(cred);
+        if (k) return { source: "linked_credential", keyLength: k.length };
+      }
+    }
+
+    if (args.providerKey === "gemini") {
+      const agent: any = await ctx.runQuery(internal.agents._get, {
+        agentId: args.agentId,
+      });
+      if (agent?.userId) {
+        const userCred: any = await ctx.runQuery(
+          internal.credentials._getUserAiProviderCredential,
+          { userId: agent.userId, providerType: "google_ai" }
+        );
+        const k = tryDecryptApiKey(userCred);
+        if (k) return { source: "user_google_ai", keyLength: k.length };
+      }
+      const env =
+        process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (env) return { source: "env", keyLength: env.length };
+    }
+
+    return { source: "none", keyLength: null };
+  },
+});
+
 // ── Main generate action (called from the client UI) ──────────────────
 
 export const generate = action({
@@ -229,55 +383,18 @@ export const generate = action({
     const dims = ASPECT_RATIO_DIMENSIONS[args.aspectRatio] ?? ASPECT_RATIO_DIMENSIONS["1:1"];
 
     // Resolve API key from credentials or env
-    let apiKey: string | undefined;
-
-    if (providerKey === "gemini") {
-      const link: any = await ctx.runQuery(internal.credentials._getLinkByAgentToolset, {
-        agentId: args.agentId,
-        toolSetName: "image_generation",
-      });
-
-      if (link) {
-        const cred: any = await ctx.runQuery(internal.credentials._get, {
-          credentialId: link.credentialId,
-        });
-        if (cred && cred.type === "image_gen_gemini") {
-          try {
-            const data = JSON.parse(decrypt(cred.encryptedData, cred.iv));
-            apiKey = data.apiKey;
-          } catch {}
-        }
+    const apiKey = await resolveImageGenApiKey(ctx, args.agentId, providerKey);
+    if (!apiKey) {
+      if (providerKey === "gemini") {
+        throw new Error(
+          "No Gemini API key available. Add a Google AI or Gemini Imagen credential in Settings → Credentials, or link one to the Image Generation tool set."
+        );
       }
-
-      if (!apiKey) {
-        apiKey = process.env.GEMINI_API_KEY;
+      if (providerKey === "nano_banana") {
+        throw new Error(
+          "No Nano Banana API key available. Add a Nano Banana credential in Settings → Credentials and link it to the Image Generation tool set."
+        );
       }
-
-      if (!apiKey) {
-        throw new Error("Gemini API key not configured");
-      }
-    } else if (providerKey === "nano_banana") {
-      const link: any = await ctx.runQuery(internal.credentials._getLinkByAgentToolset, {
-        agentId: args.agentId,
-        toolSetName: "image_generation",
-      });
-
-      if (link) {
-        const cred: any = await ctx.runQuery(internal.credentials._get, {
-          credentialId: link.credentialId,
-        });
-        if (cred && cred.type === "image_gen_nano_banana") {
-          try {
-            const data = JSON.parse(decrypt(cred.encryptedData, cred.iv));
-            apiKey = data.apiKey;
-          } catch {}
-        }
-      }
-
-      if (!apiKey) {
-        throw new Error("Nano Banana API key not configured");
-      }
-    } else {
       throw new Error(`Unknown provider: ${providerKey}`);
     }
 
