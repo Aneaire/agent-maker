@@ -1,6 +1,10 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 
+// Simple in-process cache shared across creator runs (same TTL as main client).
+const credentialCache = new Map<string, { value: string | null; expiresAt: number }>();
+const CREDENTIAL_CACHE_TTL_MS = 5 * 60 * 1000;
+
 /**
  * Convex client for the Creator agent — talks to creatorApi endpoints.
  */
@@ -60,12 +64,17 @@ export class CreatorConvexClient {
     });
   }
 
-  async getSessionMode(conversationId: string): Promise<"create" | "edit"> {
+  async getSessionInfo(
+    conversationId: string
+  ): Promise<{ mode: "create" | "edit"; creatorModel: string | null }> {
     const session = await this.client.query(api.creatorApi.getSessionByConversation, {
       serverToken: this.serverToken,
       conversationId: conversationId as any,
     });
-    return (session?.mode as "create" | "edit") ?? "create";
+    return {
+      mode: (session?.mode as "create" | "edit") ?? "create",
+      creatorModel: session?.creatorModel ?? null,
+    };
   }
 
   async findTabByLabel(agentId: string, label: string): Promise<string | null> {
@@ -153,5 +162,42 @@ export class CreatorConvexClient {
       conversationId: conversationId as any,
       title,
     });
+  }
+
+  /** Fetch the user's stored API key for the given AI provider type.
+   * Returns null if not configured (caller falls back to server env var). */
+  async getAiProviderApiKey(
+    agentId: string,
+    providerType: string
+  ): Promise<string | null> {
+    const cacheKey = `ai:${agentId}:${providerType}`;
+    const cached = credentialCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
+    let apiKey: string | null = null;
+    try {
+      const result = await this.client.action(
+        api.credentialActions.getAiProviderApiKey,
+        {
+          serverToken: this.serverToken,
+          agentId: agentId as any,
+          providerType,
+        }
+      );
+      apiKey = result?.apiKey ?? null;
+    } catch (err: any) {
+      console.error(
+        `[creator-credential] getAiProviderApiKey(${providerType}) failed:`,
+        err?.message ?? err
+      );
+    }
+
+    credentialCache.set(cacheKey, {
+      value: apiKey,
+      expiresAt: Date.now() + CREDENTIAL_CACHE_TTL_MS,
+    });
+    return apiKey;
   }
 }

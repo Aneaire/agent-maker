@@ -2,6 +2,7 @@ import type { CoreMessage, Tool } from "ai";
 import { CreatorConvexClient } from "./creator-convex-client.js";
 import { createCreatorTools } from "./tools/creator-tools.js";
 import { runWithAiSdk } from "./run-with-ai-sdk.js";
+import { providerTypeForModel, assertProviderCredentialAvailable } from "./model-factory.js";
 
 export interface RunCreatorParams {
   agentId: string;
@@ -260,7 +261,8 @@ export async function runCreator(params: RunCreatorParams) {
 
     const planInfo = await convexClient.getUserPlan(params.agentId);
     const userPlan = planInfo?.plan ?? "free";
-    const sessionMode = await convexClient.getSessionMode(params.conversationId);
+    const sessionInfo = await convexClient.getSessionInfo(params.conversationId);
+    const sessionMode = sessionInfo.mode;
 
     // Build creator tools into a flat Record<string, Tool>
     const toolArray = createCreatorTools(
@@ -275,17 +277,26 @@ export async function runCreator(params: RunCreatorParams) {
       (sessionMode === "edit" ? EDITOR_SYSTEM_PROMPT : CREATOR_SYSTEM_PROMPT) +
       conversationHistorySection;
 
+    // Use the model the user selected for this session, defaulting to Sonnet.
+    const creatorModelId = sessionInfo.creatorModel ?? "claude-sonnet-4-6";
+    const providerType = providerTypeForModel(creatorModelId);
+    const byokApiKey = providerType
+      ? await convexClient.getAiProviderApiKey(params.agentId, providerType)
+      : null;
+    assertProviderCredentialAvailable(creatorModelId, byokApiKey);
+
     console.log(`[creator] Starting creator run for agent=${params.agentId}`);
 
     const messages: CoreMessage[] = [{ role: "user", content: prompt }];
 
     await runWithAiSdk({
       flusher,
-      modelId: "claude-sonnet-4-6",
+      modelId: creatorModelId,
       system: systemPrompt,
       messages,
       tools,
       maxSteps: 10,
+      apiKey: byokApiKey,
     });
 
     if (!flusher.stopped) {
