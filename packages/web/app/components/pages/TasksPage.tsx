@@ -441,6 +441,11 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                     ))}
                   </div>
                 )}
+                {activeTask.description && (
+                  <p className="text-xs text-zinc-400 mt-1.5 line-clamp-2 leading-relaxed">
+                    {activeTask.description.replace(/[#*`>_~\[\]]/g, "").slice(0, 100)}
+                  </p>
+                )}
                 {activeTask.priority && (
                   <PriorityBadge priority={activeTask.priority} />
                 )}
@@ -892,21 +897,14 @@ function SortableTaskCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group border border-rule bg-surface hover:bg-surface-sunken/40 transition-all duration-200 cursor-default ${
+      {...attributes}
+      {...listeners}
+      className={`group border border-rule bg-surface hover:bg-surface-sunken/40 transition-all duration-200 cursor-grab active:cursor-grabbing ${
         isDragging ? "opacity-40 scale-95" : ""
       }`}
     >
       <div className="p-3.5">
         <div className="flex items-start gap-2">
-          {/* Drag handle */}
-          <button
-            {...attributes}
-            {...listeners}
-            className="mt-0.5 opacity-0 group-hover:opacity-100 p-0.5 text-ink-faint hover:text-ink-muted cursor-grab active:cursor-grabbing transition-all shrink-0"
-          >
-            <GripVertical className="h-3.5 w-3.5" />
-          </button>
-
           <div className="flex-1 min-w-0">
             <p
               className="text-sm text-ink leading-snug cursor-pointer transition-colors"
@@ -940,7 +938,7 @@ function SortableTaskCard({
             {task.priority && <PriorityBadge priority={task.priority} />}
           </div>
 
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0" onPointerDown={(e) => e.stopPropagation()}>
             {hasMeta && (
               <button
                 onClick={onToggleExpand}
