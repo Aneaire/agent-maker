@@ -17,7 +17,6 @@ export function ChatMessageList({
   const containerRef = useRef<HTMLDivElement>(null);
   const userScrolledUp = useRef(false);
 
-  // Track if the user has manually scrolled away from the bottom
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -26,18 +25,14 @@ export function ChatMessageList({
     userScrolledUp.current = distanceFromBottom > 200;
   }, []);
 
-  // Auto-scroll to bottom on new messages or content updates
   useEffect(() => {
     const container = containerRef.current;
     if (!container || userScrolledUp.current) return;
-
-    // Use scrollTop instead of scrollIntoView to avoid snap-to-top behavior
     requestAnimationFrame(() => {
       container.scrollTop = container.scrollHeight;
     });
   }, [messages]);
 
-  // Always scroll to bottom on initial load
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
@@ -47,13 +42,14 @@ export function ChatMessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
-        Send a message to start the conversation
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-sm text-ink-faint">
+          Send a message to start the conversation.
+        </p>
       </div>
     );
   }
 
-  // Only show suggestions on the very last assistant message that is "done"
   const lastMsg = messages[messages.length - 1];
   const showSuggestionsFor =
     lastMsg?.role === "assistant" && lastMsg?.status === "done"
@@ -64,9 +60,9 @@ export function ChatMessageList({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto px-4 py-6"
+      className="flex-1 overflow-y-auto px-6 py-8"
     >
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-3xl mx-auto space-y-6">
         {messages.map((msg) => (
           <ChatMessage
             key={msg._id}

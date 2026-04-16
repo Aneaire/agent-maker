@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import {
   ArrowUp, Square, MessageSquare, ChevronDown, ChevronUp,
-  Eye, Brain, ImagePlus, Search, Lock, Check, Sparkles,
+  Eye, Brain, Search, Check, Sparkles,
   Paperclip, X, FileText, Image as ImageIcon, Loader2,
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
@@ -38,14 +38,6 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-function NanoBananaIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-1.5-1.5L11 14l-2.5-2.5L10 10l2 2 4-4 1.5 1.5L12 15l-1 2z" />
-    </svg>
-  );
-}
-
 function OpenAIIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -68,55 +60,17 @@ interface ModelEntry {
   type: "chat";
 }
 
-
 const CHAT_MODELS: ModelEntry[] = [
-  {
-    value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6",
-    description: "Balanced speed and capability",
-    group: "Claude", tier: "$$", capabilities: ["vision", "thinking"], type: "chat",
-  },
-  {
-    value: "claude-opus-4-6", label: "Claude Opus 4.6",
-    description: "Most capable Claude model",
-    group: "Claude", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat",
-  },
-  {
-    value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5",
-    description: "Fastest and most affordable",
-    group: "Claude", tier: "$", capabilities: ["vision"], type: "chat",
-  },
-  {
-    value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro",
-    description: "Most capable Gemini model",
-    group: "Gemini", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat",
-  },
-  {
-    value: "gemini-3-flash-preview", label: "Gemini 3 Flash",
-    description: "Lightning-fast with agentic capability",
-    group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat",
-  },
-  {
-    value: "gemini-2.5-flash", label: "Gemini 2.5 Flash",
-    description: "Balanced Gemini model",
-    group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat",
-  },
-  {
-    value: "gpt-4o", label: "GPT-4o",
-    description: "OpenAI flagship multimodal model",
-    group: "OpenAI", tier: "$$$", capabilities: ["vision"], type: "chat",
-  },
-  {
-    value: "gpt-4o-mini", label: "GPT-4o Mini",
-    description: "Fast and affordable OpenAI model",
-    group: "OpenAI", tier: "$", capabilities: ["vision"], type: "chat",
-  },
-  {
-    value: "o4-mini", label: "o4-mini",
-    description: "OpenAI fast reasoning model",
-    group: "OpenAI", tier: "$$", capabilities: ["thinking"], type: "chat",
-  },
+  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", description: "Balanced speed and capability", group: "Claude", tier: "$$", capabilities: ["vision", "thinking"], type: "chat" },
+  { value: "claude-opus-4-6", label: "Claude Opus 4.6", description: "Most capable Claude model", group: "Claude", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat" },
+  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", description: "Fastest and most affordable", group: "Claude", tier: "$", capabilities: ["vision"], type: "chat" },
+  { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", description: "Most capable Gemini model", group: "Gemini", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat" },
+  { value: "gemini-3-flash-preview", label: "Gemini 3 Flash", description: "Lightning-fast with agentic capability", group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Balanced Gemini model", group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat" },
+  { value: "gpt-4o", label: "GPT-4o", description: "OpenAI flagship multimodal model", group: "OpenAI", tier: "$$$", capabilities: ["vision"], type: "chat" },
+  { value: "gpt-4o-mini", label: "GPT-4o Mini", description: "Fast and affordable OpenAI model", group: "OpenAI", tier: "$", capabilities: ["vision"], type: "chat" },
+  { value: "o4-mini", label: "o4-mini", description: "OpenAI fast reasoning model", group: "OpenAI", tier: "$$", capabilities: ["thinking"], type: "chat" },
 ];
-
 
 function getModelLabel(value: string) {
   return CHAT_MODELS.find((m) => m.value === value)?.label ?? value;
@@ -126,33 +80,17 @@ function getProviderIcon(group: string) {
   if (group === "Claude") return AnthropicIcon;
   if (group === "Gemini") return GoogleIcon;
   if (group === "OpenAI") return OpenAIIcon;
-  if (group === "Nano Banana") return NanoBananaIcon;
   return AnthropicIcon;
-}
-
-function TierBadge({ tier }: { tier: string }) {
-  const color =
-    tier === "$$$" ? "text-amber-400" :
-    tier === "$$" ? "text-zinc-400" :
-    "text-zinc-600";
-  return <span className={`text-[10px] font-mono ${color}`}>{tier}</span>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 const ACCEPTED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-  "application/json",
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  "application/pdf", "text/plain", "text/markdown", "text/csv", "application/json",
 ];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes}B`;
@@ -160,7 +98,7 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// ── Model Selector (all-in-one with open/close managed internally) ──────
+// ── Model Selector ──────────────────────────────────────────────────────
 
 function ModelDropdown({
   model,
@@ -187,9 +125,7 @@ function ModelDropdown({
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        close();
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) close();
     };
     const id = setTimeout(() => document.addEventListener("click", handler), 0);
     return () => {
@@ -226,11 +162,11 @@ function ModelDropdown({
     return Array.from(map.entries());
   }, [visibleModels]);
 
-  const filterTabs: { key: typeof filter; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { key: "all", label: "All", icon: Sparkles },
-    { key: "Claude", label: "Claude", icon: AnthropicIcon },
-    { key: "Gemini", label: "Gemini", icon: GoogleIcon },
-    { key: "OpenAI", label: "OpenAI", icon: OpenAIIcon },
+  const filterTabs: { key: typeof filter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "Claude", label: "Claude" },
+    { key: "Gemini", label: "Gemini" },
+    { key: "OpenAI", label: "OpenAI" },
   ];
 
   return (
@@ -239,56 +175,53 @@ function ModelDropdown({
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className="flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-lg text-[11px] font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80 disabled:opacity-50 transition-all cursor-pointer"
+        className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.1em] font-semibold text-ink-muted hover:text-ink px-2 py-1 disabled:opacity-50 transition-colors"
       >
         {getModelLabel(model)}
-        {open ? <ChevronUp className="h-2.5 w-2.5 text-zinc-600" /> : <ChevronDown className="h-2.5 w-2.5 text-zinc-600" />}
+        {open
+          ? <ChevronUp className="h-2.5 w-2.5 text-ink-faint" strokeWidth={2} />
+          : <ChevronDown className="h-2.5 w-2.5 text-ink-faint" strokeWidth={2} />}
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-[370px] h-[420px] flex rounded-2xl border border-zinc-800 bg-zinc-950 backdrop-blur-2xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
-          {/* Sidebar */}
-          <div className="flex flex-col items-center gap-1 py-3 px-1.5 border-r border-zinc-800/60 bg-zinc-950/80">
+        <div className="absolute bottom-full left-0 mb-2 w-[370px] h-[420px] flex bg-surface-raised border border-rule shadow-xl shadow-surface-inverse/10 z-50 overflow-hidden rise">
+          <div className="flex flex-col py-3 px-2 border-r border-rule bg-surface-sunken/40 text-2xs uppercase tracking-[0.1em] font-semibold">
             {filterTabs.map((tab) => {
-              const Icon = tab.icon;
               const isActive = filter === tab.key;
               return (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setFilter(tab.key)}
-                  className={`relative flex items-center justify-center h-9 w-9 rounded-xl transition-all ${
-                    isActive ? "bg-neon-400/10 text-neon-400" : "text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60"
+                  className={`px-2 py-2 text-left transition-colors ${
+                    isActive ? "text-accent" : "text-ink-faint hover:text-ink-muted"
                   }`}
-                  title={tab.label}
                 >
-                  {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full bg-neon-400" />}
-                  <Icon className="h-4 w-4" />
+                  {tab.label}
                 </button>
               );
             })}
           </div>
 
-          {/* Content */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <div className="px-3 pt-3 pb-2">
-              <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2">
-                <Search className="h-3.5 w-3.5 text-zinc-600 shrink-0" />
+            <div className="px-3 py-2.5 border-b border-rule">
+              <div className="flex items-center gap-2 border-b border-rule-strong pb-1">
+                <Search className="h-3.5 w-3.5 text-ink-faint shrink-0" strokeWidth={1.5} />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search models..."
+                  placeholder="Search models"
                   autoFocus
-                  className="flex-1 bg-transparent text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
+                  className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 pb-2">
+            <div className="flex-1 overflow-y-auto py-1">
               {groups.map(([group, models]) => (
                 <div key={group}>
-                  <div className="px-2 py-1 text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">{group}</div>
+                  <div className="eyebrow px-4 py-2">{group}</div>
                   {models.map((m) => {
                     const isSelected = m.value === model;
                     const ProviderIcon = getProviderIcon(m.group);
@@ -297,24 +230,38 @@ function ModelDropdown({
                         key={m.value}
                         type="button"
                         onClick={() => onModelChange(m.value)}
-                        className={`w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all mb-0.5 ${
-                          isSelected ? "bg-neon-400/8 ring-1 ring-neon-400/20" : "hover:bg-zinc-900/80"
+                        className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors ${
+                          isSelected ? "bg-surface-sunken" : "hover:bg-surface-sunken/60"
                         }`}
                       >
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-neon-400/10" : "bg-zinc-900"}`}>
-                          <ProviderIcon className={`h-4 w-4 ${isSelected ? "text-neon-400" : "text-zinc-500"}`} />
-                        </div>
+                        <ProviderIcon
+                          className={`h-4 w-4 shrink-0 mt-0.5 ${
+                            isSelected ? "text-accent" : "text-ink-faint"
+                          }`}
+                        />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[13px] font-medium leading-tight ${isSelected ? "text-zinc-100" : "text-zinc-300"}`}>{m.label}</span>
-                            <TierBadge tier={m.tier} />
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm font-medium text-ink leading-tight">
+                              {m.label}
+                            </span>
+                            <span className="font-mono text-2xs text-ink-faint">
+                              {m.tier}
+                            </span>
                           </div>
-                          <p className="text-[11px] mt-0.5 leading-tight text-zinc-500">{m.description}</p>
+                          <p className="text-2xs text-ink-muted mt-0.5 leading-snug">
+                            {m.description}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {m.capabilities.includes("vision") && <Eye className={`h-3.5 w-3.5 ${isSelected ? "text-blue-400" : "text-zinc-700"}`} />}
-                          {m.capabilities.includes("thinking") && <Brain className={`h-3.5 w-3.5 ${isSelected ? "text-pink-400" : "text-zinc-700"}`} />}
-                          {isSelected && <Check className="h-3.5 w-3.5 text-neon-400" />}
+                        <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                          {m.capabilities.includes("vision") && (
+                            <Eye className="h-3 w-3 text-ink-faint" strokeWidth={1.5} />
+                          )}
+                          {m.capabilities.includes("thinking") && (
+                            <Brain className="h-3 w-3 text-ink-faint" strokeWidth={1.5} />
+                          )}
+                          {isSelected && (
+                            <Check className="h-3 w-3 text-accent" strokeWidth={2} />
+                          )}
                         </div>
                       </button>
                     );
@@ -322,7 +269,9 @@ function ModelDropdown({
                 </div>
               ))}
               {visibleModels.length === 0 && (
-                <div className="text-center py-6 text-xs text-zinc-600">No models found</div>
+                <div className="text-center py-6 text-sm text-ink-faint">
+                  No models found
+                </div>
               )}
             </div>
           </div>
@@ -374,25 +323,25 @@ function ImagePickerButton({
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
         title="Reference a generated image"
-        className="flex items-center justify-center h-7 w-7 rounded-lg text-zinc-600 hover:text-violet-400 hover:bg-zinc-800/80 disabled:opacity-40 transition-all"
+        className="flex items-center justify-center h-7 w-7 text-ink-faint hover:text-ink disabled:opacity-40 transition-colors"
       >
-        <ImageIcon className="h-3.5 w-3.5" />
+        <ImageIcon className="h-3.5 w-3.5" strokeWidth={1.5} />
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-72 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 z-50 overflow-hidden">
-          <div className="px-3 pt-3 pb-2 border-b border-zinc-800/60">
-            <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
-              Generated Images
-            </p>
+        <div className="absolute bottom-full left-0 mb-2 w-72 bg-surface-raised border border-rule shadow-xl shadow-surface-inverse/10 z-50 overflow-hidden rise">
+          <div className="px-3 py-2 border-b border-rule">
+            <p className="eyebrow">Generated images</p>
           </div>
           <div className="p-2 max-h-56 overflow-y-auto">
             {images === undefined ? (
               <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-zinc-600" />
+                <Loader2 className="h-4 w-4 animate-spin text-ink-faint" strokeWidth={1.5} />
               </div>
             ) : imageAssets.length === 0 ? (
-              <p className="text-xs text-zinc-600 text-center py-4">No images generated yet</p>
+              <p className="text-sm text-ink-faint text-center py-4">
+                No images generated yet
+              </p>
             ) : (
               <div className="grid grid-cols-3 gap-1.5">
                 {imageAssets.map((asset: any) => (
@@ -409,14 +358,14 @@ function ImagePickerButton({
                       });
                       setOpen(false);
                     }}
-                    className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 hover:border-violet-500/50 hover:ring-1 hover:ring-violet-500/30 transition-all group"
+                    className="relative aspect-square overflow-hidden hover:outline hover:outline-1 hover:outline-accent transition-all group"
                   >
                     <img
                       src={asset.resolvedUrl}
                       alt={asset.name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+                    <div className="absolute inset-0 bg-surface-inverse/0 group-hover:bg-surface-inverse/20 transition-colors" />
                   </button>
                 ))}
               </div>
@@ -458,11 +407,9 @@ export function ChatInput({
   const [dragOver, setDragOver] = useState(false);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
-  // Credential-based model filtering: only show models for providers the user has credentials for.
-  // If no AI provider credentials are configured, show all models (backward-compatible).
   const aiProviders = useQuery(api.credentials.listAiProviders);
   const credentialFilteredModels = useMemo(() => {
-    if (!aiProviders || aiProviders.length === 0) return undefined; // no filter — show all
+    if (!aiProviders || aiProviders.length === 0) return undefined;
     const GROUP_TO_CRED: Record<string, string> = {
       Claude: "anthropic",
       Gemini: "google_ai",
@@ -476,7 +423,6 @@ export function ChatInput({
       .map((m) => m.value);
   }, [aiProviders]);
 
-  // Merge agent-level enabledModels with credential-level filtering
   const effectiveEnabledModels = useMemo(() => {
     if (!credentialFilteredModels && !enabledModels) return undefined;
     const base = enabledModels ?? CHAT_MODELS.map((m) => m.value);
@@ -545,7 +491,6 @@ export function ChatInput({
     });
   }
 
-  // Clean up preview URLs on unmount
   useEffect(() => {
     return () => {
       attachments.forEach((a) => {
@@ -610,16 +555,16 @@ export function ChatInput({
 
   if (hasActiveQuestions && !showManualInput) {
     return (
-      <div className="p-4 pb-5">
+      <div className="border-t border-rule px-6 py-4">
         <div className="max-w-3xl mx-auto flex justify-center">
           <button
             onClick={() => {
               setShowManualInput(true);
               setTimeout(() => textareaRef.current?.focus(), 50);
             }}
-            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-600 bg-zinc-900/50 hover:bg-zinc-900 transition-all"
+            className="inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink transition-colors"
           >
-            <MessageSquare className="h-3.5 w-3.5" />
+            <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
             Type your own answer
           </button>
         </div>
@@ -630,25 +575,24 @@ export function ChatInput({
   const hasContent = value.trim().length > 0 || attachments.length > 0;
 
   return (
-    <div className="p-4 pb-5">
+    <div className="border-t border-rule px-6 py-4">
       <div className="max-w-3xl mx-auto">
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`relative rounded-2xl border bg-zinc-900/80 backdrop-blur-sm transition-all duration-300 shadow-inner shadow-black/10 ${
+          className={`relative bg-surface-raised border transition-colors ${
             dragOver
-              ? "border-neon-400/50 shadow-lg shadow-neon-400/10 bg-neon-400/5"
+              ? "border-accent bg-accent-soft/30"
               : hasContent
-                ? "border-neon-400/30 shadow-lg shadow-neon-400/5"
-                : "border-zinc-800 hover:border-zinc-700"
+                ? "border-rule-strong"
+                : "border-rule hover:border-rule-strong"
           }`}
         >
-          {/* Drag overlay */}
           {dragOver && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-2xl z-10 pointer-events-none">
-              <div className="flex items-center gap-2 text-neon-400 text-sm font-medium">
-                <Paperclip className="h-4 w-4" />
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <div className="inline-flex items-center gap-2 text-accent text-sm font-medium">
+                <Paperclip className="h-4 w-4" strokeWidth={1.5} />
                 Drop files here
               </div>
             </div>
@@ -658,35 +602,32 @@ export function ChatInput({
           {attachments.length > 0 && (
             <div className="flex items-center gap-2 px-4 pt-3 pb-1 overflow-x-auto">
               {attachments.map((att, i) => (
-                <div
-                  key={i}
-                  className="relative shrink-0 group/att"
-                >
+                <div key={i} className="relative shrink-0 group/att">
                   {att.previewUrl ? (
                     <img
                       src={att.previewUrl}
                       alt={att.fileName}
-                      className="h-16 w-16 rounded-lg object-cover border border-zinc-700"
+                      className="h-16 w-16 object-cover border border-rule"
                     />
                   ) : (
-                    <div className="h-16 w-20 rounded-lg border border-zinc-700 bg-zinc-800/60 flex flex-col items-center justify-center gap-1 px-1">
-                      <FileText className="h-4 w-4 text-zinc-500" />
-                      <span className="text-[9px] text-zinc-500 truncate w-full text-center">
+                    <div className="h-16 w-20 border border-rule bg-surface-sunken flex flex-col items-center justify-center gap-1 px-1">
+                      <FileText className="h-4 w-4 text-ink-faint" strokeWidth={1.5} />
+                      <span className="text-2xs text-ink-faint truncate w-full text-center">
                         {att.fileName}
                       </span>
                     </div>
                   )}
                   <button
                     onClick={() => removeAttachment(i)}
-                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity hover:bg-red-900/60 hover:border-red-700"
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-surface-raised border border-rule flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity hover:border-danger"
                   >
-                    <X className="h-3 w-3 text-zinc-400" />
+                    <X className="h-3 w-3 text-ink-muted" strokeWidth={1.5} />
                   </button>
                 </div>
               ))}
               {uploading && (
-                <div className="h-16 w-16 rounded-lg border border-zinc-700 bg-zinc-800/40 flex items-center justify-center shrink-0">
-                  <Loader2 className="h-4 w-4 text-zinc-500 animate-spin" />
+                <div className="h-16 w-16 border border-rule bg-surface-sunken flex items-center justify-center shrink-0">
+                  <Loader2 className="h-4 w-4 text-ink-faint animate-spin" strokeWidth={1.5} />
                 </div>
               )}
             </div>
@@ -697,13 +638,13 @@ export function ChatInput({
             value={value}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Message..."
+            placeholder="Message"
             disabled={isProcessing}
             rows={1}
-            className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-50"
           />
 
-          <div className="flex items-center justify-between px-3 pb-2.5">
+          <div className="flex items-center justify-between px-3 pb-2.5 border-t border-rule pt-2">
             <div className="flex items-center gap-1">
               {model && onModelChange ? (
                 <ModelDropdown
@@ -716,18 +657,17 @@ export function ChatInput({
                 <div />
               )}
 
-              {/* Attach button */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessing || uploading}
-                className="flex items-center justify-center h-7 w-7 rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/80 disabled:opacity-40 transition-all"
+                className="flex items-center justify-center h-7 w-7 text-ink-faint hover:text-ink disabled:opacity-40 transition-colors"
                 title="Attach files"
               >
                 {uploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
                 ) : (
-                  <Paperclip className="h-3.5 w-3.5" />
+                  <Paperclip className="h-3.5 w-3.5" strokeWidth={1.5} />
                 )}
               </button>
               <input
@@ -739,7 +679,6 @@ export function ChatInput({
                 className="hidden"
               />
 
-              {/* Image picker — only shown when agent has generated images */}
               {agentId && (
                 <ImagePickerButton
                   agentId={agentId}
@@ -752,29 +691,29 @@ export function ChatInput({
             {isProcessing ? (
               <button
                 onClick={onStop}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon-400 text-zinc-950 hover:bg-neon-300 transition-all"
+                className="flex h-8 w-8 items-center justify-center bg-ink text-ink-inverse hover:bg-ink-muted rounded-sm transition-colors"
                 title="Stop generating"
               >
-                <Square className="h-3.5 w-3.5 fill-current" />
+                <Square className="h-3 w-3 fill-current" />
               </button>
             ) : (
               <button
                 onClick={handleSubmit}
                 disabled={!hasContent}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 send-bounce ${
+                className={`flex h-8 w-8 items-center justify-center rounded-sm transition-colors send-bounce ${
                   hasContent
-                    ? "bg-neon-400 text-zinc-950 hover:bg-neon-300 glow-neon-sm"
-                    : "bg-zinc-800 text-zinc-600 cursor-default"
+                    ? "bg-ink text-ink-inverse hover:bg-ink-muted"
+                    : "bg-surface-sunken text-ink-faint cursor-default"
                 }`}
               >
-                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+                <ArrowUp className="h-4 w-4" strokeWidth={2} />
               </button>
             )}
           </div>
         </div>
 
-        <p className="text-center text-[10px] text-zinc-700 mt-2.5 select-none">
-          Press Enter to send, Shift+Enter for new line
+        <p className="text-center text-2xs text-ink-faint mt-2.5 select-none">
+          Enter to send &middot; Shift+Enter for new line
         </p>
       </div>
     </div>

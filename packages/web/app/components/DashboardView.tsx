@@ -1,6 +1,7 @@
 /**
- * DashboardView — Authenticated user's agent management dashboard.
- * Lazy-loaded so DnD kit + Convex queries don't bloat the landing page bundle.
+ * DashboardView — Authenticated user's agent index.
+ * Editorial refined-minimal: left-aligned, serif display heading,
+ * flat row-list as primary layout (no identical card grids).
  */
 
 import { useQuery, useMutation } from "convex/react";
@@ -8,15 +9,7 @@ import { api } from "@agent-maker/shared/convex/_generated/api";
 import { DashboardLayout } from "~/components/DashboardLayout";
 import { AgentCard } from "~/components/AgentCard";
 import { OnboardingOverlay } from "~/components/OnboardingOverlay";
-import {
-  Plus,
-  Bot,
-  Search,
-  LayoutGrid,
-  List,
-  Crown,
-  Zap,
-} from "lucide-react";
+import { Plus, LayoutGrid, List } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
 import {
@@ -30,6 +23,7 @@ import {
 import {
   SortableContext,
   rectSortingStrategy,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
 function getGreeting() {
@@ -62,29 +56,17 @@ function PlanToggle() {
     <button
       onClick={handleToggle}
       disabled={toggling}
-      className={`group flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-medium transition-all ${
-        isPro
-          ? "bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-500/30 text-amber-300 hover:border-amber-500/50"
-          : "bg-zinc-800/60 border border-zinc-700/60 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-      }`}
+      className="group inline-flex items-center gap-2 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors"
+      title={`Switch to ${isPro ? "free" : "pro"} plan`}
     >
-      {isPro ? (
-        <Crown className="h-3.5 w-3.5 text-amber-400" />
-      ) : (
-        <Zap className="h-3.5 w-3.5" />
-      )}
       <span>{isPro ? "Pro" : "Free"}</span>
-      <div
-        className={`relative h-4 w-8 rounded-full transition-colors ${
-          isPro ? "bg-amber-500/30" : "bg-zinc-700"
-        }`}
-      >
-        <div
-          className={`absolute top-0.5 h-3 w-3 rounded-full transition-all ${
-            isPro ? "left-[18px] bg-amber-400" : "left-0.5 bg-zinc-500"
+      <span className="relative h-[14px] w-7 rounded-full border border-rule-strong">
+        <span
+          className={`absolute top-[1px] h-[10px] w-[10px] rounded-full transition-[left] duration-200 ${
+            isPro ? "left-[14px] bg-accent" : "left-[1px] bg-ink-faint"
           }`}
         />
-      </div>
+      </span>
     </button>
   );
 }
@@ -93,13 +75,11 @@ export default function DashboardView() {
   const agents = useQuery(api.agents.list);
   const user = useQuery(api.users.me);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const visibleAgents = agents?.filter((a) => a.status !== "draft");
 
-  // Show onboarding for new users who haven't completed it and have no agents
   useEffect(() => {
     if (
       user &&
@@ -122,124 +102,180 @@ export default function DashboardView() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  function handleDragEnd(event: DragEndEvent) {
-    // Reordering logic — for now just visual feedback
+  function handleDragEnd(_event: DragEndEvent) {
+    // Reordering — visual only for now
   }
 
   return (
     <DashboardLayout>
-      <div>
-        {showOnboarding && (
-          <OnboardingOverlay onComplete={() => setShowOnboarding(false)} />
-        )}
+      {showOnboarding && (
+        <OnboardingOverlay onComplete={() => setShowOnboarding(false)} />
+      )}
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight">{getGreeting()}</h1>
-              <PlanToggle />
-            </div>
-            {filteredAgents && (
-              <p className="mt-1 text-sm text-zinc-500">
-                {filteredAgents.length} agent{filteredAgents.length !== 1 ? "s" : ""}
-                {user && (
-                  <span className="text-zinc-600">
-                    {" "}/{" "}{user.maxAgents} max
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
+      {/* ── Header row: editorial asymmetry ─────────────────────────── */}
+      <header className="flex items-start justify-between gap-8 mb-10">
+        <div>
+          <h1 className="font-display text-4xl leading-[1] tracking-tight text-ink">
+            {getGreeting()}.
+          </h1>
+          {filteredAgents && (
+            <p className="mt-3 text-sm text-ink-faint">
+              <span className="text-ink-muted">
+                {filteredAgents.length}{" "}
+                {filteredAgents.length === 1 ? "agent" : "agents"}
+              </span>
+              {user && (
+                <span> &middot; {user.maxAgents} max</span>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-6 pt-2">
+          <PlanToggle />
           <Link
             to="/agents/new"
-            className="flex items-center gap-2 rounded-xl bg-neon-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-neon-300 transition-all glow-neon-sm hover:shadow-lg hover:shadow-neon-400/20"
+            className="inline-flex items-center gap-1.5 bg-ink text-ink-inverse text-sm font-medium px-4 py-2 rounded-sm hover:bg-ink-muted transition-colors"
           >
-            <Plus className="h-4 w-4" />
-            New Agent
+            <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+            New agent
           </Link>
         </div>
+      </header>
 
-        {visibleAgents && visibleAgents.length > 0 && (
-          <div className="flex items-center gap-3 mb-6">
-            <div className={`relative transition-all duration-300 ${searchFocused ? "flex-1 max-w-sm" : "flex-1 max-w-xs"}`}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder="Search agents..."
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-all"
-              />
-            </div>
-            <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md transition-colors ${
-                  viewMode === "grid" ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md transition-colors ${
-                  viewMode === "list" ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
+      {visibleAgents && visibleAgents.length > 0 && (
+        <div className="mb-6 flex items-center justify-between gap-6 border-y border-rule py-3">
+          <div className="flex-1 max-w-sm">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search agents"
+              className="w-full bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none border-0"
+            />
           </div>
-        )}
+          <div className="flex items-center gap-4 text-2xs uppercase tracking-[0.12em] font-semibold">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`inline-flex items-center gap-1.5 ${
+                viewMode === "list"
+                  ? "text-ink"
+                  : "text-ink-faint hover:text-ink-muted"
+              } transition-colors`}
+            >
+              <List className="h-3 w-3" strokeWidth={1.75} />
+              List
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`inline-flex items-center gap-1.5 ${
+                viewMode === "grid"
+                  ? "text-ink"
+                  : "text-ink-faint hover:text-ink-muted"
+              } transition-colors`}
+            >
+              <LayoutGrid className="h-3 w-3" strokeWidth={1.75} />
+              Grid
+            </button>
+          </div>
+        </div>
+      )}
 
-        {filteredAgents === undefined ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className={`rounded-2xl border border-zinc-800/60 bg-zinc-900/30 animate-pulse ${viewMode === "grid" ? "h-40" : "h-20"}`} />
-            ))}
-          </div>
-        ) : filteredAgents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="relative mb-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800">
-                <Bot className="h-8 w-8 text-zinc-700" />
-              </div>
-              <div className="absolute -top-2 -right-2 h-3 w-3 rounded-full bg-neon-400/20" />
-              <div className="absolute -bottom-1 -left-3 h-2 w-2 rounded-full bg-zinc-700/40" />
+      {/* ── Agent list ──────────────────────────────────────────────── */}
+      {filteredAgents === undefined ? (
+        <div className="space-y-[1px]">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 bg-surface-sunken animate-pulse" />
+          ))}
+        </div>
+      ) : filteredAgents.length === 0 ? (
+        <EmptyState hasSearch={!!searchQuery} />
+      ) : viewMode === "list" ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={filteredAgents.map((a) => a._id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ol className="divide-y divide-rule border-b border-rule">
+              {filteredAgents.map((agent, index) => (
+                <AgentCard
+                  key={agent._id}
+                  agent={agent}
+                  isDraggable
+                  variant="row"
+                  index={index + 1}
+                />
+              ))}
+            </ol>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={filteredAgents.map((a) => a._id)}
+            strategy={rectSortingStrategy}
+          >
+            <div
+              className="grid gap-x-10 gap-y-10"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+            >
+              {filteredAgents.map((agent) => (
+                <AgentCard
+                  key={agent._id}
+                  agent={agent}
+                  isDraggable
+                  variant="tile"
+                />
+              ))}
             </div>
-            {searchQuery ? (
-              <>
-                <p className="text-zinc-400 font-medium">No agents found</p>
-                <p className="mt-1 text-sm text-zinc-600">Try a different search term</p>
-              </>
-            ) : (
-              <>
-                <p className="text-zinc-400 font-medium">No agents yet</p>
-                <p className="mt-1 text-sm text-zinc-600">Create your first agent to get started</p>
-                <Link
-                  to="/agents/new"
-                  className="mt-5 flex items-center gap-2 rounded-xl bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create your first agent
-                </Link>
-              </>
-            )}
-          </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </DashboardLayout>
+  );
+}
+
+function EmptyState({ hasSearch }: { hasSearch: boolean }) {
+  return (
+    <div className="border-y border-rule py-24">
+      <div className="max-w-md">
+        {hasSearch ? (
+          <>
+            <h2 className="font-display text-2xl text-ink leading-tight">
+              Nothing matches.
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Try a different search term, or clear the filter to see every agent.
+            </p>
+          </>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={filteredAgents.map((a) => a._id)} strategy={rectSortingStrategy}>
-              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
-                {filteredAgents.map((agent) => (
-                  <AgentCard key={agent._id} agent={agent} isDraggable={true} />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <>
+            <p className="eyebrow">Start here</p>
+            <h2 className="mt-3 font-display text-3xl text-ink leading-tight">
+              You haven&rsquo;t built an agent yet.
+            </h2>
+            <p className="mt-3 text-sm text-ink-muted leading-relaxed">
+              An agent is a small, persistent assistant you configure once and
+              point at a task. Describe what it should do and connect the tools
+              it needs &mdash; HiGantic handles the rest.
+            </p>
+            <Link
+              to="/agents/new"
+              className="mt-6 inline-flex items-center gap-1.5 bg-ink text-ink-inverse text-sm font-medium px-4 py-2 rounded-sm hover:bg-ink-muted transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+              Create your first agent
+            </Link>
+          </>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

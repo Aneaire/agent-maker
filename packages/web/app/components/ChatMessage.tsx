@@ -43,7 +43,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="absolute top-2 right-2 p-1.5 rounded-md bg-zinc-700/50 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-all opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 p-1.5 bg-surface border border-rule text-ink-faint hover:text-ink transition-all opacity-0 group-hover:opacity-100"
     >
       {copied ? (
         <CheckCheck className="h-3.5 w-3.5" />
@@ -54,7 +54,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-// ── Image generation preview (blur placeholder while generating) ────────
+// ── Image generation preview (shimmer placeholder while generating) ─────
 
 function ImageGenerationPreview({
   prompt,
@@ -74,75 +74,21 @@ function ImageGenerationPreview({
 
   return (
     <div className="mt-2">
-      <div className="relative rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950/40">
-        {/* Shimmer background */}
+      <div className="relative border border-rule overflow-hidden bg-surface-sunken">
         <div className="relative h-72 overflow-hidden">
-          {/* Animated gradient layers */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(24,24,27,1) 0%, rgba(39,39,42,0.8) 25%, rgba(24,24,27,1) 50%, rgba(39,39,42,0.6) 75%, rgba(24,24,27,1) 100%)",
-              backgroundSize: "400% 400%",
-              animation: "shimmer-bg 3s ease-in-out infinite",
-            }}
-          />
-
-          {/* Floating orbs */}
-          <div
-            className="absolute w-32 h-32 rounded-full opacity-20 blur-3xl"
-            style={{
-              background: "radial-gradient(circle, var(--color-neon-400) 0%, transparent 70%)",
-              top: "20%",
-              left: "30%",
-              animation: "float-orb-1 4s ease-in-out infinite",
-            }}
-          />
-          <div
-            className="absolute w-24 h-24 rounded-full opacity-15 blur-3xl"
-            style={{
-              background: "radial-gradient(circle, rgba(168,85,247,0.8) 0%, transparent 70%)",
-              bottom: "20%",
-              right: "25%",
-              animation: "float-orb-2 5s ease-in-out infinite",
-            }}
-          />
-          <div
-            className="absolute w-20 h-20 rounded-full opacity-10 blur-2xl"
-            style={{
-              background: "radial-gradient(circle, rgba(56,189,248,0.8) 0%, transparent 70%)",
-              top: "50%",
-              left: "60%",
-              animation: "float-orb-3 3.5s ease-in-out infinite",
-            }}
-          />
-
-          {/* Scan line effect */}
-          <div
-            className="absolute inset-x-0 h-px opacity-20"
-            style={{
-              background: "linear-gradient(90deg, transparent, var(--color-neon-400), transparent)",
-              animation: "scan-line 2.5s ease-in-out infinite",
-            }}
-          />
+          {/* Monochrome shimmer */}
+          <div className="absolute inset-0 animate-pulse bg-surface-sunken" />
 
           {/* Center content */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8">
-            <div className="relative">
-              <div
-                className="h-12 w-12 rounded-xl bg-neon-400/10 border border-neon-400/20 flex items-center justify-center"
-                style={{ animation: "pulse-glow 2s ease-in-out infinite" }}
-              >
-                <Sparkles className="h-6 w-6 text-neon-400" />
-              </div>
+            <div className="h-10 w-10 border border-rule flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-ink-faint" strokeWidth={1.5} />
             </div>
-
-            {/* Progress text */}
             <div className="text-center space-y-1.5">
-              <p className="text-xs font-medium text-zinc-300">
+              <p className="text-xs text-ink-muted">
                 {progress || "Generating image"}{dots}
               </p>
-              <p className="text-[11px] text-zinc-500 max-w-xs line-clamp-2 leading-relaxed">
+              <p className="text-[11px] text-ink-faint max-w-xs line-clamp-2 leading-relaxed">
                 &ldquo;{prompt}&rdquo;
               </p>
             </div>
@@ -172,18 +118,18 @@ function InlineAssetImage({ assetId, name }: { assetId: string; name?: string })
 
   if (asset === undefined) {
     return (
-      <div className="mt-2 flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-        <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
-        <span className="text-xs text-zinc-500">Loading image...</span>
+      <div className="mt-2 flex items-center gap-2 border border-rule bg-surface p-4">
+        <Loader2 className="h-4 w-4 animate-spin text-ink-faint" strokeWidth={1.5} />
+        <span className="text-xs text-ink-faint">Loading image…</span>
       </div>
     );
   }
 
   if (!asset || !asset.resolvedUrl) {
     return (
-      <div className="mt-2 flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
-        <ImageIcon className="h-4 w-4 text-zinc-600" />
-        <span className="text-xs text-zinc-500">Image not available</span>
+      <div className="mt-2 flex items-center gap-2 border border-rule bg-surface p-3">
+        <ImageIcon className="h-4 w-4 text-ink-faint" strokeWidth={1.5} />
+        <span className="text-xs text-ink-faint">Image not available</span>
       </div>
     );
   }
@@ -191,7 +137,7 @@ function InlineAssetImage({ assetId, name }: { assetId: string; name?: string })
   return (
     <div className="mt-2">
       <div
-        className="relative group rounded-xl border border-zinc-800 overflow-hidden cursor-pointer bg-zinc-950/40"
+        className="relative group border border-rule overflow-hidden cursor-pointer bg-surface"
         onClick={() => setExpanded(!expanded)}
       >
         <img
@@ -202,9 +148,9 @@ function InlineAssetImage({ assetId, name }: { assetId: string; name?: string })
           }`}
         />
         {/* Overlay with name + actions */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zinc-300 font-medium truncate">
+            <span className="text-xs text-ink truncate">
               {name || asset.name}
             </span>
             <a
@@ -213,7 +159,7 @@ function InlineAssetImage({ assetId, name }: { assetId: string; name?: string })
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="p-1.5 rounded-md bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 transition-colors"
+              className="p-1.5 bg-surface border border-rule text-ink-muted hover:text-ink transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
             </a>
@@ -222,7 +168,7 @@ function InlineAssetImage({ assetId, name }: { assetId: string; name?: string })
       </div>
       {asset.generatedBy && (
         <div className="flex items-center gap-2 mt-1.5 px-1">
-          <span className="text-[10px] text-zinc-600">
+          <span className="text-[10px] text-ink-faint">
             Generated by {asset.generatedBy === "gemini" ? "Gemini Imagen" : "Nano Banana"}
           </span>
         </div>
@@ -237,7 +183,6 @@ function parseImageAsset(tc: { name: string; output?: string }): { assetId: stri
   const toolName = tc.name.replace(/^mcp__[^_]+__/, "");
   if (toolName !== "generate_image") return null;
 
-  // Try JSON format first: { success: true, assetId: "..." }
   try {
     const parsed = JSON.parse(tc.output);
     if (parsed.success && parsed.assetId) {
@@ -245,7 +190,6 @@ function parseImageAsset(tc: { name: string; output?: string }): { assetId: stri
     }
   } catch {}
 
-  // Fallback: extract asset ID from text like 'saved to assets (ID: xxx)'
   const match = tc.output.match(/\(ID:\s*([^)]+)\)/);
   if (match) {
     const nameMatch = tc.output.match(/Image "([^"]+)"/);
@@ -302,27 +246,10 @@ function getToolIcon(name: string) {
   return Wrench;
 }
 
-// ── Tool category color ─────────────────────────────────────────────────
-
-function getToolColor(name: string): { bg: string; text: string; icon: string } {
-  const lower = name.toLowerCase();
-  if (lower.includes("search") || lower.includes("find") || lower.includes("query"))
-    return { bg: "bg-blue-500/10", text: "text-blue-400", icon: "text-blue-400" };
-  if (lower.includes("database") || lower.includes("db") || lower.includes("sql"))
-    return { bg: "bg-purple-500/10", text: "text-purple-400", icon: "text-purple-400" };
-  if (lower.includes("web") || lower.includes("fetch") || lower.includes("http") || lower.includes("api"))
-    return { bg: "bg-cyan-500/10", text: "text-cyan-400", icon: "text-cyan-400" };
-  if (lower.includes("create") || lower.includes("generate") || lower.includes("run"))
-    return { bg: "bg-amber-500/10", text: "text-amber-400", icon: "text-amber-400" };
-  return { bg: "bg-neon-400/10", text: "text-neon-400", icon: "text-neon-400" };
-}
-
 // ── Format tool name for display ────────────────────────────────────────
 
 function formatToolName(name: string): string {
-  // Strip MCP prefixes like "mcp__creator-tools__"
-  const stripped = name.replace(/^mcp__[^_]+__/, "");
-  return stripped;
+  return name.replace(/^mcp__[^_]+__/, "");
 }
 
 // ── Summarize tool input into a short readable string ───────────────────
@@ -332,11 +259,9 @@ function summarizeInput(name: string, input: any): string {
     const parsed = typeof input === "string" ? JSON.parse(input) : input;
     if (!parsed || typeof parsed !== "object") return "";
 
-    // Pick the most meaningful field to show
     const keys = Object.keys(parsed);
     if (keys.length === 0) return "";
 
-    // Common patterns
     if (parsed.query) return String(parsed.query);
     if (parsed.name) return String(parsed.name);
     if (parsed.description) return String(parsed.description).substring(0, 60);
@@ -345,13 +270,12 @@ function summarizeInput(name: string, input: any): string {
     if (parsed.id) return `id: ${parsed.id}`;
     if (parsed.agentId) return `agent: ${parsed.agentId}`;
 
-    // For small objects, show key=value pairs
     const pairs = keys
       .slice(0, 3)
       .map((k) => {
         const v = parsed[k];
         const val = typeof v === "string" ? v : JSON.stringify(v);
-        return `${k}: ${val.length > 30 ? val.substring(0, 30) + "..." : val}`;
+        return `${k}: ${val.length > 30 ? val.substring(0, 30) + "…" : val}`;
       });
     return pairs.join(", ");
   } catch {
@@ -373,10 +297,10 @@ function CodeBlock({
   const code = String(children).replace(/\n$/, "");
 
   return (
-    <div className="group relative rounded-xl border border-zinc-800 bg-zinc-950/60 overflow-hidden my-3">
+    <div className="group relative border border-rule bg-surface overflow-hidden my-3">
       {lang && (
-        <div className="flex items-center justify-between px-4 py-1.5 bg-zinc-900/60 border-b border-zinc-800/50">
-          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+        <div className="flex items-center justify-between px-4 py-1.5 bg-surface-sunken border-b border-rule">
+          <span className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.12em]">
             {lang}
           </span>
           <button
@@ -385,7 +309,7 @@ function CodeBlock({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink transition-colors"
           >
             {copied ? (
               <>
@@ -424,7 +348,6 @@ function ToolCallRow({
   const hasOutput = tc.output !== undefined;
   const isRunning = !hasOutput && isStreaming;
   const Icon = getToolIcon(tc.name);
-  const color = getToolColor(tc.name);
   const displayName = formatToolName(tc.name);
   const inputSummary = summarizeInput(tc.name, tc.input);
 
@@ -438,24 +361,24 @@ function ToolCallRow({
   }
 
   return (
-    <div className={!isLast && !expanded ? "border-b border-zinc-800/40" : ""}>
+    <div className={!isLast && !expanded ? "border-b border-rule" : ""}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-zinc-800/30 transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-surface-sunken transition-colors text-left"
       >
         {/* Status + icon */}
-        <div className="shrink-0 relative">
+        <div className="shrink-0">
           {isRunning ? (
-            <div className="h-6 w-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
+            <div className="h-6 w-6 border border-rule flex items-center justify-center">
+              <Loader2 className="h-3.5 w-3.5 text-warn animate-spin" strokeWidth={1.5} />
             </div>
           ) : hasOutput ? (
-            <div className={`h-6 w-6 rounded-lg ${color.bg} flex items-center justify-center`}>
-              <Icon className={`h-3.5 w-3.5 ${color.icon}`} />
+            <div className="h-6 w-6 border border-rule bg-surface-sunken flex items-center justify-center">
+              <Icon className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.5} />
             </div>
           ) : (
-            <div className="h-6 w-6 rounded-lg bg-zinc-800/60 flex items-center justify-center">
-              <Icon className="h-3.5 w-3.5 text-zinc-500" />
+            <div className="h-6 w-6 border border-rule flex items-center justify-center">
+              <Icon className="h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
             </div>
           )}
         </div>
@@ -463,12 +386,12 @@ function ToolCallRow({
         {/* Name + summary */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-medium text-zinc-300 truncate">
+            <span className="font-mono text-xs text-ink-muted truncate">
               {displayName}
             </span>
           </div>
           {inputSummary && (
-            <p className="text-[11px] text-zinc-500 truncate mt-0.5 leading-tight">
+            <p className="text-[11px] text-ink-faint truncate mt-0.5 leading-tight">
               {inputSummary}
             </p>
           )}
@@ -476,37 +399,37 @@ function ToolCallRow({
 
         {/* Status badge */}
         {isRunning && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded-full px-2 py-0.5 max-w-[200px]">
-            <span className="h-1 w-1 rounded-full bg-amber-400 status-pulse shrink-0" />
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-warn max-w-[200px]">
+            <span className="h-1 w-1 rounded-full bg-warn status-pulse shrink-0" />
             <span className="truncate">{tc.progress || "Running"}</span>
           </span>
         )}
         {hasOutput && (
-          <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-medium ${color.text} ${color.bg} rounded-full px-2 py-0.5`}>
-            <Check className="h-2.5 w-2.5" />
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
+            <Check className="h-2.5 w-2.5" strokeWidth={2} />
             Done
           </span>
         )}
 
-        <div className="shrink-0 text-zinc-600">
+        <div className="shrink-0 text-ink-faint">
           {expanded ? (
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-3 w-3" strokeWidth={1.5} />
           ) : (
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-3 w-3" strokeWidth={1.5} />
           )}
         </div>
       </button>
 
       {/* Expanded details */}
       {expanded && (
-        <div className="mx-3.5 mb-2.5 rounded-lg border border-zinc-800/60 bg-zinc-950/40 overflow-hidden fade-in-up">
+        <div className="mx-3.5 mb-2.5 border border-rule bg-surface overflow-hidden">
           {inputDisplay && inputDisplay !== "{}" && (
-            <div className="px-3 py-2 border-b border-zinc-800/40">
-              <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">
+            <div className="px-3 py-2 border-b border-rule">
+              <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.12em] mb-1">
                 Input
               </div>
               <div className="group relative">
-                <pre className="text-xs text-zinc-400 font-mono bg-zinc-950/50 rounded-md p-2 overflow-x-auto max-h-40 overflow-y-auto">
+                <pre className="text-xs text-ink-muted font-mono bg-surface-sunken p-2 overflow-x-auto max-h-40 overflow-y-auto">
                   {inputDisplay}
                 </pre>
                 <CopyButton text={inputDisplay} />
@@ -516,11 +439,11 @@ function ToolCallRow({
 
           {hasOutput && tc.output && (
             <div className="px-3 py-2">
-              <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.12em] mb-1">
                 Output
               </div>
               <div className="group relative">
-                <pre className="text-xs text-zinc-400 font-mono bg-zinc-950/50 rounded-md p-2 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-all">
+                <pre className="text-xs text-ink-muted font-mono bg-surface-sunken p-2 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-all">
                   {tc.output}
                 </pre>
                 <CopyButton text={tc.output} />
@@ -529,9 +452,9 @@ function ToolCallRow({
           )}
 
           {isRunning && (
-            <div className="px-3 py-2 flex items-center gap-2 text-xs text-zinc-500">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              {tc.progress || "Executing..."}
+            <div className="px-3 py-2 flex items-center gap-2 text-xs text-ink-faint">
+              <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+              {tc.progress || "Executing…"}
             </div>
           )}
         </div>
@@ -557,32 +480,32 @@ function ToolCallsPanel({
   const allDone = completedCount === totalCount && !isStreaming;
 
   return (
-    <div className="border border-zinc-800/80 rounded-xl overflow-hidden glass-card">
+    <div className="border border-rule overflow-hidden">
       {/* Panel header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-zinc-800/30 transition-colors text-left border-b border-zinc-800/40"
+        className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-surface-sunken transition-colors text-left border-b border-rule"
       >
         <div className="shrink-0">
           {anyRunning ? (
-            <div className="h-5 w-5 rounded-md bg-amber-500/10 flex items-center justify-center">
-              <Loader2 className="h-3 w-3 text-amber-400 animate-spin" />
+            <div className="h-5 w-5 border border-rule flex items-center justify-center">
+              <Loader2 className="h-3 w-3 text-warn animate-spin" strokeWidth={1.5} />
             </div>
           ) : (
-            <div className="h-5 w-5 rounded-md bg-zinc-800/60 flex items-center justify-center">
-              <Wrench className="h-3 w-3 text-zinc-400" />
+            <div className="h-5 w-5 border border-rule bg-surface-sunken flex items-center justify-center">
+              <Wrench className="h-3 w-3 text-ink-faint" strokeWidth={1.5} />
             </div>
           )}
         </div>
 
-        <span className="text-xs font-medium text-zinc-300 flex-1">
-          {anyRunning ? "Using tools..." : "Used tools"}
+        <span className="text-xs text-ink-muted flex-1">
+          {anyRunning ? "Using tools…" : "Used tools"}
         </span>
 
-        <span className="text-[10px] text-zinc-500 tabular-nums">
+        <span className="text-[10px] text-ink-faint tabular-nums font-mono">
           {allDone ? (
-            <span className="inline-flex items-center gap-1 text-neon-400/70">
-              <Check className="h-2.5 w-2.5" />
+            <span className="inline-flex items-center gap-1 text-accent font-semibold uppercase tracking-[0.1em]">
+              <Check className="h-2.5 w-2.5" strokeWidth={2} />
               {totalCount} completed
             </span>
           ) : (
@@ -590,11 +513,11 @@ function ToolCallsPanel({
           )}
         </span>
 
-        <div className="shrink-0 text-zinc-600">
+        <div className="shrink-0 text-ink-faint">
           {collapsed ? (
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-3 w-3" strokeWidth={1.5} />
           ) : (
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-3 w-3" strokeWidth={1.5} />
           )}
         </div>
       </button>
@@ -643,8 +566,6 @@ function QuestionCards({
   function handleSubmit() {
     if (!allAnswered || submitted) return;
     setSubmitted(true);
-
-    // Build a natural-language answer string
     const answerLines = questions.map((q) => {
       const answer = selections[q.id];
       return `${q.question} → ${answer}`;
@@ -659,32 +580,32 @@ function QuestionCards({
         return (
           <div
             key={q.id}
-            className="border border-zinc-800 rounded-xl glass-card overflow-hidden"
+            className="border border-rule bg-surface overflow-hidden"
           >
             {/* Question header */}
-            <div className="px-3.5 py-2.5 flex items-start gap-2.5">
+            <div className="px-3.5 py-2.5 flex items-start gap-2.5 border-b border-rule">
               <div className="shrink-0 mt-0.5">
                 <div
-                  className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  className={`h-5 w-5 flex items-center justify-center text-[10px] font-semibold border ${
                     selected
-                      ? "bg-neon-400/20 text-neon-400"
-                      : "bg-zinc-800 text-zinc-500"
+                      ? "border-accent text-accent"
+                      : "border-rule text-ink-faint"
                   }`}
                 >
                   {submitted && selected ? (
-                    <Check className="h-3 w-3" />
+                    <Check className="h-3 w-3" strokeWidth={2} />
                   ) : (
                     qi + 1
                   )}
                 </div>
               </div>
-              <p className="text-sm text-zinc-200 leading-snug flex-1">
+              <p className="text-sm text-ink leading-snug flex-1">
                 {q.question}
               </p>
             </div>
 
             {/* Options */}
-            <div className="px-3.5 pb-3 flex flex-wrap gap-1.5">
+            <div className="px-3.5 py-3 flex flex-wrap gap-1.5">
               {q.options.map((option) => {
                 const isSelected = selected === option;
                 return (
@@ -692,20 +613,21 @@ function QuestionCards({
                     key={option}
                     onClick={() => handleSelect(q.id, option)}
                     disabled={submitted}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all duration-150 ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs transition-all duration-150 border ${
                       submitted
                         ? isSelected
-                          ? "bg-neon-400/15 border border-neon-400/30 text-neon-300"
-                          : "bg-zinc-900/40 border border-zinc-800/50 text-zinc-600"
+                          ? "border-accent text-accent bg-surface-sunken"
+                          : "border-rule text-ink-faint"
                         : isSelected
-                          ? "bg-neon-400/15 border border-neon-400/40 text-neon-300 shadow-sm shadow-neon-400/10"
-                          : "bg-zinc-800/40 border border-zinc-700/60 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-100"
+                          ? "border-accent text-ink bg-surface-sunken"
+                          : "border-rule text-ink-muted hover:border-rule-strong hover:text-ink"
                     }`}
                   >
                     <CircleDot
                       className={`h-3 w-3 shrink-0 ${
-                        isSelected ? "text-neon-400" : "text-zinc-600"
+                        isSelected ? "text-accent" : "text-ink-faint"
                       }`}
+                      strokeWidth={1.5}
                     />
                     {option}
                   </button>
@@ -721,13 +643,13 @@ function QuestionCards({
         <button
           onClick={handleSubmit}
           disabled={!allAnswered}
-          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium transition-all duration-150 ${
+          className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all duration-150 ${
             allAnswered
-              ? "bg-neon-400 text-zinc-950 hover:bg-neon-300 glow-neon-sm"
-              : "bg-zinc-800/50 text-zinc-500 cursor-not-allowed"
+              ? "bg-ink text-surface hover:opacity-90"
+              : "bg-surface-sunken text-ink-faint border border-rule cursor-not-allowed"
           }`}
         >
-          <Send className="h-3.5 w-3.5" />
+          <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
           {allAnswered
             ? "Send answers"
             : `Select ${questions.length - Object.values(selections).filter(Boolean).length} more`}
@@ -755,7 +677,7 @@ function AttachmentPreview({
         <img
           src={url}
           alt={attachment.fileName}
-          className="max-h-48 max-w-64 rounded-xl border border-neon-400/20 object-cover hover:border-neon-400/40 transition-colors"
+          className="max-h-48 max-w-64 border border-rule object-cover hover:border-rule-strong transition-colors"
         />
       </a>
     );
@@ -768,20 +690,20 @@ function AttachmentPreview({
   };
 
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-neon-400/20 bg-neon-400/5 px-3 py-2">
-      <FileText className="h-4 w-4 text-neon-400/60 shrink-0" />
+    <div className="flex items-center gap-2.5 border border-rule bg-surface-sunken px-3 py-2">
+      <FileText className="h-4 w-4 text-ink-faint shrink-0" strokeWidth={1.5} />
       <div className="min-w-0">
-        <p className="text-xs font-medium text-zinc-200 truncate">{attachment.fileName}</p>
-        <p className="text-[10px] text-zinc-500">{formatSize(attachment.fileSize)}</p>
+        <p className="text-xs text-ink truncate">{attachment.fileName}</p>
+        <p className="text-[10px] text-ink-faint">{formatSize(attachment.fileSize)}</p>
       </div>
       {url && (
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="shrink-0 text-ink-faint hover:text-ink transition-colors"
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
         </a>
       )}
     </div>
@@ -827,15 +749,15 @@ export function ChatMessage({
           )}
           {/* Text content */}
           {message.content && message.content !== "(attached files)" && (
-            <div className="rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-neon-400/10 border border-neon-400/20 text-zinc-100">
+            <div className="px-4 py-2.5 text-sm bg-surface-sunken border border-rule text-ink">
               <div className="whitespace-pre-wrap break-words">
                 {message.content}
               </div>
             </div>
           )}
         </div>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-700/80 mt-0.5">
-          <User className="h-4 w-4 text-zinc-300" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-rule bg-surface-sunken mt-0.5">
+          <User className="h-4 w-4 text-ink-muted" strokeWidth={1.5} />
         </div>
       </div>
     );
@@ -858,11 +780,10 @@ export function ChatMessage({
     message.questions &&
     message.questions.length > 0;
 
-
   return (
     <div className="flex gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neon-400/10 ring-1 ring-neon-400/20 mt-0.5">
-        <Bot className="h-4 w-4 text-neon-400" />
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-rule bg-surface mt-0.5">
+        <Bot className="h-4 w-4 text-ink-muted" strokeWidth={1.5} />
       </div>
 
       <div className="flex-1 min-w-0 space-y-3">
@@ -874,14 +795,12 @@ export function ChatMessage({
           />
         )}
 
-        {/* Inline generated images — review panel, preview while generating, or actual image when done */}
+        {/* Inline generated images */}
         {visibleToolCalls?.map((tc) => {
-          // Show completed image
           const img = parseImageAsset(tc);
           if (img) {
             return <InlineAssetImage key={tc.id} assetId={img.assetId} name={img.name} />;
           }
-          // Show review panel for pending approval
           const pending = parsePendingApproval(tc);
           if (pending && agentId) {
             return (
@@ -898,7 +817,6 @@ export function ChatMessage({
               />
             );
           }
-          // Show preview placeholder while generating
           if (!tc.output && isStreaming) {
             const genInput = parseImageGenInput(tc);
             if (genInput) {
@@ -916,9 +834,9 @@ export function ChatMessage({
 
         {/* Pending state */}
         {isPending && !message.content ? (
-          <div className="flex items-center gap-2 text-zinc-500 text-sm py-1">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            <span>Thinking...</span>
+          <div className="flex items-center gap-2 text-ink-faint text-sm py-1">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+            <span>Thinking…</span>
           </div>
         ) : message.content ? (
           /* Markdown content */
@@ -926,15 +844,15 @@ export function ChatMessage({
             className={`text-sm leading-relaxed prose prose-invert prose-zinc max-w-none
               prose-p:my-1.5 prose-headings:my-3 prose-li:my-0.5
               prose-pre:bg-transparent prose-pre:border-0 prose-pre:p-0 prose-pre:my-0
-              prose-code:text-neon-400 prose-code:font-medium
+              prose-code:text-accent prose-code:font-medium
               prose-code:before:content-none prose-code:after:content-none
-              prose-a:text-neon-400 prose-a:no-underline hover:prose-a:underline
+              prose-a:text-accent prose-a:no-underline hover:prose-a:underline
               prose-table:border-collapse
-              prose-th:border prose-th:border-zinc-700 prose-th:px-3 prose-th:py-1.5 prose-th:bg-zinc-800/60
-              prose-td:border prose-td:border-zinc-800 prose-td:px-3 prose-td:py-1.5
-              prose-strong:text-zinc-100 prose-strong:font-semibold
-              prose-blockquote:border-neon-400/30 prose-blockquote:text-zinc-400
-              ${isError ? "text-red-200" : "text-zinc-200"}`}
+              prose-th:border prose-th:border-rule-strong prose-th:px-3 prose-th:py-1.5 prose-th:bg-surface-sunken
+              prose-td:border prose-td:border-rule prose-td:px-3 prose-td:py-1.5
+              prose-strong:text-ink prose-strong:font-semibold
+              prose-blockquote:border-rule prose-blockquote:text-ink-muted
+              ${isError ? "text-danger" : "text-ink"}`}
           >
             <Markdown
               remarkPlugins={[remarkGfm]}
@@ -956,15 +874,15 @@ export function ChatMessage({
               {message.content}
             </Markdown>
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 bg-neon-400 ml-0.5 rounded-sm align-middle status-pulse" />
+              <span className="inline-block w-1.5 h-4 bg-accent ml-0.5 align-middle status-pulse" />
             )}
           </div>
         ) : null}
 
         {/* Error message */}
         {isError && message.error && (
-          <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-950/30 border border-red-900/30 rounded-lg px-3 py-2">
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <div className="flex items-center gap-1.5 text-xs text-danger border border-danger/30 bg-danger/5 px-3 py-2">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
             {message.error}
           </div>
         )}
@@ -984,9 +902,9 @@ export function ChatMessage({
               <button
                 key={i}
                 onClick={() => onSendSuggestion?.(suggestion)}
-                className="group inline-flex items-center gap-1.5 rounded-xl border border-zinc-700/80 bg-zinc-900/60 px-3.5 py-2 text-xs text-zinc-300 hover:border-neon-400/30 hover:bg-neon-400/5 hover:text-zinc-100 transition-all duration-150"
+                className="group inline-flex items-center gap-1.5 border border-rule px-3.5 py-2 text-xs text-ink-muted hover:border-rule-strong hover:text-ink transition-all duration-150"
               >
-                <ArrowRight className="h-3 w-3 text-zinc-600 group-hover:text-neon-400 transition-colors shrink-0" />
+                <ArrowRight className="h-3 w-3 text-ink-faint group-hover:text-accent transition-colors shrink-0" strokeWidth={1.5} />
                 {suggestion}
               </button>
             ))}

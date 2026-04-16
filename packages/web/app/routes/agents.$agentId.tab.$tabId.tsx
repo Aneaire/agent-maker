@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react";
 import { TasksPage } from "~/components/pages/TasksPage";
 import { NotesPage } from "~/components/pages/NotesPage";
 import { SpreadsheetPage } from "~/components/pages/SpreadsheetPage";
-
 import { PostgresPage } from "~/components/pages/PostgresPage";
 import { ApiPage } from "~/components/pages/ApiPage";
 import { WorkflowPage } from "~/components/pages/WorkflowPage";
@@ -23,7 +22,7 @@ export default function DynamicTabPage() {
   if (tab === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+        <Loader2 className="h-4 w-4 animate-spin text-ink-faint" strokeWidth={1.5} />
       </div>
     );
   }
@@ -31,13 +30,16 @@ export default function DynamicTabPage() {
   if (tab === null) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-400 mb-4">Page not found</p>
+        <div className="max-w-sm">
+          <p className="eyebrow">404</p>
+          <h2 className="mt-2 font-display text-2xl text-ink leading-tight">
+            Page not found.
+          </h2>
           <Link
             to={`/agents/${agent._id}`}
-            className="text-sm text-zinc-300 hover:text-zinc-100 underline underline-offset-4"
+            className="mt-4 inline-block text-sm text-accent hover:text-accent-strong transition-colors"
           >
-            Back to agent
+            &larr; Back to agent
           </Link>
         </div>
       </div>
@@ -61,8 +63,8 @@ export default function DynamicTabPage() {
       return <WorkflowPage tab={tab} />;
     default:
       return (
-        <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
-          Page type "{tab.type}" is not yet implemented
+        <div className="flex-1 flex items-center justify-center text-sm text-ink-faint">
+          Page type &ldquo;{tab.type}&rdquo; is not yet implemented
         </div>
       );
   }

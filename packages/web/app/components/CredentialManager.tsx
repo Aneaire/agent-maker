@@ -9,8 +9,6 @@ import { useState, useEffect } from "react";
 import {
   Save,
   Loader2,
-  Check,
-  X,
   Plus,
   Link2,
   Unlink,
@@ -19,12 +17,64 @@ import {
   ChevronDown,
   Pencil,
   RefreshCw,
+  Check,
+  X,
 } from "lucide-react";
 import type { Doc, Id } from "@agent-maker/shared/convex/_generated/dataModel";
 
 interface CredentialManagerProps {
   agent: Doc<"agents">;
   toolSetName: string;
+}
+
+/* ── shared primitives ──────────────────────────────────────────────── */
+
+const inputClass =
+  "w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors";
+const monoInputClass = inputClass + " font-mono";
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="eyebrow">{label}</span>
+        {hint && (
+          <span className="text-2xs text-ink-faint normal-case tracking-normal font-normal">
+            {hint}
+          </span>
+        )}
+      </div>
+      {children}
+    </label>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const label =
+    status === "untested"
+      ? "Untested"
+      : status.charAt(0).toUpperCase() + status.slice(1);
+  const dot =
+    status === "valid"
+      ? "bg-accent"
+      : status === "invalid"
+        ? "bg-danger"
+        : "bg-rule-strong";
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted">
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      {label}
+    </span>
+  );
 }
 
 export function CredentialManager({ agent, toolSetName }: CredentialManagerProps) {
@@ -40,10 +90,8 @@ export function CredentialManager({ agent, toolSetName }: CredentialManagerProps
   );
   const [editingLinked, setEditingLinked] = useState(false);
 
-  // Find current link for this tool set
   const currentLink = agentLinks?.find((l) => l.toolSetName === toolSetName);
 
-  // Filter credentials compatible with this tool set
   const compatibleCredentials = allCredentials?.filter((c) =>
     compatibleTypes.some((t) => t.type === c.type)
   );
@@ -60,19 +108,21 @@ export function CredentialManager({ agent, toolSetName }: CredentialManagerProps
     await unlinkFromAgent({ agentId: agent._id, toolSetName });
   }
 
-  // If linked, show the linked credential info
+  // Linked state
   if (currentLink) {
     const linkedTypeDef = getCredentialTypeDef(currentLink.credentialType);
     const isOAuth = linkedTypeDef?.authMethod === "oauth2";
     return (
-      <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link2 className="h-3.5 w-3.5 text-neon-400" />
-            <span className="text-sm font-medium">{currentLink.credentialName}</span>
+      <div className="bg-surface-sunken/60 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link2 className="h-3.5 w-3.5 text-accent shrink-0" strokeWidth={1.5} />
+            <span className="text-sm font-medium text-ink truncate">
+              {currentLink.credentialName}
+            </span>
             <StatusBadge status={currentLink.status} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 shrink-0">
             <TestCredentialButton credentialId={currentLink.credentialId as Id<"credentials">} />
             {isOAuth && linkedTypeDef && (
               <InlineReconnectButton
@@ -83,23 +133,23 @@ export function CredentialManager({ agent, toolSetName }: CredentialManagerProps
             {linkedTypeDef && !editingLinked && (
               <button
                 onClick={() => setEditingLinked(true)}
-                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.1em] font-semibold text-ink-muted hover:text-ink px-2 py-1.5 transition-colors"
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-3 w-3" strokeWidth={1.5} />
                 {isOAuth ? "Rename" : "Edit"}
               </button>
             )}
             <button
               onClick={handleUnlink}
-              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-400 transition-colors"
+              className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.1em] font-semibold text-ink-faint hover:text-danger px-2 py-1.5 transition-colors"
             >
-              <Unlink className="h-3 w-3" />
+              <Unlink className="h-3 w-3" strokeWidth={1.5} />
               Unlink
             </button>
           </div>
         </div>
         {editingLinked && linkedTypeDef && (
-          <div className="pt-2 border-t border-zinc-700/40">
+          <div className="mt-4 pt-4 border-t border-rule">
             <InlineEditForm
               credentialId={currentLink.credentialId as Id<"credentials">}
               currentName={currentLink.credentialName}
@@ -113,48 +163,51 @@ export function CredentialManager({ agent, toolSetName }: CredentialManagerProps
   }
 
   return (
-    <div className="space-y-3">
-      {/* Existing credentials selector */}
+    <div className="space-y-4">
+      {/* Existing credentials */}
       {compatibleCredentials && compatibleCredentials.length > 0 && (
-        <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-4 space-y-3">
-          <p className="text-xs text-zinc-500">Link an existing credential:</p>
-          <div className="space-y-2">
+        <div>
+          <p className="eyebrow mb-2">Link existing</p>
+          <ul className="divide-y divide-rule border-y border-rule">
             {compatibleCredentials.map((cred) => (
-              <button
-                key={cred._id}
-                onClick={() => handleLink(cred._id)}
-                className="w-full flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm hover:border-zinc-600 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span>{cred.name}</span>
-                  <StatusBadge status={cred.status} />
-                </div>
-                <Link2 className="h-3.5 w-3.5 text-zinc-500" />
-              </button>
+              <li key={cred._id}>
+                <button
+                  onClick={() => handleLink(cred._id)}
+                  className="w-full flex items-center justify-between px-1 py-3 text-sm hover:bg-surface-sunken/60 transition-colors"
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <Link2 className="h-3.5 w-3.5 text-ink-faint shrink-0" strokeWidth={1.5} />
+                    <span className="text-ink truncate">{cred.name}</span>
+                    <StatusBadge status={cred.status} />
+                  </span>
+                  <span className="text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint">
+                    Link &rarr;
+                  </span>
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
-      {/* Create new credential */}
+      {/* Create new */}
       {!showCreate ? (
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors"
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="h-3 w-3" strokeWidth={2} />
           Create new credential
         </button>
       ) : (
-        <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 space-y-4">
+        <div className="border-y border-rule py-5 space-y-5">
           {compatibleTypes.length > 1 && (
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Credential Type</label>
+            <Field label="Credential type">
               <div className="relative">
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none pr-8"
+                  className={inputClass + " appearance-none pr-6"}
                 >
                   {compatibleTypes.map((t) => (
                     <option key={t.type} value={t.type}>
@@ -162,9 +215,12 @@ export function CredentialManager({ agent, toolSetName }: CredentialManagerProps
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500 pointer-events-none" />
+                <ChevronDown
+                  className="absolute right-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-faint pointer-events-none"
+                  strokeWidth={1.5}
+                />
               </div>
-            </div>
+            </Field>
           )}
 
           {selectedType && (
@@ -199,26 +255,17 @@ function CredentialForm({
 }) {
   const createCredential = useAction(api.credentialActions.create);
   const linkToAgent = useMutation(api.credentials.linkToAgent);
-  const startOAuth = useAction(api.credentialActions.startOAuth);
 
   const [name, setName] = useState(`My ${typeDef.label}`);
   const [fields, setFields] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const f of typeDef.fields) {
-      init[f.key] = "";
-    }
+    for (const f of typeDef.fields) init[f.key] = "";
     return init;
   });
   const [saving, setSaving] = useState(false);
 
-  // OAuth flow
   if (typeDef.authMethod === "oauth2") {
-    return (
-      <OAuthConnectButton
-        typeDef={typeDef}
-        onCancel={onCancel}
-      />
-    );
+    return <OAuthConnectButton typeDef={typeDef} onCancel={onCancel} />;
   }
 
   const requiredFilled = typeDef.fields
@@ -247,25 +294,22 @@ function CredentialForm({
   }
 
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-xs text-zinc-500 mb-1.5">Credential Name</label>
+    <div className="space-y-5">
+      <Field label="Credential name">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          className={inputClass}
         />
-      </div>
+      </Field>
 
       {typeDef.fields.map((field) => (
-        <div key={field.key}>
-          <label className="block text-xs text-zinc-500 mb-1.5">
-            {field.label}
-            {!field.required && (
-              <span className="text-zinc-600 ml-1">(optional)</span>
-            )}
-          </label>
+        <Field
+          key={field.key}
+          label={field.label}
+          hint={field.required ? undefined : "Optional"}
+        >
           {field.type === "select" ? (
             <div className="relative">
               <select
@@ -273,16 +317,19 @@ function CredentialForm({
                 onChange={(e) =>
                   setFields((prev) => ({ ...prev, [field.key]: e.target.value }))
                 }
-                className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none pr-8"
+                className={inputClass + " appearance-none pr-6"}
               >
-                <option value="">Select...</option>
+                <option value="">Select\u2026</option>
                 {field.options?.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500 pointer-events-none" />
+              <ChevronDown
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-faint pointer-events-none"
+                strokeWidth={1.5}
+              />
             </div>
           ) : (
             <input
@@ -292,31 +339,33 @@ function CredentialForm({
                 setFields((prev) => ({ ...prev, [field.key]: e.target.value }))
               }
               placeholder={field.placeholder}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+              className={monoInputClass}
             />
           )}
           {field.helpText && (
-            <p className="text-[11px] text-zinc-600 mt-1">{field.helpText}</p>
+            <p className="mt-1.5 text-2xs text-ink-faint leading-snug">
+              {field.helpText}
+            </p>
           )}
-        </div>
+        </Field>
       ))}
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex items-center gap-4 pt-1">
         <button
           onClick={handleSave}
           disabled={saving || !requiredFilled || !name.trim()}
-          className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-ink-inverse px-4 py-2 rounded-sm hover:bg-ink-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
           ) : (
-            <Save className="h-3 w-3" />
+            <Save className="h-3.5 w-3.5" strokeWidth={1.5} />
           )}
-          {saving ? "Saving..." : "Save & Link"}
+          {saving ? "Saving\u2026" : "Save & link"}
         </button>
         <button
           onClick={onCancel}
-          className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5 transition-colors"
+          className="text-sm text-ink-muted hover:text-ink transition-colors"
         >
           Cancel
         </button>
@@ -324,8 +373,6 @@ function CredentialForm({
     </div>
   );
 }
-
-// ── OAuth Connect Button ─────────────────────────────────────────────
 
 function OAuthConnectButton({
   typeDef,
@@ -357,36 +404,35 @@ function OAuthConnectButton({
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-zinc-500">
-        {typeDef.description}. Click below to authorize via OAuth.
+    <div className="space-y-5">
+      <p className="text-sm text-ink-muted leading-relaxed">
+        {typeDef.description}. Authorize via OAuth to create the credential.
       </p>
-      <div>
-        <label className="block text-xs text-zinc-500 mb-1.5">Credential Name</label>
+      <Field label="Credential name">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={`My ${typeDef.label}`}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          className={inputClass}
         />
-      </div>
-      <div className="flex items-center gap-2">
+      </Field>
+      <div className="flex items-center gap-4">
         <button
           onClick={handleConnect}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-500 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-ink-inverse px-4 py-2 rounded-sm hover:bg-ink-muted disabled:opacity-50 transition-colors"
         >
           {loading ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
           ) : (
-            <ExternalLink className="h-3 w-3" />
+            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
           )}
-          {loading ? "Redirecting..." : `Connect ${typeDef.label}`}
+          {loading ? "Redirecting\u2026" : `Connect ${typeDef.label}`}
         </button>
         <button
           onClick={onCancel}
-          className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5 transition-colors"
+          className="text-sm text-ink-muted hover:text-ink transition-colors"
         >
           Cancel
         </button>
@@ -394,8 +440,6 @@ function OAuthConnectButton({
     </div>
   );
 }
-
-// ── Test Credential Button ───────────────────────────────────────────
 
 function TestCredentialButton({ credentialId }: { credentialId: Id<"credentials"> }) {
   const testCredential = useAction(api.credentialActions.test);
@@ -412,33 +456,35 @@ function TestCredentialButton({ credentialId }: { credentialId: Id<"credentials"
       setResult({ valid: false, error: err.message });
     }
     setTesting(false);
+    setTimeout(() => setResult(null), 5000);
   }
 
   return (
-    <div className="flex items-center gap-1.5">
-      <button
-        onClick={handleTest}
-        disabled={testing}
-        className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
-        title="Test credential"
-      >
-        {testing ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <Zap className="h-3 w-3" />
-        )}
-        Test
-      </button>
-      {result && (
-        <span className={`text-xs ${result.valid ? "text-green-400" : "text-red-400"}`}>
-          {result.valid ? "Valid" : result.error ?? "Invalid"}
-        </span>
+    <button
+      onClick={handleTest}
+      disabled={testing}
+      title={result?.error ?? "Test credential"}
+      className={`inline-flex items-center gap-1 text-2xs uppercase tracking-[0.1em] font-semibold transition-colors px-2 py-1.5 disabled:opacity-50 ${
+        result?.valid
+          ? "text-accent"
+          : result && !result.valid
+            ? "text-danger"
+            : "text-ink-muted hover:text-ink"
+      }`}
+    >
+      {testing ? (
+        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+      ) : result?.valid ? (
+        <Check className="h-3 w-3" strokeWidth={2} />
+      ) : result && !result.valid ? (
+        <X className="h-3 w-3" strokeWidth={2} />
+      ) : (
+        <Zap className="h-3 w-3" strokeWidth={1.5} />
       )}
-    </div>
+      {testing ? "Testing" : result?.valid ? "Valid" : result ? "Failed" : "Test"}
+    </button>
   );
 }
-
-// ── Inline Reconnect Button (for OAuth2 linked credentials) ──────────
 
 function InlineReconnectButton({
   typeDef,
@@ -470,20 +516,18 @@ function InlineReconnectButton({
     <button
       onClick={handleReconnect}
       disabled={loading}
-      className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
-      title="Re-authorize to refresh Google tokens"
+      title="Re-authorize to refresh tokens"
+      className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.1em] font-semibold text-accent hover:text-accent-strong transition-colors px-2 py-1.5 disabled:opacity-50"
     >
       {loading ? (
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
       ) : (
-        <RefreshCw className="h-3 w-3" />
+        <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
       )}
       Reconnect
     </button>
   );
 }
-
-// ── Inline Edit Form (for linked credentials in agent settings) ───────
 
 function InlineEditForm({
   credentialId,
@@ -518,7 +562,8 @@ function InlineEditForm({
         const data = await getDecrypted({ credentialId });
         if (cancelled) return;
         const init: Record<string, string> = {};
-        for (const f of typeDef.fields) init[f.key] = (data?.[f.key] ?? "") as string;
+        for (const f of typeDef.fields)
+          init[f.key] = (data?.[f.key] ?? "") as string;
         setFields(init);
       } catch (err: any) {
         if (!cancelled) setError(err.message);
@@ -526,13 +571,17 @@ function InlineEditForm({
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialId]);
 
-  const requiredFilled = isOAuth || typeDef.fields
-    .filter((f) => f.required)
-    .every((f) => fields[f.key]?.trim());
+  const requiredFilled =
+    isOAuth ||
+    typeDef.fields
+      .filter((f) => f.required)
+      .every((f) => fields[f.key]?.trim());
 
   async function handleSave() {
     if (!requiredFilled || !name.trim()) return;
@@ -552,82 +601,80 @@ function InlineEditForm({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-zinc-500 py-1">
-        <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+      <div className="flex items-center gap-2 text-sm text-ink-faint py-1">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+        Loading\u2026
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-1">
-        <p className="text-xs text-red-400">{error}</p>
-        <button onClick={onDone} className="text-xs text-zinc-500 hover:text-zinc-300">Close</button>
+      <div className="space-y-2">
+        <p className="text-sm text-danger">{error}</p>
+        <button
+          onClick={onDone}
+          className="text-sm text-ink-muted hover:text-ink transition-colors"
+        >
+          Close
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-xs text-zinc-500 mb-1">Name</label>
+    <div className="space-y-5">
+      <Field label="Name">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+          className={inputClass}
         />
-      </div>
-      {!isOAuth && typeDef.fields.map((field) => (
-        <div key={field.key}>
-          <label className="block text-xs text-zinc-500 mb-1">
-            {field.label}
-            {!field.required && <span className="text-zinc-600 ml-1">(optional)</span>}
-          </label>
-          <input
-            type={field.type === "password" ? "password" : "text"}
-            value={fields[field.key]}
-            onChange={(e) => setFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-            placeholder={field.placeholder}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
-          />
-          {field.helpText && (
-            <p className="text-[11px] text-zinc-600 mt-1">{field.helpText}</p>
-          )}
-        </div>
-      ))}
-      <div className="flex items-center gap-2 pt-1">
+      </Field>
+      {!isOAuth &&
+        typeDef.fields.map((field) => (
+          <Field
+            key={field.key}
+            label={field.label}
+            hint={field.required ? undefined : "Optional"}
+          >
+            <input
+              type={field.type === "password" ? "password" : "text"}
+              value={fields[field.key]}
+              onChange={(e) =>
+                setFields((prev) => ({ ...prev, [field.key]: e.target.value }))
+              }
+              placeholder={field.placeholder}
+              className={monoInputClass}
+            />
+            {field.helpText && (
+              <p className="mt-1.5 text-2xs text-ink-faint leading-snug">
+                {field.helpText}
+              </p>
+            )}
+          </Field>
+        ))}
+      <div className="flex items-center gap-4 pt-1">
         <button
           onClick={handleSave}
           disabled={saving || !requiredFilled || !name.trim()}
-          className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-ink-inverse px-4 py-2 rounded-sm hover:bg-ink-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-          {saving ? "Saving…" : "Save"}
+          {saving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+          ) : (
+            <Save className="h-3.5 w-3.5" strokeWidth={1.5} />
+          )}
+          {saving ? "Saving\u2026" : "Save"}
         </button>
-        <button onClick={onDone} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">
+        <button
+          onClick={onDone}
+          className="text-sm text-ink-muted hover:text-ink transition-colors"
+        >
           Cancel
         </button>
       </div>
     </div>
-  );
-}
-
-// ── Status Badge ─────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: string }) {
-  const config = {
-    valid: { color: "text-green-400 bg-green-400/10 border-green-400/20", icon: Check, label: "Valid" },
-    untested: { color: "text-zinc-400 bg-zinc-400/10 border-zinc-400/20", icon: null, label: "Untested" },
-    invalid: { color: "text-red-400 bg-red-400/10 border-red-400/20", icon: X, label: "Invalid" },
-  }[status] ?? { color: "text-zinc-500 bg-zinc-500/10 border-zinc-500/20", icon: null, label: status };
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${config.color}`}
-    >
-      {config.icon && <config.icon className="h-2.5 w-2.5" />}
-      {config.label}
-    </span>
   );
 }

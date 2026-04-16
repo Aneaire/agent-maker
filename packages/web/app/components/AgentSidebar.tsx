@@ -2,7 +2,6 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { Link, useParams, useNavigate, useLocation } from "react-router";
 import {
-  Bot,
   MessageSquare,
   Brain,
   Settings,
@@ -15,7 +14,6 @@ import {
   Database,
   LayoutGrid,
   Globe,
-  Sparkles,
   X,
   Pencil,
   Trash2,
@@ -32,13 +30,13 @@ import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import { PLAN_LIMITS } from "@agent-maker/shared/src/types";
 
 const TAB_ICONS: Record<string, React.ReactNode> = {
-  tasks: <CheckSquare className="h-4 w-4" />,
-  notes: <FileText className="h-4 w-4" />,
-  spreadsheet: <Table className="h-4 w-4" />,
-  markdown: <Type className="h-4 w-4" />,
-  postgres: <Database className="h-4 w-4" />,
-  api: <Globe className="h-4 w-4" />,
-  workflow: <GitBranch className="h-4 w-4" />,
+  tasks: <CheckSquare className="h-3.5 w-3.5" strokeWidth={1.5} />,
+  notes: <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />,
+  spreadsheet: <Table className="h-3.5 w-3.5" strokeWidth={1.5} />,
+  markdown: <Type className="h-3.5 w-3.5" strokeWidth={1.5} />,
+  postgres: <Database className="h-3.5 w-3.5" strokeWidth={1.5} />,
+  api: <Globe className="h-3.5 w-3.5" strokeWidth={1.5} />,
+  workflow: <GitBranch className="h-3.5 w-3.5" strokeWidth={1.5} />,
 };
 
 const PAGE_TYPES = [
@@ -49,7 +47,6 @@ const PAGE_TYPES = [
   { type: "workflow" as const, label: "Workflow", description: "Automations & schedules", icon: GitBranch },
 ];
 
-// Page types that can only be added once per agent
 const SINGLETON_PAGE_TYPES = new Set(["workflow", "api"]);
 
 function groupConversationsByTime(conversations: Doc<"conversations">[]) {
@@ -73,6 +70,17 @@ function groupConversationsByTime(conversations: Doc<"conversations">[]) {
   return groups.filter((g) => g.items.length > 0);
 }
 
+/* ── shared nav item helpers ─────────────────────────────────────────── */
+const navRowBase =
+  "group relative flex items-center gap-2.5 text-sm transition-colors";
+function navRowClass(isActive: boolean) {
+  return `${navRowBase} ${
+    isActive
+      ? "bg-surface-sunken text-ink"
+      : "text-ink-muted hover:text-ink hover:bg-surface-sunken/60"
+  }`;
+}
+
 export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const { conversationId } = useParams();
   const location = useLocation();
@@ -85,7 +93,6 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   });
   const tabs = useQuery(api.sidebarTabs.list, { agentId: agent._id });
   const user = useQuery(api.users.me);
-  const createConversation = useMutation(api.conversations.create);
   const updateTitle = useMutation(api.conversations.updateTitle);
   const removeConversation = useMutation(api.conversations.remove);
   const createTab = useMutation(api.sidebarTabs.create);
@@ -104,9 +111,6 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
   const editInputRef = useRef<HTMLInputElement>(null);
   const tabRenameInputRef = useRef<HTMLInputElement>(null);
 
-  // IDs of conversations that come from Slack — we surface these under a
-  // dedicated "Slack Threads" section and hide them from the main time-grouped
-  // list to avoid duplication.
   const slackConversationIds = useMemo(() => {
     const set = new Set<string>();
     for (const s of slackConversations ?? []) set.add(s.conversationId as string);
@@ -121,9 +125,6 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
     return groupConversationsByTime(filtered);
   }, [conversations, slackConversationIds]);
 
-  // Group Slack conversations by channel so each channel becomes an expandable
-  // dropdown with its threads inside. Each group is labeled with the channel's
-  // human-readable name (or the DM user's display name for IMs).
   const slackByChannel = useMemo(() => {
     if (!slackConversations) return null;
     const map = new Map<
@@ -167,9 +168,8 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
     }));
   }, [tabs, plan]);
 
-  async function handleNewChat() {
-    const id = await createConversation({ agentId: agent._id });
-    navigate(`/agents/${agent._id}/chat/${id}`);
+  function handleNewChat() {
+    navigate(`/agents/${agent._id}/chat/new`);
   }
 
   async function handleAddPage(type: string, label: string) {
@@ -193,257 +193,247 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
     setRenamingTabLabel("");
   }
 
+  const settingsActive = location.pathname === `/agents/${agent._id}/settings`;
+  const memoriesActive = location.pathname.endsWith("/memories");
+  const assetsActive = location.pathname.includes("/assets");
+
   return (
-    <aside className="w-64 border-r border-zinc-800/50 flex flex-col bg-gradient-to-b from-zinc-950 to-zinc-900/50 shrink-0">
-      {/* Header */}
-      <div className="p-4 border-b border-zinc-800/50">
+    <aside className="w-64 border-r border-rule flex flex-col bg-surface shrink-0">
+      {/* ── Agent header ──────────────────────────────────────────── */}
+      <div className="px-4 pt-5 pb-4 border-b border-rule">
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-300 transition-colors mb-3 group"
+          className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors group mb-3"
         >
           <ChevronLeft className="h-3 w-3 group-hover:-translate-x-0.5 transition-transform" />
           Dashboard
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           {agent.iconUrl ? (
-            <img src={agent.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-zinc-800" />
+            <img
+              src={agent.iconUrl}
+              alt=""
+              className="h-8 w-8 shrink-0 rounded-sm object-cover"
+            />
           ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
-              <Bot className="h-5 w-5 text-zinc-400" />
-            </div>
+            <div className="h-8 w-8 shrink-0 rounded-sm bg-surface-sunken" />
           )}
-          <div className="min-w-0">
-            <div className="font-semibold text-sm truncate">{agent.name}</div>
-            <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="min-w-0 pt-0.5">
+            <div className="font-display text-base leading-tight text-ink truncate">
+              {agent.name}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   agent.status === "active"
-                    ? "bg-neon-400 status-pulse"
+                    ? "bg-accent"
                     : agent.status === "paused"
-                      ? "bg-amber-400"
-                      : "bg-zinc-600"
+                      ? "bg-warn"
+                      : "bg-rule-strong"
                 }`}
               />
-              <span className="text-xs text-zinc-500">{agent.model}</span>
+              <span className="font-mono text-2xs text-ink-faint truncate">
+                {agent.model}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="p-2 space-y-0.5">
+      {/* ── Primary nav ────────────────────────────────────────────── */}
+      <nav className="py-2">
         <button
           onClick={handleNewChat}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-950 bg-gradient-to-r from-neon-500 to-neon-400 hover:from-neon-400 hover:to-neon-300 transition-all group glow-neon-sm"
+          className="flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium text-ink-inverse bg-ink hover:bg-ink-muted transition-colors mx-3 my-1.5 rounded-sm"
+          style={{ width: "calc(100% - 1.5rem)" }}
         >
-          <Plus className="h-4 w-4" />
-          New Chat
+          <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+          New chat
         </button>
+
         <Link
           to={`/agents/${agent._id}/memories`}
-          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
-            location.pathname.endsWith("/memories")
-              ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
-              : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
-          }`}
+          className={`${navRowClass(memoriesActive)} px-4 py-2`}
         >
-          <Brain className="h-4 w-4" />
+          <Brain className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
           Memories
         </Link>
         <Link
           to={`/agents/${agent._id}/assets`}
-          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
-            location.pathname.includes("/assets")
-              ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
-              : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
-          }`}
+          className={`${navRowClass(assetsActive)} px-4 py-2`}
         >
-          <ImageIcon className="h-4 w-4" />
+          <ImageIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
           Assets
         </Link>
       </nav>
 
-      {/* Dynamic Pages */}
+      {/* ── Pages ──────────────────────────────────────────────────── */}
       {tabs && tabs.length > 0 && (
-        <div className="px-2 pb-1">
-          <div className="text-[10px] text-zinc-600 px-3 py-2 font-semibold uppercase tracking-widest">
-            Pages
-          </div>
-          <div className="space-y-0.5">
-            {tabs.map((tab) => {
-              const isActive = location.pathname.includes(`/tab/${tab._id}`);
-              const isRenaming = renamingTabId === tab._id;
-              return (
-                <div
-                  key={tab._id}
-                  className={`group flex items-center rounded-xl text-sm transition-all ${
-                    isActive
-                      ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-0"
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
-                  }`}
-                >
-                  {isRenaming ? (
-                    <form
-                      className="flex items-center gap-2.5 flex-1 px-3 py-2 min-w-0"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleTabRenameSubmit(tab._id, tab.label);
+        <div className="pb-1">
+          <div className="eyebrow px-4 py-2">Pages</div>
+          {tabs.map((tab) => {
+            const isActive = location.pathname.includes(`/tab/${tab._id}`);
+            const isRenaming = renamingTabId === tab._id;
+            return (
+              <div key={tab._id} className={navRowClass(isActive)}>
+                {isRenaming ? (
+                  <form
+                    className="flex items-center gap-2.5 flex-1 px-4 py-2 min-w-0"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleTabRenameSubmit(tab._id, tab.label);
+                    }}
+                  >
+                    {TAB_ICONS[tab.type] ?? <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                    <input
+                      ref={tabRenameInputRef}
+                      value={renamingTabLabel}
+                      onChange={(e) => setRenamingTabLabel(e.target.value)}
+                      onBlur={() => handleTabRenameSubmit(tab._id, tab.label)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setRenamingTabId(null);
+                          setRenamingTabLabel("");
+                        }
                       }}
+                      placeholder={tab.label}
+                      className="flex-1 bg-transparent border-b border-rule-strong text-sm text-ink outline-none min-w-0 placeholder:text-ink-faint"
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-0.5 text-ink-faint hover:text-accent"
                     >
-                      {TAB_ICONS[tab.type] ?? <LayoutGrid className="h-4 w-4" />}
-                      <input
-                        ref={tabRenameInputRef}
-                        value={renamingTabLabel}
-                        onChange={(e) => setRenamingTabLabel(e.target.value)}
-                        onBlur={() => handleTabRenameSubmit(tab._id, tab.label)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            setRenamingTabId(null);
-                            setRenamingTabLabel("");
-                          }
-                        }}
-                        placeholder={tab.label}
-                        className="flex-1 bg-transparent border-b border-zinc-600 text-sm text-zinc-100 outline-none min-w-0 placeholder-zinc-600"
-                        autoFocus
-                      />
+                      <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <Link
+                      to={`/agents/${agent._id}/tab/${tab._id}`}
+                      className="flex items-center gap-2.5 flex-1 px-4 py-2 min-w-0"
+                    >
+                      {TAB_ICONS[tab.type] ?? <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                      <span className="truncate">{tab.label}</span>
+                    </Link>
+                    <div className="hidden group-hover:flex items-center gap-0.5 pr-2">
                       <button
-                        type="submit"
-                        onMouseDown={(e) => e.preventDefault()}
-                        className="p-0.5 text-zinc-500 hover:text-neon-400"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setRenamingTabId(tab._id);
+                          setRenamingTabLabel(tab.label);
+                        }}
+                        className="p-1 text-ink-faint hover:text-ink transition-colors"
                       >
-                        <Check className="h-3.5 w-3.5" />
+                        <Pencil className="h-3 w-3" strokeWidth={1.5} />
                       </button>
-                    </form>
-                  ) : (
-                    <>
-                      <Link
-                        to={`/agents/${agent._id}/tab/${tab._id}`}
-                        className="flex items-center gap-2.5 flex-1 px-3 py-2 min-w-0"
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setDeleteTabId(tab._id);
+                          setDeleteTabConfirm("");
+                        }}
+                        className="p-1 text-ink-faint hover:text-danger transition-colors"
                       >
-                        {TAB_ICONS[tab.type] ?? <LayoutGrid className="h-4 w-4" />}
-                        <span className="truncate">{tab.label}</span>
-                      </Link>
-                      <div className="hidden group-hover:flex items-center gap-0.5 pr-2">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setRenamingTabId(tab._id);
-                            setRenamingTabLabel(tab.label);
-                          }}
-                          className="p-1 rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setDeleteTabId(tab._id);
-                            setDeleteTabConfirm("");
-                          }}
-                          className="p-1 rounded-md text-zinc-600 hover:text-red-400 hover:bg-zinc-700/50 transition-colors"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                        <Trash2 className="h-3 w-3" strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Add Page */}
-      <div className="px-2 pb-1 relative">
+      {/* ── Add page ───────────────────────────────────────────────── */}
+      <div className="px-4 pb-2 relative">
         <button
           onClick={() => setShowAddPage(!showAddPage)}
-          className="flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-900 hover:text-zinc-400 transition-all"
+          className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors"
         >
-          <Plus className="h-3 w-3" />
-          Add Page
+          <Plus className="h-3 w-3" strokeWidth={2} />
+          Add page
         </button>
         {showAddPage && (
-          <div className="absolute left-2 right-2 mt-1 rounded-xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/40 z-10">
-            <div className="flex items-center justify-between px-2.5 py-1.5 mb-1">
-              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
-                Add a page
-              </span>
+          <div className="absolute left-3 right-3 mt-2 bg-surface-raised border border-rule rounded-md shadow-xl shadow-surface-inverse/10 z-10 rise">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-rule">
+              <span className="eyebrow">Add a page</span>
               <button
                 onClick={() => setShowAddPage(false)}
-                className="p-0.5 rounded text-zinc-600 hover:text-zinc-400"
+                className="p-0.5 text-ink-faint hover:text-ink"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" strokeWidth={1.5} />
               </button>
             </div>
-            {availablePageTypes.map((pt) => {
-              const Icon = pt.icon;
-              return (
-                <button
-                  key={pt.type}
-                  onClick={() => !pt.locked && handleAddPage(pt.type, pt.label)}
-                  disabled={pt.locked}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors group ${
-                    pt.locked
-                      ? "text-zinc-600 cursor-not-allowed"
-                      : "text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  <div className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                    pt.locked
-                      ? "bg-zinc-800/50"
-                      : "bg-zinc-800 group-hover:bg-zinc-700"
-                  }`}>
-                    <Icon className={`h-3.5 w-3.5 transition-colors ${
+            <div className="py-1">
+              {availablePageTypes.map((pt) => {
+                const Icon = pt.icon;
+                return (
+                  <button
+                    key={pt.type}
+                    onClick={() => !pt.locked && handleAddPage(pt.type, pt.label)}
+                    disabled={pt.locked}
+                    className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${
                       pt.locked
-                        ? "text-zinc-700"
-                        : "text-zinc-500 group-hover:text-zinc-300"
-                    }`} />
-                  </div>
-                  <div className="text-left flex-1">
-                    <div className="font-medium">{pt.label}</div>
-                    <div className={`text-[10px] ${pt.locked ? "text-zinc-700" : "text-zinc-600"}`}>
-                      {pt.description}
+                        ? "text-ink-faint cursor-not-allowed"
+                        : "text-ink hover:bg-surface-sunken"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 mt-0.5 shrink-0 ${
+                        pt.locked ? "text-ink-faint" : "text-ink-muted"
+                      }`}
+                      strokeWidth={1.5}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm leading-tight font-medium flex items-center gap-1.5">
+                        {pt.label}
+                        {pt.locked && (
+                          <Lock className="h-3 w-3 text-warn" strokeWidth={1.5} />
+                        )}
+                      </div>
+                      <div
+                        className={`mt-0.5 text-2xs leading-snug ${
+                          pt.locked ? "text-ink-faint" : "text-ink-faint"
+                        }`}
+                      >
+                        {pt.description}
+                        {pt.locked && " · Pro"}
+                      </div>
                     </div>
-                  </div>
-                  {pt.locked && (
-                    <div className="flex items-center gap-1 text-[9px] font-semibold text-amber-500/70 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
-                      <Lock className="h-2.5 w-2.5" />
-                      PRO
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Slack Threads */}
+      {/* ── Slack threads ──────────────────────────────────────────── */}
       {slackByChannel && slackByChannel.length > 0 && (
-        <div className="px-2 pb-1">
+        <div className="pb-2">
           <button
             onClick={() => setSlackSectionOpen((v) => !v)}
-            className="flex w-full items-center gap-1.5 px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 transition-colors"
+            className="flex w-full items-center gap-1.5 px-4 py-2 eyebrow hover:text-ink-muted transition-colors"
           >
             {slackSectionOpen ? (
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="h-3 w-3" strokeWidth={2} />
             ) : (
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="h-3 w-3" strokeWidth={2} />
             )}
-            Slack Threads
-            <span className="ml-auto text-zinc-700">{slackConversations?.length ?? 0}</span>
+            Slack threads
+            <span className="ml-auto tabular-nums font-mono font-normal">
+              {slackConversations?.length ?? 0}
+            </span>
           </button>
           {slackSectionOpen && (
-            <div className="space-y-1">
+            <div>
               {slackByChannel.map((channel) => {
                 const isExpanded = expandedSlackChannels.has(channel.channelId);
-                const channelLabel = channel.label;
                 return (
-                  <div
-                    key={channel.channelId}
-                    className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden"
-                  >
+                  <div key={channel.channelId}>
                     <button
                       onClick={() => {
                         setExpandedSlackChannels((prev) => {
@@ -453,25 +443,25 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                           return next;
                         });
                       }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 transition-colors"
+                      className="flex w-full items-center gap-2 px-4 py-1.5 text-sm text-ink-muted hover:text-ink hover:bg-surface-sunken/60 transition-colors"
                     >
                       {isExpanded ? (
-                        <ChevronDown className="h-3 w-3 shrink-0" />
+                        <ChevronDown className="h-3 w-3 shrink-0" strokeWidth={2} />
                       ) : (
-                        <ChevronRight className="h-3 w-3 shrink-0" />
+                        <ChevronRight className="h-3 w-3 shrink-0" strokeWidth={2} />
                       )}
                       {channel.channelType === "im" ? (
-                        <MessageSquare className="h-3 w-3 shrink-0 opacity-60" />
+                        <MessageSquare className="h-3 w-3 shrink-0 text-ink-faint" strokeWidth={1.5} />
                       ) : (
-                        <Hash className="h-3 w-3 shrink-0 opacity-60" />
+                        <Hash className="h-3 w-3 shrink-0 text-ink-faint" strokeWidth={1.5} />
                       )}
-                      <span className="truncate flex-1 text-left">{channelLabel}</span>
-                      <span className="text-[10px] text-zinc-600">
+                      <span className="truncate flex-1 text-left">{channel.label}</span>
+                      <span className="text-2xs text-ink-faint tabular-nums font-mono">
                         {channel.threads.length}
                       </span>
                     </button>
                     {isExpanded && (
-                      <div className="border-t border-zinc-800/60 py-1">
+                      <div className="py-0.5">
                         {channel.threads.map((thread) => {
                           const isActive = conversationId === thread.conversationId;
                           const requester =
@@ -482,17 +472,13 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                             <Link
                               key={thread._id}
                               to={`/agents/${agent._id}/chat/${thread.conversationId}`}
-                              className={`flex items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
-                                isActive
-                                  ? "bg-neon-400/10 text-neon-400 border-l-2 border-neon-400"
-                                  : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-                              }`}
+                              className={`${navRowClass(isActive)} px-4 py-1.5 text-sm pl-11`}
                             >
-                              <MessageSquare className="h-3 w-3 shrink-0 opacity-50" />
+                              <MessageSquare className="h-3 w-3 shrink-0 text-ink-faint" strokeWidth={1.5} />
                               <div className="flex-1 min-w-0">
                                 <div className="truncate">{requester}</div>
                                 {thread.mode === "bot" && (
-                                  <div className="text-[9px] text-zinc-600 truncate">
+                                  <div className="text-2xs text-ink-faint truncate">
                                     bot mode
                                   </div>
                                 )}
@@ -510,47 +496,35 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
         </div>
       )}
 
-      {/* Conversations */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2">
-        <div className="text-[10px] text-zinc-600 px-3 py-2 font-semibold uppercase tracking-widest">
-          Conversations
-        </div>
+      {/* ── Conversations ──────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto pb-2 min-h-0">
+        <div className="eyebrow px-4 py-2">Conversations</div>
         {conversations === undefined ? (
-          <div className="space-y-1.5 px-1">
+          <div className="space-y-[1px] px-4">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-9 rounded-xl bg-zinc-900/50 animate-pulse"
-              />
+              <div key={i} className="h-8 bg-surface-sunken animate-pulse" />
             ))}
           </div>
         ) : conversations.length === 0 ? (
-          <p className="text-xs text-zinc-600 px-3 py-2">
+          <p className="text-sm text-ink-faint px-4 py-2">
             No conversations yet
           </p>
         ) : (
-          <div className="space-y-3">
+          <div>
             {conversationGroups?.map((group) => (
               <div key={group.label}>
-                <div className="text-[9px] text-zinc-700 px-3 py-1 font-medium uppercase tracking-wider">
+                <div className="text-2xs text-ink-faint px-4 py-1.5 font-mono uppercase tracking-wider">
                   {group.label}
                 </div>
-                <div className="space-y-0.5">
+                <div>
                   {group.items.map((conv) => {
                     const isEditing = editingId === conv._id;
                     const isActive = conversationId === conv._id;
                     return (
-                      <div
-                        key={conv._id}
-                        className={`group flex items-center rounded-xl text-sm transition-all ${
-                          isActive
-                            ? "bg-zinc-800/80 text-zinc-100 shadow-sm border-l-2 border-neon-400 ml-0 pl-0"
-                            : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
-                        }`}
-                      >
+                      <div key={conv._id} className={navRowClass(isActive)}>
                         {isEditing ? (
                           <form
-                            className="flex items-center gap-2 flex-1 px-3 py-2"
+                            className="flex items-center gap-2 flex-1 px-4 py-2"
                             onSubmit={async (e) => {
                               e.preventDefault();
                               if (editTitle.trim()) {
@@ -562,7 +536,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                               setEditingId(null);
                             }}
                           >
-                            <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                            <MessageSquare className="h-3 w-3 shrink-0 text-ink-faint" strokeWidth={1.5} />
                             <input
                               ref={editInputRef}
                               value={editTitle}
@@ -571,24 +545,24 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                               onKeyDown={(e) => {
                                 if (e.key === "Escape") setEditingId(null);
                               }}
-                              className="flex-1 bg-transparent border-b border-zinc-600 text-sm text-zinc-100 outline-none min-w-0"
+                              className="flex-1 bg-transparent border-b border-rule-strong text-sm text-ink outline-none min-w-0"
                               autoFocus
                             />
                             <button
                               type="submit"
                               onMouseDown={(e) => e.preventDefault()}
-                              className="p-0.5 text-zinc-500 hover:text-neon-400"
+                              className="p-0.5 text-ink-faint hover:text-accent"
                             >
-                              <Check className="h-3.5 w-3.5" />
+                              <Check className="h-3 w-3" strokeWidth={1.5} />
                             </button>
                           </form>
                         ) : (
                           <>
                             <Link
                               to={`/agents/${agent._id}/chat/${conv._id}`}
-                              className="flex items-center gap-2.5 flex-1 px-3 py-2 min-w-0"
+                              className="flex items-center gap-2.5 flex-1 px-4 py-2 min-w-0"
                             >
-                              <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                              <MessageSquare className="h-3 w-3 shrink-0 text-ink-faint" strokeWidth={1.5} />
                               <span className="truncate">
                                 {conv.title || "New conversation"}
                               </span>
@@ -600,18 +574,18 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                                   setEditTitle(conv.title || "");
                                   setEditingId(conv._id);
                                 }}
-                                className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50"
+                                className="p-1 text-ink-faint hover:text-ink transition-colors"
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-3 w-3" strokeWidth={1.5} />
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
                                   setDeleteId(conv._id);
                                 }}
-                                className="p-1 rounded-md text-zinc-500 hover:text-red-400 hover:bg-zinc-700/50"
+                                className="p-1 text-ink-faint hover:text-danger transition-colors"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3 w-3" strokeWidth={1.5} />
                               </button>
                             </div>
                           </>
@@ -626,36 +600,32 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="p-2 border-t border-zinc-800/50">
+      {/* ── Footer: settings ───────────────────────────────────────── */}
+      <div className="border-t border-rule py-1">
         <Link
           to={`/agents/${agent._id}/settings`}
-          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
-            location.pathname === `/agents/${agent._id}/settings`
-              ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 ml-0 pl-2.5"
-              : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300"
-          }`}
+          className={`${navRowClass(settingsActive)} px-4 py-2.5`}
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
           Settings
         </Link>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* ── Delete conversation confirm ────────────────────────────── */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-80 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl fade-in-up">
-            <h3 className="text-sm font-semibold text-zinc-100 mb-2">
-              Delete conversation
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/40 backdrop-blur-[2px]">
+          <div className="w-80 bg-surface-raised border border-rule rounded-md p-6 rise">
+            <p className="eyebrow">Delete conversation</p>
+            <h3 className="mt-2 font-display text-lg leading-tight text-ink">
+              Remove this thread?
             </h3>
-            <p className="text-xs text-zinc-400 mb-5">
-              This will permanently delete this conversation and all its
-              messages. This action cannot be undone.
+            <p className="mt-3 text-sm text-ink-muted leading-relaxed">
+              This permanently deletes the conversation and all its messages.
             </p>
-            <div className="flex items-center justify-end gap-2">
+            <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={() => setDeleteId(null)}
-                className="px-3 py-1.5 text-xs font-medium text-zinc-400 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="text-sm text-ink-muted hover:text-ink px-3 py-1.5 transition-colors"
               >
                 Cancel
               </button>
@@ -669,7 +639,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                   }
                   setDeleteId(null);
                 }}
-                className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors"
+                className="text-sm font-medium text-danger hover:bg-danger-soft px-3 py-1.5 rounded-sm transition-colors"
               >
                 Delete
               </button>
@@ -678,28 +648,33 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
         </div>
       )}
 
-      {/* Delete Page Confirmation Dialog */}
+      {/* ── Delete page confirm ────────────────────────────────────── */}
       {deleteTabId && (() => {
         const tabToDelete = tabs?.find((t) => t._id === deleteTabId);
         if (!tabToDelete) return null;
         const confirmMatch = deleteTabConfirm === tabToDelete.label;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="w-80 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl fade-in-up">
-              <h3 className="text-sm font-semibold text-zinc-100 mb-2">
-                Delete page
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/40 backdrop-blur-[2px]">
+            <div className="w-96 bg-surface-raised border border-rule rounded-md p-6 rise">
+              <p className="eyebrow">Delete page</p>
+              <h3 className="mt-2 font-display text-lg leading-tight text-ink">
+                Remove {tabToDelete.label}?
               </h3>
-              <p className="text-xs text-zinc-400 mb-4">
-                This will permanently delete <span className="font-semibold text-zinc-200">{tabToDelete.label}</span> and all its data. This action cannot be undone.
+              <p className="mt-3 text-sm text-ink-muted leading-relaxed">
+                This permanently deletes the page and all its data.
               </p>
-              <p className="text-xs text-zinc-500 mb-2">
-                Type <span className="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded">{tabToDelete.label}</span> to confirm:
+              <p className="mt-4 text-sm text-ink-muted">
+                Type{" "}
+                <span className="font-mono text-ink bg-surface-sunken px-1.5 py-0.5 rounded-xs">
+                  {tabToDelete.label}
+                </span>{" "}
+                to confirm:
               </p>
               <input
                 value={deleteTabConfirm}
                 onChange={(e) => setDeleteTabConfirm(e.target.value)}
                 placeholder={tabToDelete.label}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-red-500/50 focus:outline-none transition-colors mb-4"
+                className="mt-3 w-full bg-transparent border-0 border-b border-rule-strong px-0 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-danger focus:outline-none"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
@@ -719,13 +694,13 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                   }
                 }}
               />
-              <div className="flex items-center justify-end gap-2">
+              <div className="mt-6 flex items-center justify-end gap-3">
                 <button
                   onClick={() => {
                     setDeleteTabId(null);
                     setDeleteTabConfirm("");
                   }}
-                  className="px-3 py-1.5 text-xs font-medium text-zinc-400 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="text-sm text-ink-muted hover:text-ink px-3 py-1.5 transition-colors"
                 >
                   Cancel
                 </button>
@@ -739,7 +714,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
                     setDeleteTabId(null);
                     setDeleteTabConfirm("");
                   }}
-                  className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-red-500/10"
+                  className="text-sm font-medium text-danger hover:bg-danger-soft px-3 py-1.5 rounded-sm transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                 >
                   Delete
                 </button>

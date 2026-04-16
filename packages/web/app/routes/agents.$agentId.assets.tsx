@@ -4,7 +4,6 @@ import { useOutletContext, useSearchParams } from "react-router";
 import {
   ImageIcon,
   FolderPlus,
-  Folder,
   FolderOpen,
   ChevronRight,
   Trash2,
@@ -196,34 +195,38 @@ export default function AssetsPage() {
     >
       {/* Drag Overlay */}
       {isDragOver && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-none">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-neon-400/60 bg-zinc-900/90 px-16 py-12">
-            <Upload className="h-10 w-10 text-neon-400 animate-bounce" />
-            <p className="text-sm font-semibold text-neon-400">Drop files to upload</p>
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 pointer-events-none">
+          <div className="flex flex-col items-center gap-3 border-2 border-dashed border-rule-strong bg-surface/95 px-16 py-12">
+            <Upload className="h-10 w-10 text-ink-muted" strokeWidth={1.5} />
+            <p className="text-sm text-ink-muted">Drop files to upload</p>
           </div>
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <ImageIcon className="h-5 w-5 text-zinc-400" />
-            <h1 className="text-lg font-semibold">Assets</h1>
-            <span className="text-xs text-zinc-600">
-              {(assets ?? []).length} items
-            </span>
+        <div className="flex items-baseline justify-between border-b border-rule pb-4 mb-6">
+          <div>
+            <p className="eyebrow">Assets</p>
+            <div className="flex items-baseline gap-3 mt-1">
+              <h1 className="font-display text-2xl text-ink">
+                {currentFolder ? currentFolder.name : "All Assets"}
+              </h1>
+              <span className="font-mono text-xs text-ink-faint">
+                {(assets ?? []).length} items
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-              className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+              className="text-ink-faint hover:text-ink transition-colors"
               title={viewMode === "grid" ? "List view" : "Grid view"}
             >
               {viewMode === "grid" ? (
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" strokeWidth={1.5} />
               ) : (
-                <Grid3X3 className="h-4 w-4" />
+                <Grid3X3 className="h-4 w-4" strokeWidth={1.5} />
               )}
             </button>
             <button
@@ -232,16 +235,16 @@ export default function AssetsPage() {
                 setPendingFiles([]);
                 fileInputRef.current?.click();
               }}
-              className="flex items-center gap-2 rounded-lg bg-zinc-100 text-zinc-900 px-3 py-2 text-xs font-semibold hover:bg-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold bg-ink text-surface px-3 py-1.5 hover:opacity-90 transition-all"
             >
-              <Upload className="h-3.5 w-3.5" />
+              <Upload className="h-3 w-3" strokeWidth={1.5} />
               Upload
             </button>
             <button
               onClick={() => setShowNewFolder(true)}
-              className="flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+              className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink border border-rule px-3 py-1.5 transition-colors"
             >
-              <FolderPlus className="h-4 w-4" />
+              <FolderPlus className="h-3 w-3" strokeWidth={1.5} />
               New Folder
             </button>
           </div>
@@ -260,16 +263,16 @@ export default function AssetsPage() {
         />
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1 mb-4 text-sm">
+        <div className="flex items-center gap-1 mb-5 text-sm">
           {breadcrumbs.map((bc, i) => (
             <div key={bc.id ?? "root"} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight className="h-3 w-3 text-zinc-600" />}
+              {i > 0 && <ChevronRight className="h-3 w-3 text-ink-faint" strokeWidth={1.5} />}
               <button
                 onClick={() => navigateToFolder(bc.id)}
-                className={`px-2 py-1 rounded-md transition-colors ${
+                className={`px-1 transition-colors ${
                   i === breadcrumbs.length - 1
-                    ? "text-zinc-200 font-medium"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                    ? "text-ink"
+                    : "text-ink-faint hover:text-ink-muted"
                 }`}
               >
                 {bc.name}
@@ -280,8 +283,7 @@ export default function AssetsPage() {
 
         {/* New Folder Input */}
         {showNewFolder && (
-          <div className="mb-4 flex items-center gap-2">
-            <Folder className="h-4 w-4 text-zinc-500" />
+          <div className="mb-5 flex items-center gap-2">
             <input
               autoFocus
               value={newFolderName}
@@ -290,48 +292,46 @@ export default function AssetsPage() {
                 if (e.key === "Enter") handleCreateFolder();
                 if (e.key === "Escape") setShowNewFolder(false);
               }}
-              placeholder="Folder name..."
-              className="flex-1 max-w-xs rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              placeholder="Folder name…"
+              className="flex-1 max-w-xs bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             />
             <button
               onClick={handleCreateFolder}
-              className="p-2 rounded-lg text-neon-400 hover:bg-zinc-800"
+              className="p-1.5 text-accent hover:text-ink transition-colors"
             >
-              <Check className="h-4 w-4" />
+              <Check className="h-4 w-4" strokeWidth={2} />
             </button>
             <button
               onClick={() => setShowNewFolder(false)}
-              className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-800"
+              className="p-1.5 text-ink-faint hover:text-ink transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
           </div>
         )}
 
         {/* Folders */}
         {subFolders.length > 0 && (
-          <div className="mb-6">
-            <div className="text-[10px] text-zinc-600 font-semibold uppercase tracking-widest mb-2">
-              Folders
-            </div>
+          <div className="mb-8">
+            <p className="eyebrow mb-3">Folders</p>
             <div className={viewMode === "grid"
-              ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
-              : "space-y-1"
+              ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2"
+              : "divide-y divide-rule border-y border-rule"
             }>
               {subFolders.map((folder) => (
                 <div
                   key={folder._id}
                   className={`group relative ${
                     viewMode === "grid"
-                      ? `rounded-xl border p-4 transition-all cursor-pointer ${
+                      ? `border p-4 transition-all cursor-pointer ${
                           folderDragOverId === folder._id
-                            ? "border-neon-400/60 bg-neon-400/5 ring-1 ring-neon-400/20"
-                            : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800/80 hover:border-zinc-700"
+                            ? "border-accent bg-accent-soft/20"
+                            : "border-rule bg-surface hover:bg-surface-sunken hover:border-rule-strong"
                         }`
-                      : `flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer ${
+                      : `flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer ${
                           folderDragOverId === folder._id
-                            ? "bg-neon-400/5 border border-neon-400/40"
-                            : "hover:bg-zinc-800/80"
+                            ? "bg-accent-soft/20"
+                            : "hover:bg-surface-sunken/60"
                         }`
                   }`}
                   onClick={() => navigateToFolder(folder._id)}
@@ -355,7 +355,7 @@ export default function AssetsPage() {
                     }
                   }}
                 >
-                  <FolderOpen className={`text-amber-400/80 ${viewMode === "grid" ? "h-8 w-8 mb-2" : "h-4 w-4"}`} />
+                  <FolderOpen className={`text-ink-muted shrink-0 ${viewMode === "grid" ? "h-7 w-7 mb-2" : "h-4 w-4"}`} strokeWidth={1.5} />
                   {renamingId === folder._id ? (
                     <form
                       onSubmit={(e) => {
@@ -371,11 +371,11 @@ export default function AssetsPage() {
                         onChange={(e) => setRenameValue(e.target.value)}
                         onBlur={() => setRenamingId(null)}
                         onKeyDown={(e) => { if (e.key === "Escape") setRenamingId(null); }}
-                        className="bg-transparent border-b border-zinc-600 text-sm outline-none w-full"
+                        className="bg-transparent border-b border-rule-strong text-sm outline-none w-full"
                       />
                     </form>
                   ) : (
-                    <span className={`truncate ${viewMode === "grid" ? "text-sm font-medium" : "text-sm flex-1"}`}>
+                    <span className={`truncate text-sm ${viewMode === "list" ? "flex-1" : ""}`}>
                       {folder.name}
                     </span>
                   )}
@@ -388,9 +388,9 @@ export default function AssetsPage() {
                         setRenameValue(folder.name);
                         setRenamingId(folder._id);
                       }}
-                      className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700"
+                      className="p-1 text-ink-faint hover:text-ink transition-colors"
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Pencil className="h-3 w-3" strokeWidth={1.5} />
                     </button>
                     <button
                       onClick={async () => {
@@ -398,9 +398,9 @@ export default function AssetsPage() {
                           await removeFolder({ folderId: folder._id });
                         }
                       }}
-                      className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-700"
+                      className="p-1 text-ink-faint hover:text-danger transition-colors"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
@@ -412,13 +412,11 @@ export default function AssetsPage() {
         {/* Assets Grid/List */}
         <div>
           {(assets ?? []).length > 0 && (
-            <div className="text-[10px] text-zinc-600 font-semibold uppercase tracking-widest mb-2">
-              Images & Files
-            </div>
+            <p className="eyebrow mb-3">Images & Files</p>
           )}
 
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {(assets ?? []).map((asset) => (
                 <div
                   key={asset._id}
@@ -429,16 +427,16 @@ export default function AssetsPage() {
                     e.dataTransfer.setData("text/plain", asset._id);
                   }}
                   onDragEnd={() => setDraggingAssetId(null)}
-                  className={`group relative rounded-xl border overflow-hidden transition-all cursor-pointer ${
+                  className={`group relative border overflow-hidden transition-all cursor-pointer ${
                     selectedAsset === asset._id
-                      ? "border-neon-400/50 ring-1 ring-neon-400/30 bg-zinc-800/80"
+                      ? "border-rule-strong bg-surface-sunken"
                       : draggingAssetId === asset._id
-                        ? "opacity-40 border-zinc-800 bg-zinc-900/50"
-                        : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-800/80"
+                        ? "opacity-40 border-rule"
+                        : "border-rule bg-surface hover:border-rule-strong hover:bg-surface-sunken"
                   }`}
                   onClick={() => setSelectedAsset(selectedAsset === asset._id ? null : asset._id)}
                 >
-                  <div className="aspect-square bg-zinc-800/50 flex items-center justify-center overflow-hidden">
+                  <div className="aspect-square bg-surface-sunken flex items-center justify-center overflow-hidden">
                     {asset.resolvedUrl && asset.type === "image" ? (
                       <img
                         src={asset.resolvedUrl}
@@ -446,10 +444,10 @@ export default function AssetsPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <ImageIcon className="h-8 w-8 text-zinc-700" />
+                      <ImageIcon className="h-8 w-8 text-ink-faint" strokeWidth={1.5} />
                     )}
                   </div>
-                  <div className="p-2.5">
+                  <div className="p-2.5 border-t border-rule">
                     {renamingId === asset._id ? (
                       <form
                         onSubmit={(e) => {
@@ -464,16 +462,16 @@ export default function AssetsPage() {
                           onChange={(e) => setRenameValue(e.target.value)}
                           onBlur={() => setRenamingId(null)}
                           onKeyDown={(e) => { if (e.key === "Escape") setRenamingId(null); }}
-                          className="bg-transparent border-b border-zinc-600 text-xs outline-none w-full"
+                          className="bg-transparent border-b border-rule-strong text-xs outline-none w-full"
                         />
                       </form>
                     ) : (
-                      <p className="text-xs font-medium truncate">{asset.name}</p>
+                      <p className="text-xs text-ink truncate">{asset.name}</p>
                     )}
                     {asset.generatedBy && (
                       <div className="flex items-center gap-1 mt-1">
-                        <Sparkles className="h-2.5 w-2.5 text-violet-400" />
-                        <span className="text-[10px] text-zinc-500">
+                        <Sparkles className="h-2.5 w-2.5 text-ink-faint" strokeWidth={1.5} />
+                        <span className="text-[10px] text-ink-faint">
                           {asset.generatedBy === "gemini" ? "Gemini" : "Nano Banana"}
                         </span>
                       </div>
@@ -488,19 +486,19 @@ export default function AssetsPage() {
                         setRenameValue(asset.name);
                         setRenamingId(asset._id);
                       }}
-                      className="p-1.5 rounded-md bg-black/50 backdrop-blur text-zinc-300 hover:text-white"
+                      className="p-1.5 bg-surface/90 border border-rule text-ink-muted hover:text-ink transition-colors"
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Pencil className="h-3 w-3" strokeWidth={1.5} />
                     </button>
                     <button
                       onClick={() => {
                         setMoveAssetId(asset._id);
                         setMoveFolderId(null);
                       }}
-                      className="p-1.5 rounded-md bg-black/50 backdrop-blur text-zinc-300 hover:text-white"
+                      className="p-1.5 bg-surface/90 border border-rule text-ink-muted hover:text-ink transition-colors"
                       title="Move to folder"
                     >
-                      <FolderInput className="h-3 w-3" />
+                      <FolderInput className="h-3 w-3" strokeWidth={1.5} />
                     </button>
                     {asset.resolvedUrl && (
                       <a
@@ -508,9 +506,9 @@ export default function AssetsPage() {
                         download={asset.name}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-md bg-black/50 backdrop-blur text-zinc-300 hover:text-white"
+                        className="p-1.5 bg-surface/90 border border-rule text-ink-muted hover:text-ink transition-colors"
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3 w-3" strokeWidth={1.5} />
                       </a>
                     )}
                     <button
@@ -520,18 +518,18 @@ export default function AssetsPage() {
                           if (selectedAsset === asset._id) setSelectedAsset(null);
                         }
                       }}
-                      className="p-1.5 rounded-md bg-black/50 backdrop-blur text-zinc-300 hover:text-red-400"
+                      className="p-1.5 bg-surface/90 border border-rule text-ink-muted hover:text-danger transition-colors"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="space-y-1">
+            <ol className="divide-y divide-rule border-y border-rule">
               {(assets ?? []).map((asset) => (
-                <div
+                <li
                   key={asset._id}
                   draggable
                   onDragStart={(e) => {
@@ -540,34 +538,34 @@ export default function AssetsPage() {
                     e.dataTransfer.setData("text/plain", asset._id);
                   }}
                   onDragEnd={() => setDraggingAssetId(null)}
-                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer ${
                     selectedAsset === asset._id
-                      ? "bg-neon-400/10 text-neon-400"
+                      ? "bg-surface-sunken"
                       : draggingAssetId === asset._id
                         ? "opacity-40"
-                        : "hover:bg-zinc-800/80"
+                        : "hover:bg-surface-sunken/60"
                   }`}
                   onClick={() => setSelectedAsset(selectedAsset === asset._id ? null : asset._id)}
                 >
-                  <div className="h-10 w-10 rounded-lg bg-zinc-800 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 border border-rule overflow-hidden flex items-center justify-center shrink-0">
                     {asset.resolvedUrl && asset.type === "image" ? (
                       <img src={asset.resolvedUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <ImageIcon className="h-4 w-4 text-zinc-600" />
+                      <ImageIcon className="h-4 w-4 text-ink-faint" strokeWidth={1.5} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{asset.name}</p>
-                    <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                    <p className="text-sm text-ink truncate">{asset.name}</p>
+                    <div className="flex items-center gap-2 text-[10px] text-ink-faint">
                       {asset.generatedBy && (
                         <span className="flex items-center gap-1">
-                          <Sparkles className="h-2.5 w-2.5 text-violet-400" />
+                          <Sparkles className="h-2.5 w-2.5" strokeWidth={1.5} />
                           {asset.generatedBy === "gemini" ? "Gemini" : "Nano Banana"}
                         </span>
                       )}
-                      {asset.mimeType && <span>{asset.mimeType}</span>}
+                      {asset.mimeType && <span className="font-mono">{asset.mimeType}</span>}
                       {asset.fileSize && (
-                        <span>{Math.round(asset.fileSize / 1024)}KB</span>
+                        <span className="font-mono">{Math.round(asset.fileSize / 1024)}KB</span>
                       )}
                     </div>
                   </div>
@@ -580,10 +578,10 @@ export default function AssetsPage() {
                         setMoveAssetId(asset._id);
                         setMoveFolderId(null);
                       }}
-                      className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700"
+                      className="p-1.5 text-ink-faint hover:text-ink transition-colors"
                       title="Move to folder"
                     >
-                      <FolderInput className="h-3.5 w-3.5" />
+                      <FolderInput className="h-3.5 w-3.5" strokeWidth={1.5} />
                     </button>
                     {asset.resolvedUrl && (
                       <a
@@ -591,9 +589,9 @@ export default function AssetsPage() {
                         download={asset.name}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700"
+                        className="p-1.5 text-ink-faint hover:text-ink transition-colors"
                       >
-                        <Download className="h-3.5 w-3.5" />
+                        <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
                       </a>
                     )}
                     <button
@@ -602,26 +600,22 @@ export default function AssetsPage() {
                           await removeAsset({ assetId: asset._id });
                         }
                       }}
-                      className="p-1.5 rounded-md text-zinc-500 hover:text-red-400 hover:bg-zinc-700"
+                      className="p-1.5 text-ink-faint hover:text-danger transition-colors"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                     </button>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ol>
           )}
 
           {/* Empty State */}
           {(assets ?? []).length === 0 && subFolders.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800/80 ring-1 ring-zinc-700/50 mb-4">
-                <ImageIcon className="h-8 w-8 text-zinc-600" />
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-300 mb-1">
-                No assets yet
-              </h3>
-              <p className="text-xs text-zinc-500 max-w-sm">
+            <div className="py-20 max-w-md">
+              <p className="eyebrow">Empty</p>
+              <h2 className="mt-2 font-display text-2xl text-ink">No assets yet.</h2>
+              <p className="mt-3 text-sm text-ink-muted leading-relaxed">
                 Drag and drop files here, click Upload, or ask your agent to generate an image.
               </p>
               <button
@@ -630,9 +624,9 @@ export default function AssetsPage() {
                   setPendingFiles([]);
                   fileInputRef.current?.click();
                 }}
-                className="mt-4 flex items-center gap-2 rounded-lg bg-zinc-100 text-zinc-900 px-4 py-2 text-xs font-semibold hover:bg-white transition-colors"
+                className="mt-6 inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold bg-ink text-surface px-4 py-2 hover:opacity-90 transition-all"
               >
-                <Upload className="h-3.5 w-3.5" />
+                <Upload className="h-3 w-3" strokeWidth={1.5} />
                 Upload your first file
               </button>
             </div>
@@ -641,15 +635,16 @@ export default function AssetsPage() {
 
         {/* Asset Detail Panel */}
         {selectedAssetData && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
             onClick={() => setSelectedAsset(null)}
           >
             <div
-              className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl overflow-hidden"
+              className="w-full max-w-2xl border border-rule bg-surface shadow-2xl overflow-hidden rise"
               onClick={(e) => e.stopPropagation()}
             >
               {selectedAssetData.resolvedUrl && selectedAssetData.type === "image" && (
-                <div className="bg-zinc-950 flex items-center justify-center max-h-[60vh] overflow-hidden">
+                <div className="bg-surface-sunken flex items-center justify-center max-h-[60vh] overflow-hidden border-b border-rule">
                   <img
                     src={selectedAssetData.resolvedUrl}
                     alt={selectedAssetData.name}
@@ -659,57 +654,55 @@ export default function AssetsPage() {
               )}
               <div className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold">{selectedAssetData.name}</h2>
+                  <h2 className="text-sm font-display text-ink">{selectedAssetData.name}</h2>
                   <button
                     onClick={() => setSelectedAsset(null)}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                    className="p-1.5 text-ink-faint hover:text-ink transition-colors"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" strokeWidth={1.5} />
                   </button>
                 </div>
                 {selectedAssetData.prompt && (
-                  <div className="mb-3">
-                    <div className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-1">
-                      Prompt
-                    </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-800/50 rounded-lg p-3">
+                  <div className="mb-4">
+                    <p className="eyebrow mb-1.5">Prompt</p>
+                    <p className="text-xs text-ink-muted leading-relaxed bg-surface-sunken border border-rule p-3">
                       {selectedAssetData.prompt}
                     </p>
                   </div>
                 )}
-                <div className="flex flex-wrap gap-3 text-[10px] text-zinc-500">
+                <div className="flex flex-wrap gap-2 text-[10px] text-ink-faint">
                   {selectedAssetData.generatedBy && (
-                    <span className="flex items-center gap-1 bg-zinc-800 rounded-full px-2.5 py-1">
-                      <Sparkles className="h-2.5 w-2.5 text-violet-400" />
+                    <span className="flex items-center gap-1 border border-rule bg-surface-sunken px-2 py-0.5">
+                      <Sparkles className="h-2.5 w-2.5" strokeWidth={1.5} />
                       {selectedAssetData.generatedBy === "gemini" ? "Gemini Imagen" : "Nano Banana"}
                     </span>
                   )}
                   {selectedAssetData.model && (
-                    <span className="bg-zinc-800 rounded-full px-2.5 py-1">
+                    <span className="font-mono border border-rule bg-surface-sunken px-2 py-0.5">
                       {selectedAssetData.model}
                     </span>
                   )}
                   {selectedAssetData.width && selectedAssetData.height && (
-                    <span className="bg-zinc-800 rounded-full px-2.5 py-1">
-                      {selectedAssetData.width} x {selectedAssetData.height}
+                    <span className="font-mono border border-rule bg-surface-sunken px-2 py-0.5">
+                      {selectedAssetData.width} × {selectedAssetData.height}
                     </span>
                   )}
                   {selectedAssetData.fileSize && (
-                    <span className="bg-zinc-800 rounded-full px-2.5 py-1">
+                    <span className="font-mono border border-rule bg-surface-sunken px-2 py-0.5">
                       {Math.round(selectedAssetData.fileSize / 1024)}KB
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-800">
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-rule">
                   {selectedAssetData.resolvedUrl && (
                     <a
                       href={selectedAssetData.resolvedUrl}
                       download={selectedAssetData.name}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs border border-rule bg-surface-sunken px-3 py-2 text-ink-muted hover:text-ink transition-colors"
                     >
-                      <Download className="h-3.5 w-3.5" />
+                      <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
                       Download
                     </a>
                   )}
@@ -718,9 +711,9 @@ export default function AssetsPage() {
                       setMoveAssetId(selectedAssetData._id);
                       setMoveFolderId(selectedAssetData.folderId ?? null);
                     }}
-                    className="flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs border border-rule bg-surface-sunken px-3 py-2 text-ink-muted hover:text-ink transition-colors"
                   >
-                    <FolderInput className="h-3.5 w-3.5" />
+                    <FolderInput className="h-3.5 w-3.5" strokeWidth={1.5} />
                     Move to folder
                   </button>
                   <button
@@ -730,9 +723,9 @@ export default function AssetsPage() {
                         setSelectedAsset(null);
                       }
                     }}
-                    className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs border border-danger/30 bg-danger/5 px-3 py-2 text-danger hover:bg-danger/10 transition-colors"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                     Delete
                   </button>
                 </div>
@@ -744,35 +737,37 @@ export default function AssetsPage() {
         {/* Upload Modal */}
         {showUploadModal && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
             onClick={() => { if (!uploading) setShowUploadModal(false); }}
           >
             <div
-              className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl overflow-hidden"
+              className="w-full max-w-md border border-rule bg-surface shadow-2xl overflow-hidden rise"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold">Upload {pendingFiles.length === 1 ? "file" : `${pendingFiles.length} files`}</h2>
-                  <button
-                    onClick={() => { if (!uploading) setShowUploadModal(false); }}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+              <div className="flex items-center justify-between px-5 h-14 border-b border-rule">
+                <p className="eyebrow">
+                  Upload {pendingFiles.length === 1 ? "file" : `${pendingFiles.length} files`}
+                </p>
+                <button
+                  onClick={() => { if (!uploading) setShowUploadModal(false); }}
+                  className="p-1.5 text-ink-faint hover:text-ink transition-colors"
+                >
+                  <X className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+              </div>
 
+              <div className="p-5 space-y-5">
                 {/* File list */}
-                <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                <div className="space-y-[1px] max-h-40 overflow-y-auto">
                   {pendingFiles.map((file, i) => (
-                    <div key={i} className="flex items-center gap-2.5 rounded-lg bg-zinc-800/50 px-3 py-2">
+                    <div key={i} className="flex items-center gap-2.5 bg-surface-sunken px-3 py-2">
                       {IMAGE_TYPES.has(file.type) ? (
-                        <ImageIcon className="h-4 w-4 text-zinc-500 shrink-0" />
+                        <ImageIcon className="h-4 w-4 text-ink-faint shrink-0" strokeWidth={1.5} />
                       ) : (
-                        <File className="h-4 w-4 text-zinc-500 shrink-0" />
+                        <File className="h-4 w-4 text-ink-faint shrink-0" strokeWidth={1.5} />
                       )}
-                      <span className="text-xs text-zinc-300 truncate flex-1">{file.name}</span>
-                      <span className="text-[10px] text-zinc-500 shrink-0">
+                      <span className="text-xs text-ink truncate flex-1">{file.name}</span>
+                      <span className="font-mono text-[10px] text-ink-faint shrink-0">
                         {file.size < 1024 * 1024
                           ? `${Math.round(file.size / 1024)}KB`
                           : `${(file.size / (1024 * 1024)).toFixed(1)}MB`}
@@ -782,15 +777,13 @@ export default function AssetsPage() {
                 </div>
 
                 {/* Folder picker */}
-                <div className="mb-5">
-                  <label className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider block mb-2">
-                    Destination folder
-                  </label>
+                <div>
+                  <p className="eyebrow mb-2">Destination folder</p>
                   <select
                     value={uploadFolderId ?? "root"}
                     onChange={(e) => setUploadFolderId((e.target.value === "root" ? null : e.target.value) as Id<"assetFolders"> | null)}
                     disabled={uploading}
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+                    className="w-full bg-surface-sunken border border-rule px-3 py-2 text-sm text-ink focus:border-rule-strong focus:outline-none transition-colors"
                   >
                     <option value="root">Root (no folder)</option>
                     {folders?.map((f) => (
@@ -802,27 +795,27 @@ export default function AssetsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     onClick={() => setShowUploadModal(false)}
                     disabled={uploading}
-                    className="text-xs text-zinc-500 px-3 py-2 hover:text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-30"
+                    className="text-sm text-ink-muted hover:text-ink disabled:opacity-30 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleUpload}
                     disabled={uploading}
-                    className="flex items-center gap-2 text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
+                    className="inline-flex items-center gap-1.5 text-xs bg-ink text-surface px-4 py-2 font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
                   >
                     {uploading ? (
                       <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        Uploading...
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+                        Uploading…
                       </>
                     ) : (
                       <>
-                        <Upload className="h-3.5 w-3.5" />
+                        <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />
                         Upload
                       </>
                     )}
@@ -836,43 +829,41 @@ export default function AssetsPage() {
         {/* Move Modal */}
         {moveAssetId && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
             onClick={() => setMoveAssetId(null)}
           >
             <div
-              className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl overflow-hidden"
+              className="w-full max-w-sm border border-rule bg-surface shadow-2xl overflow-hidden rise"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold">Move to folder</h2>
+              <div className="flex items-center justify-between px-5 h-14 border-b border-rule">
+                <p className="eyebrow">Move to folder</p>
+                <button
+                  onClick={() => setMoveAssetId(null)}
+                  className="p-1.5 text-ink-faint hover:text-ink transition-colors"
+                >
+                  <X className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-5">
+                <select
+                  value={moveFolderId ?? "root"}
+                  onChange={(e) => setMoveFolderId((e.target.value === "root" ? null : e.target.value) as Id<"assetFolders"> | null)}
+                  className="w-full bg-surface-sunken border border-rule px-3 py-2 text-sm text-ink focus:border-rule-strong focus:outline-none transition-colors"
+                >
+                  <option value="root">Root (no folder)</option>
+                  {folders?.map((f) => (
+                    <option key={f._id} value={f._id}>
+                      {f.parentId ? "\u00A0\u00A0\u00A0\u00A0" : ""}{f.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center justify-end gap-3">
                   <button
                     onClick={() => setMoveAssetId(null)}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="mb-5">
-                  <select
-                    value={moveFolderId ?? "root"}
-                    onChange={(e) => setMoveFolderId((e.target.value === "root" ? null : e.target.value) as Id<"assetFolders"> | null)}
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
-                  >
-                    <option value="root">Root (no folder)</option>
-                    {folders?.map((f) => (
-                      <option key={f._id} value={f._id}>
-                        {f.parentId ? "\u00A0\u00A0\u00A0\u00A0" : ""}{f.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => setMoveAssetId(null)}
-                    className="text-xs text-zinc-500 px-3 py-2 hover:text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors"
+                    className="text-sm text-ink-muted hover:text-ink transition-colors"
                   >
                     Cancel
                   </button>
@@ -885,9 +876,9 @@ export default function AssetsPage() {
                       setMoveAssetId(null);
                       if (selectedAsset === moveAssetId) setSelectedAsset(null);
                     }}
-                    className="flex items-center gap-2 text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white transition-all"
+                    className="inline-flex items-center gap-1.5 text-xs bg-ink text-surface px-4 py-2 font-semibold hover:opacity-90 transition-all"
                   >
-                    <FolderInput className="h-3.5 w-3.5" />
+                    <FolderInput className="h-3.5 w-3.5" strokeWidth={1.5} />
                     Move
                   </button>
                 </div>

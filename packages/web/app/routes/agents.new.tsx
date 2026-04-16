@@ -1,15 +1,8 @@
 import { useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { useState } from "react";
-import {
-  Wand2,
-  ChevronLeft,
-  Loader2,
-  ArrowRight,
-  LayoutTemplate,
-} from "lucide-react";
-import { Link } from "react-router";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import {
   PERSONAL_TEMPLATES,
   BUSINESS_TEMPLATES,
@@ -43,140 +36,125 @@ export default function NewAgentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Header */}
-      <div className="border-b border-zinc-800/60">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
+    <div className="min-h-screen bg-surface text-ink">
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <div className="border-b border-rule">
+        <div className="max-w-[1100px] mx-auto px-8 h-14 flex items-center gap-4">
           <Link
             to="/"
-            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors"
           >
-            <ChevronLeft className="h-3 w-3" />
+            <ChevronLeft className="h-3 w-3" strokeWidth={1.75} />
             Dashboard
           </Link>
-          <div className="h-4 w-px bg-zinc-800" />
-          <span className="text-sm font-medium">New Agent</span>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* Title */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Create a New Agent
+      <div className="max-w-[1100px] mx-auto px-8 py-16">
+        {/* ── Title ─────────────────────────────────────────────── */}
+        <header className="max-w-xl mb-16">
+          <p className="eyebrow">New</p>
+          <h1 className="mt-3 font-display text-4xl leading-[1] tracking-tight text-ink">
+            Create an agent.
           </h1>
-          <p className="mt-3 text-zinc-400 text-base">
-            Start from a template or build a custom agent with AI guidance
+          <p className="mt-4 text-base text-ink-muted leading-relaxed">
+            Start from a template, or have an AI assistant build one with you
+            from a plain description.
           </p>
-        </div>
+        </header>
 
-        {/* Build with AI Card */}
-        <div className="mb-10">
-          <Link
-            to="/agents/new/creator"
-            className="group block rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-6 hover:border-zinc-600 hover:from-zinc-800/80 hover:to-zinc-900/80 transition-all"
-          >
-            <div className="flex items-center gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-600/5 ring-1 ring-violet-500/20">
-                <Wand2 className="h-7 w-7 text-violet-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold">Build with AI</h2>
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
-                    Recommended
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-zinc-400">
-                  Chat with an AI assistant that guides you through creating a
-                  fully customized agent — name, personality, tools, pages, and
-                  API endpoints
-                </p>
-              </div>
-              <ArrowRight className="h-5 w-5 text-zinc-600 group-hover:text-zinc-300 transition-colors shrink-0" />
+        {/* ── Build with AI — primary call ──────────────────────── */}
+        <Link
+          to="/agents/new/creator"
+          className="group block border-y border-rule-strong py-8 mb-16 hover:bg-surface-sunken/60 transition-colors"
+        >
+          <div className="grid grid-cols-[auto_1fr_auto] gap-8 items-baseline">
+            <span className="font-mono text-2xs uppercase tracking-[0.12em] text-accent">
+              Recommended
+            </span>
+            <div>
+              <h2 className="font-display text-3xl leading-tight text-ink">
+                Build with AI.
+              </h2>
+              <p className="mt-2 text-sm text-ink-muted leading-relaxed max-w-lg">
+                Chat with an assistant that proposes a name, prompt, tools,
+                pages, and endpoints &mdash; you review each step.
+              </p>
             </div>
-          </Link>
-        </div>
+            <span className="text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted group-hover:text-accent transition-colors">
+              Start &rarr;
+            </span>
+          </div>
+        </Link>
 
-        {/* Templates Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-5">
-            <LayoutTemplate className="h-4 w-4 text-zinc-500" />
-            <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
+        {/* ── Templates ─────────────────────────────────────────── */}
+        <section>
+          <div className="flex items-baseline justify-between mb-6 border-b border-rule pb-3">
+            <h2 className="font-display text-2xl leading-tight text-ink">
               Templates
             </h2>
+            <div className="flex gap-6 text-2xs uppercase tracking-[0.12em] font-semibold">
+              <button
+                onClick={() => setActiveTab("personal")}
+                className={`transition-colors ${
+                  activeTab === "personal"
+                    ? "text-ink"
+                    : "text-ink-faint hover:text-ink-muted"
+                }`}
+              >
+                Personal
+              </button>
+              <button
+                onClick={() => setActiveTab("business")}
+                className={`transition-colors ${
+                  activeTab === "business"
+                    ? "text-ink"
+                    : "text-ink-faint hover:text-ink-muted"
+                }`}
+              >
+                Business
+              </button>
+            </div>
           </div>
 
-          {/* Tab Bar */}
-          <div className="flex gap-1 mb-6 bg-zinc-900/50 rounded-lg p-1 w-fit">
-            <button
-              onClick={() => setActiveTab("personal")}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                activeTab === "personal"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              Personal
-            </button>
-            <button
-              onClick={() => setActiveTab("business")}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                activeTab === "business"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              Business
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {templates.map((template) => {
-              const Icon = template.icon;
+          <ol className="divide-y divide-rule border-b border-rule">
+            {templates.map((template, i) => {
               const isCreating = creating === template.id;
               return (
-                <button
-                  key={template.id}
-                  onClick={() => handleTemplateSelect(template)}
-                  disabled={creating !== null}
-                  className="group text-left rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5 hover:border-zinc-600 hover:bg-zinc-900/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${template.color} ring-1`}
-                    >
-                      {isCreating ? (
-                        <Loader2 className="h-5 w-5 text-zinc-300 animate-spin" />
-                      ) : (
-                        <Icon className="h-5 w-5 text-zinc-300" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold group-hover:text-white transition-colors">
+                <li key={template.id}>
+                  <button
+                    onClick={() => handleTemplateSelect(template)}
+                    disabled={creating !== null}
+                    className="group w-full text-left grid grid-cols-[3ch_1fr_auto] gap-6 items-baseline py-5 hover:bg-surface-sunken/60 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                  >
+                    <span className="font-mono text-2xs text-ink-faint tabular-nums">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <h3 className="font-display text-xl leading-tight text-ink">
                         {template.name}
                       </h3>
-                      <p className="mt-1 text-xs text-zinc-500 leading-relaxed line-clamp-2">
+                      <p className="mt-1.5 text-sm text-ink-muted leading-relaxed max-w-[65ch]">
                         {template.description}
                       </p>
+                      {template.starterPages.length > 0 && (
+                        <p className="mt-2 font-mono text-2xs text-ink-faint">
+                          {template.starterPages.map((p) => p.label).join(" \u00B7 ")}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  {/* Pages preview */}
-                  <div className="mt-3 flex flex-wrap gap-1.5 ml-15">
-                    {template.starterPages.map((page) => (
-                      <span
-                        key={page.label}
-                        className="text-[10px] text-zinc-500 bg-zinc-800/60 px-2 py-0.5 rounded-full"
-                      >
-                        {page.label}
-                      </span>
-                    ))}
-                  </div>
-                </button>
+                    <span className="text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint group-hover:text-accent transition-colors inline-flex items-center gap-1.5">
+                      {isCreating ? (
+                        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+                      ) : null}
+                      {isCreating ? "Creating\u2026" : "Start \u2192"}
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ol>
+        </section>
       </div>
     </div>
   );

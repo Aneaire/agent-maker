@@ -54,9 +54,9 @@ const ACTION_META: Record<ActionType, { icon: React.FC<any>; label: string; colo
   create_note:   { icon: FileText,    label: "Create Note",   colorClass: "text-green-400" },
   fire_webhook:  { icon: Webhook,     label: "Fire Webhook",  colorClass: "text-purple-400" },
   store_memory:  { icon: Brain,       label: "Store Memory",  colorClass: "text-pink-400" },
-  run_prompt:    { icon: Sparkles,    label: "Run Prompt",    colorClass: "text-neon-400" },
+  run_prompt:    { icon: Sparkles,    label: "Run Prompt",    colorClass: "text-accent" },
   trigger_agent: { icon: Bot,         label: "Trigger Agent", colorClass: "text-cyan-400" },
-  delay:         { icon: Clock,       label: "Delay",         colorClass: "text-zinc-400" },
+  delay:         { icon: Clock,       label: "Delay",         colorClass: "text-ink-faint" },
 };
 
 type ScheduleActionType =
@@ -92,13 +92,13 @@ function getEventStyle(eventName: string): string {
   if (eventName.startsWith("note."))          return "text-green-400 bg-green-950/40 ring-green-800/40";
   if (eventName.startsWith("email."))         return "text-amber-400 bg-amber-950/40 ring-amber-800/40";
   if (eventName.startsWith("webhook."))       return "text-purple-400 bg-purple-950/40 ring-purple-800/40";
-  if (eventName.startsWith("schedule."))      return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
-  if (eventName.startsWith("timer."))         return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
+  if (eventName.startsWith("schedule."))      return "text-accent bg-accent-soft/30 ring-accent/20";
+  if (eventName.startsWith("timer."))         return "text-accent bg-accent-soft/30 ring-accent/20";
   if (eventName.startsWith("memory."))        return "text-pink-400 bg-pink-950/40 ring-pink-800/40";
   if (eventName.startsWith("document."))      return "text-cyan-400 bg-cyan-950/40 ring-cyan-800/40";
   if (eventName.startsWith("agent_message.")) return "text-cyan-400 bg-cyan-950/40 ring-cyan-800/40";
-  if (eventName.startsWith("automation."))    return "text-neon-400 bg-neon-950/40 ring-neon-800/40";
-  return "text-zinc-400 bg-zinc-800/60 ring-zinc-700/40";
+  if (eventName.startsWith("automation."))    return "text-accent bg-accent-soft/30 ring-accent/20";
+  return "text-ink-faint bg-surface-sunken/60 ring-rule/40";
 }
 
 // ── Workflow Templates ───────────────────────────────────────────────
@@ -424,43 +424,43 @@ function TemplatesPicker({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Dialog — fixed height */}
-      <div className="relative w-full max-w-2xl h-[580px] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 flex flex-col">
+      <div className="relative w-full max-w-2xl h-[580px] border border-rule bg-surface shadow-2xl rise flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-rule shrink-0">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-neon-400" />
-            <span className="text-sm font-semibold text-zinc-100">Workflow Templates</span>
+            <Sparkles className="h-4 w-4 text-accent" />
+            <span className="text-sm font-semibold text-ink">Workflow Templates</span>
           </div>
-          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors">
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Search */}
-        <div className="px-5 py-3 border-b border-zinc-800/40 shrink-0">
+        <div className="px-5 py-3 border-b border-rule shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600 pointer-events-none" />
+            <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-faint pointer-events-none" />
             <input
               autoFocus
               type="text"
               placeholder="Search templates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl bg-zinc-900 border border-zinc-800 pl-9 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors"
+              className="w-full bg-transparent border-0 border-b border-rule pl-6 pr-0 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             />
           </div>
         </div>
 
         {/* Category tags — max 5 visible */}
-        <div className="flex gap-1.5 px-5 py-2.5 border-b border-zinc-800/40 shrink-0 flex-wrap">
+        <div className="flex gap-1.5 px-5 py-2.5 border-b border-rule shrink-0 flex-wrap">
           {shownCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
                 activeCategory === cat
-                  ? "bg-zinc-700 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
+                  ? "bg-surface-sunken text-ink"
+                  : "text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60"
               }`}
             >
               {cat}
@@ -469,7 +469,7 @@ function TemplatesPicker({
           {!showAllTags && hiddenCategories.length > 0 && (
             <button
               onClick={() => setShowAllTags(true)}
-              className="px-3 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60 transition-colors"
+              className="px-3 py-1 text-xs font-medium text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60 transition-colors"
             >
               +{hiddenCategories.length} more
             </button>
@@ -477,7 +477,7 @@ function TemplatesPicker({
           {showAllTags && (
             <button
               onClick={() => setShowAllTags(false)}
-              className="px-3 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60 transition-colors"
+              className="px-3 py-1 text-xs font-medium text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60 transition-colors"
             >
               Show less
             </button>
@@ -488,9 +488,9 @@ function TemplatesPicker({
         <div className="flex-1 overflow-y-auto p-5">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <Search className="h-8 w-8 text-zinc-800 mb-2" />
-              <p className="text-sm text-zinc-500 font-medium">No templates found</p>
-              <p className="text-xs text-zinc-600 mt-0.5">Try a different search or category</p>
+              <Search className="h-8 w-8 text-ink-faint mb-2" />
+              <p className="text-sm text-ink-muted font-medium">No templates found</p>
+              <p className="text-xs text-ink-faint mt-0.5">Try a different search or category</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -498,19 +498,19 @@ function TemplatesPicker({
                 <button
                   key={i}
                   onClick={() => onSelect(tpl)}
-                  className="group text-left rounded-xl border border-zinc-800/60 bg-zinc-900/50 hover:bg-zinc-800/60 hover:border-zinc-700 p-4 transition-all"
+                  className="group text-left border border-rule bg-surface hover:bg-surface-sunken/60 p-4 transition-all"
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <span className="text-sm font-semibold text-zinc-200 leading-snug group-hover:text-white transition-colors">
+                    <span className="text-sm font-semibold text-ink leading-snug transition-colors">
                       {tpl.name}
                     </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-zinc-600 group-hover:text-neon-400 shrink-0 mt-0.5 transition-colors" />
+                    <ArrowRight className="h-3.5 w-3.5 text-ink-faint group-hover:text-accent shrink-0 mt-0.5 transition-colors" />
                   </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed mb-3">{tpl.description}</p>
+                  <p className="text-xs text-ink-faint leading-relaxed mb-3">{tpl.description}</p>
                   <div className="flex items-center gap-1.5">
                     <span className={`text-[11px] font-medium ${tpl.categoryColor}`}>{tpl.category}</span>
-                    <span className="text-zinc-700">·</span>
-                    <span className="text-[11px] font-mono text-zinc-600">{tpl.trigger.event}</span>
+                    <span className="text-ink-faint">·</span>
+                    <span className="text-[11px] font-mono text-ink-faint">{tpl.trigger.event}</span>
                   </div>
                 </button>
               ))}
@@ -684,43 +684,43 @@ function ScheduleTemplatesPicker({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative w-full max-w-2xl h-[580px] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 flex flex-col">
+      <div className="relative w-full max-w-2xl h-[580px] border border-rule bg-surface shadow-2xl rise flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-rule shrink-0">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-neon-400" />
-            <span className="text-sm font-semibold text-zinc-100">Schedule Templates</span>
+            <Sparkles className="h-4 w-4 text-accent" />
+            <span className="text-sm font-semibold text-ink">Schedule Templates</span>
           </div>
-          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors">
+          <button onClick={onClose} className="text-ink-faint hover:text-ink-muted transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Search */}
-        <div className="px-5 py-3 border-b border-zinc-800/40 shrink-0">
+        <div className="px-5 py-3 border-b border-rule shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600 pointer-events-none" />
+            <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-faint pointer-events-none" />
             <input
               autoFocus
               type="text"
               placeholder="Search schedule templates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl bg-zinc-900 border border-zinc-800 pl-9 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors"
+              className="w-full bg-transparent border-0 border-b border-rule pl-6 pr-0 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             />
           </div>
         </div>
 
         {/* Category tags */}
-        <div className="flex gap-1.5 px-5 py-2.5 border-b border-zinc-800/40 shrink-0 flex-wrap">
+        <div className="flex gap-1.5 px-5 py-2.5 border-b border-rule shrink-0 flex-wrap">
           {shownCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
                 activeCategory === cat
-                  ? "bg-zinc-700 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
+                  ? "bg-surface-sunken text-ink"
+                  : "text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60"
               }`}
             >
               {cat}
@@ -729,7 +729,7 @@ function ScheduleTemplatesPicker({
           {!showAllTags && hiddenCategories.length > 0 && (
             <button
               onClick={() => setShowAllTags(true)}
-              className="px-3 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60 transition-colors"
+              className="px-3 py-1 text-xs font-medium text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60 transition-colors"
             >
               +{hiddenCategories.length} more
             </button>
@@ -737,7 +737,7 @@ function ScheduleTemplatesPicker({
           {showAllTags && (
             <button
               onClick={() => setShowAllTags(false)}
-              className="px-3 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/60 transition-colors"
+              className="px-3 py-1 text-xs font-medium text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60 transition-colors"
             >
               Show less
             </button>
@@ -748,9 +748,9 @@ function ScheduleTemplatesPicker({
         <div className="flex-1 overflow-y-auto p-5">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <Search className="h-8 w-8 text-zinc-800 mb-2" />
-              <p className="text-sm text-zinc-500 font-medium">No templates found</p>
-              <p className="text-xs text-zinc-600 mt-0.5">Try a different search or category</p>
+              <Search className="h-8 w-8 text-ink-faint mb-2" />
+              <p className="text-sm text-ink-muted font-medium">No templates found</p>
+              <p className="text-xs text-ink-faint mt-0.5">Try a different search or category</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -758,19 +758,19 @@ function ScheduleTemplatesPicker({
                 <button
                   key={i}
                   onClick={() => onSelect(tpl)}
-                  className="group text-left rounded-xl border border-zinc-800/60 bg-zinc-900/50 hover:bg-zinc-800/60 hover:border-zinc-700 p-4 transition-all"
+                  className="group text-left border border-rule bg-surface hover:bg-surface-sunken/60 p-4 transition-all"
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <span className="text-sm font-semibold text-zinc-200 leading-snug group-hover:text-white transition-colors">
+                    <span className="text-sm font-semibold text-ink leading-snug transition-colors">
                       {tpl.name}
                     </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-zinc-600 group-hover:text-neon-400 shrink-0 mt-0.5 transition-colors" />
+                    <ArrowRight className="h-3.5 w-3.5 text-ink-faint group-hover:text-accent shrink-0 mt-0.5 transition-colors" />
                   </div>
-                  <p className="text-xs text-zinc-500 leading-relaxed mb-3">{tpl.description}</p>
+                  <p className="text-xs text-ink-faint leading-relaxed mb-3">{tpl.description}</p>
                   <div className="flex items-center gap-1.5">
                     <span className={`text-[11px] font-medium ${tpl.categoryColor}`}>{tpl.category}</span>
-                    <span className="text-zinc-700">·</span>
-                    <span className="text-[11px] font-mono text-zinc-600">{tpl.scheduleType} · {tpl.schedule}</span>
+                    <span className="text-ink-faint">·</span>
+                    <span className="text-[11px] font-mono text-ink-faint">{tpl.scheduleType} · {tpl.schedule}</span>
                   </div>
                 </button>
               ))}
@@ -785,19 +785,19 @@ function ScheduleTemplatesPicker({
 
 function getSourceStyle(source: string): string {
   const map: Record<string, string> = {
-    page_tools:          "text-zinc-400 bg-zinc-800/40",
+    page_tools:          "text-ink-faint bg-surface-sunken/40",
     email_tools:         "text-amber-400/70 bg-amber-950/20",
     webhook:             "text-purple-400/70 bg-purple-950/20",
     webhook_tools:       "text-purple-400/70 bg-purple-950/20",
-    scheduler:           "text-neon-400/70 bg-neon-950/20",
-    schedule:            "text-neon-400/70 bg-neon-950/20",
-    timer:               "text-neon-400/70 bg-neon-950/20",
-    automation:          "text-neon-400/70 bg-neon-950/20",
+    scheduler:           "text-accent/70 bg-accent-soft/20",
+    schedule:            "text-accent/70 bg-accent-soft/20",
+    timer:               "text-accent/70 bg-accent-soft/20",
+    automation:          "text-accent/70 bg-accent-soft/20",
     memory_tools:        "text-pink-400/70 bg-pink-950/20",
     document_processor:  "text-cyan-400/70 bg-cyan-950/20",
     agent_message_tools: "text-cyan-400/70 bg-cyan-950/20",
   };
-  return map[source] ?? "text-zinc-500 bg-zinc-800/30";
+  return map[source] ?? "text-ink-faint bg-surface-sunken/30";
 }
 
 // ── Section wrapper ──────────────────────────────────────────────────
@@ -822,16 +822,16 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
-      <div className="px-5 py-4 flex items-center justify-between border-b border-zinc-800/40">
+    <section className="border border-rule bg-surface overflow-hidden">
+      <div className="px-5 py-4 flex items-center justify-between border-b border-rule">
         <div className="flex items-center gap-2.5">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${iconBg}`}>
+          <div className={`flex h-7 w-7 items-center justify-center ${iconBg}`}>
             {icon}
           </div>
           <div>
             <h3 className="text-sm font-semibold">{title}</h3>
             {count !== undefined && (
-              <p className="text-[10px] text-zinc-600">
+              <p className="text-[10px] text-ink-faint">
                 {count} {count === 1 ? "item" : "items"}
               </p>
             )}
@@ -842,7 +842,7 @@ function Section({
           {actionLabel && onAction && (
             <button
               onClick={onAction}
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink-muted px-3 py-1.5 hover:bg-surface-sunken transition-colors"
             >
               <Plus className="h-3 w-3" />
               {actionLabel}
@@ -859,8 +859,8 @@ function Section({
 
 function TriggerChip({ event }: { event: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-800/80 border border-zinc-700/50 px-3 py-1.5 text-xs font-mono text-zinc-200 shrink-0">
-      <Zap className="h-3 w-3 text-neon-400 shrink-0" />
+    <span className="inline-flex items-center gap-1.5 border border-rule bg-surface-sunken px-3 py-1.5 text-xs font-mono text-ink shrink-0">
+      <Zap className="h-3 w-3 text-accent shrink-0" />
       {event}
     </span>
   );
@@ -870,7 +870,7 @@ function ActionChip({ type }: { type: ActionType }) {
   const meta = ACTION_META[type] ?? ACTION_META.run_prompt;
   const Icon = meta.icon;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-800/60 border border-zinc-700/40 px-3 py-1.5 text-xs text-zinc-300 shrink-0">
+    <span className="inline-flex items-center gap-1.5 border border-rule px-3 py-1.5 text-xs text-ink-muted shrink-0">
       <Icon className={`h-3 w-3 ${meta.colorClass} shrink-0`} />
       {meta.label}
     </span>
@@ -894,8 +894,8 @@ function AutomationCard({
 
   return (
     <div
-      className={`rounded-xl border bg-zinc-900/40 overflow-hidden transition-all ${
-        automation.isActive ? "border-zinc-800/60" : "border-zinc-800/30 opacity-60"
+      className={`border bg-surface overflow-hidden transition-all ${
+        automation.isActive ? "border-rule" : "border-rule/50 opacity-60"
       }`}
     >
       <div className="px-4 py-3">
@@ -904,7 +904,7 @@ function AutomationCard({
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+              className="text-ink-faint hover:text-ink-muted transition-colors shrink-0"
             >
               {expanded ? (
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -914,12 +914,12 @@ function AutomationCard({
             </button>
             <span className="text-sm font-semibold truncate">{automation.name}</span>
             {!automation.isActive && (
-              <span className="text-[10px] text-zinc-600 bg-zinc-800/60 px-2 py-0.5 rounded-full shrink-0">
+              <span className="text-[10px] text-ink-faint bg-surface-sunken px-2 py-0.5 shrink-0">
                 Paused
               </span>
             )}
             {automation.runCount > 0 && (
-              <span className="text-[10px] text-zinc-600 shrink-0">
+              <span className="text-[10px] text-ink-faint shrink-0">
                 {automation.runCount} run{automation.runCount !== 1 ? "s" : ""}
               </span>
             )}
@@ -927,17 +927,17 @@ function AutomationCard({
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={onEdit}
-              className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+              className="p-1.5 text-ink-faint hover:text-ink-muted hover:bg-surface-sunken transition-all"
               title="Edit"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={onToggle}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-1.5 transition-all ${
                 automation.isActive
-                  ? "text-neon-400 hover:bg-neon-950/30"
-                  : "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
+                  ? "text-accent hover:bg-accent-soft/30"
+                  : "text-ink-faint hover:bg-surface-sunken hover:text-ink-muted"
               }`}
               title={automation.isActive ? "Pause" : "Resume"}
             >
@@ -949,7 +949,7 @@ function AutomationCard({
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all"
+              className="p-1.5 text-ink-faint hover:text-danger hover:bg-danger/5 transition-all"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -961,7 +961,7 @@ function AutomationCard({
           <TriggerChip event={automation.trigger.event} />
           {automation.actions.map((action, i) => (
             <span key={i} className="flex items-center gap-1.5">
-              <span className="text-zinc-600 text-xs">→</span>
+              <span className="text-ink-faint text-xs">→</span>
               <ActionChip type={action.type as ActionType} />
             </span>
           ))}
@@ -969,17 +969,17 @@ function AutomationCard({
 
         {/* Expanded: description + last run */}
         {expanded && (
-          <div className="mt-3 pt-3 border-t border-zinc-800/40 space-y-1.5">
+          <div className="mt-3 pt-3 border-t border-rule space-y-1.5">
             {automation.description && (
-              <p className="text-xs text-zinc-400">{automation.description}</p>
+              <p className="text-xs text-ink-muted">{automation.description}</p>
             )}
             {automation.lastRunAt && (
-              <p className="text-[11px] text-zinc-600">
+              <p className="text-[11px] text-ink-faint">
                 Last run {timeAgo(automation.lastRunAt)}
               </p>
             )}
             {automation.trigger.filter && (
-              <p className="text-[11px] text-zinc-500 font-mono">
+              <p className="text-[11px] text-ink-faint font-mono">
                 Filter: {JSON.stringify(automation.trigger.filter)}
               </p>
             )}
@@ -1076,7 +1076,7 @@ const EVENT_OPTIONS: Array<{
   },
   {
     group: "Schedule & Timers",
-    groupColor: "text-neon-400",
+    groupColor: "text-accent",
     events: [
       { value: "schedule.fired", description: "A scheduled action executed" },
       { value: "timer.fired",    description: "A one-time timer fired" },
@@ -1131,7 +1131,7 @@ function EventPicker({
   return (
     <div className="relative">
       <div className="relative">
-        <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-neon-400 pointer-events-none" />
+        <Zap className="absolute left-0 top-1/2 -translate-y-1/2 h-3 w-3 text-accent pointer-events-none" />
         <input
           type="text"
           value={query}
@@ -1143,15 +1143,15 @@ function EventPicker({
             setOpen(true);
           }}
           placeholder="task.created"
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-800 pl-8 pr-3 py-2 text-sm font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+          className="w-full bg-transparent border-0 border-b border-rule pl-6 pr-0 py-1.5 text-sm font-mono placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
         />
       </div>
 
       {open && (
-        <div className="absolute z-20 left-0 right-0 mt-1 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden max-h-64 overflow-y-auto">
+        <div className="absolute z-20 left-0 right-0 mt-1 border border-rule bg-surface shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
           {filtered ? (
             filtered.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-zinc-500 text-center">
+              <div className="px-3 py-3 text-xs text-ink-faint text-center">
                 No matching events — type a custom event name
               </div>
             ) : (
@@ -1160,12 +1160,12 @@ function EventPicker({
                   <button
                     key={e.value}
                     onMouseDown={() => select(e.value)}
-                    className="flex items-start gap-3 w-full px-3 py-2.5 hover:bg-zinc-800 transition-colors text-left"
+                    className="flex items-start gap-3 w-full px-3 py-2.5 hover:bg-surface-sunken transition-colors text-left"
                   >
-                    <span className="text-xs font-mono text-zinc-200 shrink-0 mt-0.5">
+                    <span className="text-xs font-mono text-ink shrink-0 mt-0.5">
                       {e.value}
                     </span>
-                    <span className="text-[10px] text-zinc-500 leading-relaxed">
+                    <span className="text-[10px] text-ink-faint leading-relaxed">
                       {e.description}
                     </span>
                   </button>
@@ -1183,20 +1183,20 @@ function EventPicker({
                     <button
                       key={e.value}
                       onMouseDown={() => select(e.value)}
-                      className="flex items-start gap-3 w-full px-3 py-2 hover:bg-zinc-800 transition-colors text-left"
+                      className="flex items-start gap-3 w-full px-3 py-2 hover:bg-surface-sunken transition-colors text-left"
                     >
-                      <span className="text-xs font-mono text-zinc-200 shrink-0 mt-0.5">
+                      <span className="text-xs font-mono text-ink shrink-0 mt-0.5">
                         {e.value}
                       </span>
-                      <span className="text-[10px] text-zinc-500 leading-relaxed">
+                      <span className="text-[10px] text-ink-faint leading-relaxed">
                         {e.description}
                       </span>
                     </button>
                   ))}
                 </div>
               ))}
-              <div className="px-3 py-2 border-t border-zinc-800/60 mt-1">
-                <p className="text-[10px] text-zinc-600">
+              <div className="px-3 py-2 border-t border-rule mt-1">
+                <p className="text-[10px] text-ink-faint">
                   Or type a custom event name above
                 </p>
               </div>
@@ -1286,23 +1286,23 @@ function AutomationForm({
   const canSubmit = name.trim() && triggerEvent.trim() && actions.length > 0;
 
   return (
-    <div className="rounded-xl border border-zinc-700 bg-zinc-900/80 p-5 space-y-4 mb-3">
+    <div className="border border-rule bg-surface p-5 space-y-4 mb-3">
       <h4 className="text-sm font-semibold">{isEdit ? "Edit Automation" : "New Automation"}</h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Name</label>
+          <label className="block eyebrow mb-1.5">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Notify on task complete"
             autoFocus
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+            className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+          <label className="block eyebrow mb-1.5">
             Trigger Event
           </label>
           <EventPicker
@@ -1315,19 +1315,19 @@ function AutomationForm({
       {/* Filter conditions */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-xs font-medium text-zinc-400">
+          <label className="eyebrow">
             Filter Conditions
-            <span className="ml-1.5 font-normal text-zinc-600">(optional)</span>
+            <span className="ml-1.5 font-normal normal-case tracking-normal text-ink-faint">(optional)</span>
           </label>
           <button
             onClick={addFilter}
-            className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink-muted transition-colors"
           >
             <Plus className="h-3 w-3" /> Add condition
           </button>
         </div>
         {filterPairs.length === 0 ? (
-          <p className="text-[11px] text-zinc-600">
+          <p className="text-[11px] text-ink-faint">
             Only fire when the event payload matches these key/value pairs. Leave empty to always fire.
           </p>
         ) : (
@@ -1339,19 +1339,19 @@ function AutomationForm({
                   value={pair.key}
                   onChange={(e) => updateFilter(i, "key", e.target.value)}
                   placeholder="field (e.g. status)"
-                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+                  className="flex-1 bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs font-mono placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
                 />
-                <span className="text-zinc-600 text-xs shrink-0">=</span>
+                <span className="text-ink-faint text-xs shrink-0">=</span>
                 <input
                   type="text"
                   value={pair.value}
                   onChange={(e) => updateFilter(i, "value", e.target.value)}
                   placeholder="value (e.g. done)"
-                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+                  className="flex-1 bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs font-mono placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
                 />
                 <button
                   onClick={() => removeFilter(i)}
-                  className="p-1 text-zinc-600 hover:text-red-400 transition-colors shrink-0"
+                  className="p-1 text-ink-faint hover:text-danger transition-colors shrink-0"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -1362,37 +1362,37 @@ function AutomationForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+        <label className="block eyebrow mb-1.5">
           Description{" "}
-          <span className="font-normal text-zinc-600">(optional)</span>
+          <span className="font-normal normal-case tracking-normal text-ink-faint">(optional)</span>
         </label>
         <input
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What this automation does"
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+          className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
         />
       </div>
 
       {/* Actions */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-medium text-zinc-400">
+          <label className="eyebrow">
             Actions
-            <span className={`ml-2 font-mono text-[10px] ${actions.length >= 10 ? "text-amber-400" : "text-zinc-600"}`}>
+            <span className={`ml-2 font-mono text-[10px] normal-case tracking-normal ${actions.length >= 10 ? "text-warn" : "text-ink-faint"}`}>
               {actions.length} / 10
             </span>
           </label>
           {actions.length < 10 ? (
             <button
               onClick={addAction}
-              className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink-muted transition-colors"
             >
               <Plus className="h-3 w-3" /> Add action
             </button>
           ) : (
-            <span className="text-[10px] text-amber-400/70">Max 10 reached</span>
+            <span className="text-[10px] text-warn/70">Max 10 reached</span>
           )}
         </div>
         <div className="space-y-2">
@@ -1423,13 +1423,13 @@ function AutomationForm({
             })
           }
           disabled={!canSubmit}
-          className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
+          className="text-xs bg-ink text-surface px-4 py-2 font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
         >
           {isEdit ? "Save Changes" : "Create Automation"}
         </button>
         <button
           onClick={onCancel}
-          className="text-xs text-zinc-500 px-3 py-2 hover:text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="text-xs text-ink-faint px-3 py-2 hover:text-ink-muted hover:bg-surface-sunken transition-colors"
         >
           Cancel
         </button>
@@ -1532,8 +1532,8 @@ function PayloadVariables({ triggerEvent }: { triggerEvent: string }) {
   const vars = getPayloadVars(triggerEvent);
 
   return (
-    <div className="pt-2 mt-1 border-t border-zinc-700/40">
-      <p className="text-[9px] text-zinc-600 mb-1.5 uppercase tracking-wider font-semibold">
+    <div className="pt-2 mt-1 border-t border-rule">
+      <p className="eyebrow mb-1.5">
         Available from trigger — click to copy
       </p>
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -1547,10 +1547,10 @@ function PayloadVariables({ triggerEvent }: { triggerEvent: string }) {
               setTimeout(() => setCopied(null), 1500);
             }}
             title={v.description}
-            className={`text-[9px] font-mono px-2 py-1 rounded-md ring-1 transition-all ${
+            className={`text-[9px] font-mono px-2 py-1 ring-1 transition-all ${
               copied === v.key
-                ? "bg-neon-950/50 text-neon-400 ring-neon-700/40"
-                : "bg-zinc-900/60 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 ring-zinc-700/30"
+                ? "bg-accent-soft text-accent ring-accent/20"
+                : "bg-surface-sunken text-ink-faint hover:bg-surface hover:text-ink-muted ring-rule/30"
             }`}
           >
             {copied === v.key ? "✓ copied" : v.key}
@@ -1598,16 +1598,16 @@ function ActionConfigRow({
   const Icon = meta.icon;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-800/30 p-3 space-y-2">
+    <div className="border border-rule bg-surface p-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-zinc-600 font-mono w-4 text-right shrink-0">
+        <span className="text-[10px] text-ink-faint font-mono w-4 text-right shrink-0">
           {index + 1}
         </span>
         <Icon className={`h-3.5 w-3.5 ${meta.colorClass} shrink-0`} />
         <select
           value={action.type}
           onChange={(e) => onTypeChange(e.target.value as ActionType)}
-          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs focus:outline-none focus:border-zinc-500 transition-colors"
+          className="flex-1 bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs focus:outline-none focus:border-accent transition-colors"
         >
           {Object.entries(ACTION_META).map(([t, m]) => {
             const enabled = t === "run_prompt";
@@ -1621,7 +1621,7 @@ function ActionConfigRow({
         {showRemove && (
           <button
             onClick={onRemove}
-            className="p-1 text-zinc-600 hover:text-red-400 transition-colors shrink-0"
+            className="p-1 text-ink-faint hover:text-danger transition-colors shrink-0"
           >
             <X className="h-3 w-3" />
           </button>
@@ -1635,7 +1635,7 @@ function ActionConfigRow({
           onChange={(e) => onConfigChange({ ...action.config, prompt: e.target.value })}
           rows={2}
           placeholder="What should the agent do?"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none resize-none transition-colors"
+          className="w-full border border-rule bg-surface-sunken px-3 py-2 text-xs font-mono placeholder:text-ink-faint focus:border-accent focus:outline-none resize-none transition-colors"
         />
       )}
       {action.type === "send_email" && (
@@ -1645,14 +1645,14 @@ function ActionConfigRow({
             value={action.config.to ?? ""}
             onChange={(e) => onConfigChange({ ...action.config, to: e.target.value })}
             placeholder="To (email)"
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+            className="bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
           <input
             type="text"
             value={action.config.subject ?? ""}
             onChange={(e) => onConfigChange({ ...action.config, subject: e.target.value })}
             placeholder="Subject"
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+            className="bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
         </div>
       )}
@@ -1663,12 +1663,12 @@ function ActionConfigRow({
             value={action.config.title ?? ""}
             onChange={(e) => onConfigChange({ ...action.config, title: e.target.value })}
             placeholder="Task title"
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+            className="bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
           <select
             value={action.config.priority ?? "medium"}
             onChange={(e) => onConfigChange({ ...action.config, priority: e.target.value })}
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs focus:outline-none focus:border-zinc-500 transition-colors"
+            className="bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs focus:outline-none focus:border-accent transition-colors"
           >
             <option value="low">Low priority</option>
             <option value="medium">Medium priority</option>
@@ -1682,7 +1682,7 @@ function ActionConfigRow({
           value={action.config.content ?? ""}
           onChange={(e) => onConfigChange({ ...action.config, content: e.target.value })}
           placeholder="Memory content (can use {{event.payload}} variables)"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+          className="w-full bg-transparent border-0 border-b border-rule-strong pb-1.5 text-xs placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
         />
       )}
       {action.type === "delay" && (
@@ -1694,9 +1694,9 @@ function ActionConfigRow({
               onConfigChange({ ...action.config, ms: parseInt(e.target.value) * 1000 })
             }
             min={1}
-            className="w-24 rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs focus:border-zinc-500 focus:outline-none transition-colors"
+            className="w-24 border border-rule bg-surface-sunken px-2 py-1.5 text-xs focus:border-accent focus:outline-none transition-colors"
           />
-          <span className="text-xs text-zinc-500">seconds</span>
+          <span className="text-xs text-ink-faint">seconds</span>
         </div>
       )}
 
@@ -1711,10 +1711,10 @@ function ActionConfigRow({
 // ── Schedule card ─────────────────────────────────────────────────────
 
 const SCHEDULE_STATUS_COLORS: Record<string, string> = {
-  active:    "text-neon-400 bg-neon-950/30",
-  paused:    "text-amber-400 bg-amber-950/30",
-  completed: "text-zinc-500 bg-zinc-800/40",
-  error:     "text-red-400 bg-red-950/30",
+  active:    "text-accent bg-accent-soft/20",
+  paused:    "text-warn bg-warn/10",
+  completed: "text-ink-faint bg-surface-sunken",
+  error:     "text-danger bg-danger/10",
 };
 
 const SCHEDULE_TYPE_LABELS: Record<string, string> = {
@@ -1738,26 +1738,26 @@ function ScheduleCard({
   const isToggleable = schedule.status === "active" || schedule.status === "paused";
 
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3">
+    <div className="border border-rule bg-surface px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-sm font-semibold truncate">{schedule.name}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor}`}>
+            <span className={`text-[10px] px-2 py-0.5 font-medium ${statusColor}`}>
               {schedule.status}
             </span>
-            <span className="text-[10px] text-zinc-600 bg-zinc-800/40 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-ink-faint bg-surface-sunken px-2 py-0.5">
               {SCHEDULE_TYPE_LABELS[schedule.scheduleType] ?? schedule.scheduleType}
             </span>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs text-zinc-400 font-mono">{schedule.schedule}</span>
-            <span className="text-[11px] text-zinc-600">
+            <span className="text-xs text-ink-muted font-mono">{schedule.schedule}</span>
+            <span className="text-[11px] text-ink-faint">
               next: {formatNextRun(schedule.nextRunAt)}
             </span>
             {schedule.runCount > 0 && (
-              <span className="text-[11px] text-zinc-600">
+              <span className="text-[11px] text-ink-faint">
                 {schedule.runCount} run{schedule.runCount !== 1 ? "s" : ""}
                 {schedule.lastRunAt && ` · last ${timeAgo(schedule.lastRunAt)}`}
               </span>
@@ -1765,14 +1765,14 @@ function ScheduleCard({
           </div>
 
           {schedule.description && (
-            <p className="text-xs text-zinc-500 mt-1.5">{schedule.description}</p>
+            <p className="text-xs text-ink-faint mt-1.5">{schedule.description}</p>
           )}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onEdit}
-            className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+            className="p-1.5 text-ink-faint hover:text-ink-muted hover:bg-surface-sunken transition-all"
             title="Edit"
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -1780,10 +1780,10 @@ function ScheduleCard({
           {isToggleable && (
             <button
               onClick={onToggle}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-1.5 transition-all ${
                 schedule.status === "active"
-                  ? "text-neon-400 hover:bg-neon-950/30"
-                  : "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
+                  ? "text-accent hover:bg-accent-soft/30"
+                  : "text-ink-faint hover:bg-surface-sunken hover:text-ink-muted"
               }`}
               title={schedule.status === "active" ? "Pause" : "Resume"}
             >
@@ -1796,7 +1796,7 @@ function ScheduleCard({
           )}
           <button
             onClick={onDelete}
-            className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all"
+            className="p-1.5 text-ink-faint hover:text-danger hover:bg-danger/5 transition-all"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -1850,23 +1850,23 @@ function ScheduleForm({
   const canSubmit = name.trim() && (scheduleType === "once" || schedule.trim());
 
   return (
-    <div className="rounded-xl border border-zinc-700 bg-zinc-900/80 p-5 space-y-4 mb-3">
+    <div className="border border-rule bg-surface p-5 space-y-4 mb-3">
       <h4 className="text-sm font-semibold">{isEdit ? "Edit Scheduled Action" : "New Scheduled Action"}</h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Name</label>
+          <label className="block eyebrow mb-1.5">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Daily summary"
             autoFocus
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+            className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+          <label className="block eyebrow mb-1.5">
             Schedule Type
           </label>
           <select
@@ -1878,7 +1878,7 @@ function ScheduleForm({
               else if (t === "cron") setSchedule("0 9 * * *");
               else setSchedule("");
             }}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+            className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm focus:outline-none focus:border-accent transition-colors"
           >
             <option value="interval">Interval</option>
             <option value="cron">Cron</option>
@@ -1889,25 +1889,25 @@ function ScheduleForm({
 
       {scheduleType !== "once" && (
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+          <label className="block eyebrow mb-1.5">
             Schedule{" "}
-            <span className="font-normal text-zinc-600">{SCHEDULE_HINTS[scheduleType]}</span>
+            <span className="font-normal normal-case tracking-normal text-ink-faint">{SCHEDULE_HINTS[scheduleType]}</span>
           </label>
           <input
             type="text"
             value={schedule}
             onChange={(e) => setSchedule(e.target.value)}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+            className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm font-mono placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Action</label>
+        <label className="block eyebrow mb-1.5">Action</label>
         <select
           value={actionType}
           onChange={(e) => setActionType(e.target.value as ScheduleActionType)}
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-zinc-500 transition-colors mb-2"
+          className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm focus:outline-none focus:border-accent transition-colors mb-2"
         >
           <option value="run_prompt">Run Prompt</option>
           <option value="send_message">Send Message</option>
@@ -1923,22 +1923,22 @@ function ScheduleForm({
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
             placeholder="What should the agent do on this schedule?"
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-mono placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none resize-none transition-colors"
+            className="w-full border border-rule bg-surface-sunken px-3 py-2 text-sm font-mono placeholder:text-ink-faint focus:border-accent focus:outline-none resize-none transition-colors"
           />
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+        <label className="block eyebrow mb-1.5">
           Description{" "}
-          <span className="font-normal text-zinc-600">(optional)</span>
+          <span className="font-normal normal-case tracking-normal text-ink-faint">(optional)</span>
         </label>
         <input
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What this schedule does"
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none transition-colors"
+          className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
         />
       </div>
 
@@ -1958,13 +1958,13 @@ function ScheduleForm({
             })
           }
           disabled={!canSubmit}
-          className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
+          className="text-xs bg-ink text-surface px-4 py-2 font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
         >
           {isEdit ? "Save Changes" : "Create Schedule"}
         </button>
         <button
           onClick={onCancel}
-          className="text-xs text-zinc-500 px-3 py-2 hover:text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors"
+          className="text-xs text-ink-faint px-3 py-2 hover:text-ink-muted hover:bg-surface-sunken transition-colors"
         >
           Cancel
         </button>
@@ -1978,10 +1978,10 @@ function ScheduleForm({
 function WebhookCard({ webhook }: { webhook: Doc<"webhooks"> }) {
   const isIncoming = webhook.type === "incoming";
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3">
+    <div className="border border-rule bg-surface px-4 py-3">
       <div className="flex items-center gap-2.5 flex-wrap">
         <span
-          className={`text-[10px] font-bold px-2.5 py-1 rounded-md ring-1 ${
+          className={`text-[10px] font-bold px-2.5 py-1 ring-1 ${
             isIncoming
               ? "bg-purple-950/40 text-purple-400 ring-purple-800/40"
               : "bg-blue-950/40 text-blue-400 ring-blue-800/40"
@@ -1993,10 +1993,10 @@ function WebhookCard({ webhook }: { webhook: Doc<"webhooks"> }) {
           {webhook.label ?? (isIncoming ? "Incoming webhook" : "Outgoing webhook")}
         </span>
         <span
-          className={`text-[10px] px-2 py-0.5 rounded-full ${
+          className={`text-[10px] px-2 py-0.5 ${
             webhook.isActive
-              ? "text-neon-400 bg-neon-950/30"
-              : "text-zinc-500 bg-zinc-800/40"
+              ? "text-accent bg-accent-soft/20"
+              : "text-ink-faint bg-surface-sunken"
           }`}
         >
           {webhook.isActive ? "active" : "inactive"}
@@ -2004,7 +2004,7 @@ function WebhookCard({ webhook }: { webhook: Doc<"webhooks"> }) {
       </div>
 
       {webhook.url && (
-        <p className="text-xs text-zinc-500 font-mono mt-1.5 truncate">{webhook.url}</p>
+        <p className="text-xs text-ink-faint font-mono mt-1.5 truncate">{webhook.url}</p>
       )}
 
       {webhook.events.length > 0 && (
@@ -2012,7 +2012,7 @@ function WebhookCard({ webhook }: { webhook: Doc<"webhooks"> }) {
           {webhook.events.map((ev) => (
             <span
               key={ev}
-              className="text-[10px] text-zinc-500 bg-zinc-800/60 px-2 py-0.5 rounded-full font-mono"
+              className="text-[10px] text-ink-faint bg-surface-sunken px-2 py-0.5 font-mono"
             >
               {ev}
             </span>
@@ -2036,25 +2036,25 @@ function EventLogEntry({ event }: { event: Doc<"agentEvents"> }) {
     Object.keys(event.payload ?? {}).length > 0;
 
   return (
-    <div className="group flex items-start gap-3 py-2.5 border-b border-zinc-800/30 last:border-0">
-      <span className="text-[10px] text-zinc-600 tabular-nums shrink-0 mt-0.5 w-14 text-right">
+    <div className="group flex items-start gap-3 py-2.5 border-b border-rule/30 last:border-0">
+      <span className="text-[10px] text-ink-faint tabular-nums shrink-0 mt-0.5 w-14 text-right">
         {timeAgo(event.createdAt)}
       </span>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span
-            className={`text-[10px] font-mono px-2 py-0.5 rounded-md ring-1 font-medium ${eventStyle}`}
+            className={`text-[10px] font-mono px-2 py-0.5 ring-1 font-medium ${eventStyle}`}
           >
             {event.event}
           </span>
-          <span className={`text-[9px] px-1.5 py-0.5 rounded ${sourceStyle}`}>
+          <span className={`text-[9px] px-1.5 py-0.5 ${sourceStyle}`}>
             {event.source}
           </span>
           {hasPayload && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+              className="text-[10px] text-ink-faint hover:text-ink-muted transition-colors"
             >
               {expanded ? "▲ hide" : "▼ payload"}
             </button>
@@ -2062,7 +2062,7 @@ function EventLogEntry({ event }: { event: Doc<"agentEvents"> }) {
         </div>
 
         {expanded && hasPayload && (
-          <pre className="mt-1.5 text-[10px] text-zinc-500 font-mono bg-zinc-950/60 rounded-lg p-2.5 overflow-x-auto border border-zinc-800/40">
+          <pre className="mt-1.5 text-[10px] text-ink-faint font-mono bg-surface-sunken border border-rule p-2.5 overflow-x-auto">
             {JSON.stringify(event.payload, null, 2)}
           </pre>
         )}
@@ -2075,7 +2075,7 @@ function EventLogEntry({ event }: { event: Doc<"agentEvents"> }) {
 
 const EXEC_STATUS_META: Record<string, { icon: React.FC<any>; colorClass: string; bgClass: string; label: string }> = {
   running:   { icon: Loader2,      colorClass: "text-blue-400",  bgClass: "bg-blue-950/30 ring-blue-800/40",  label: "Running" },
-  completed: { icon: CheckCircle2, colorClass: "text-neon-400",  bgClass: "bg-neon-950/30 ring-neon-800/40",  label: "Completed" },
+  completed: { icon: CheckCircle2, colorClass: "text-accent",    bgClass: "bg-accent-soft/20 ring-accent/20",  label: "Completed" },
   failed:    { icon: XCircle,      colorClass: "text-red-400",   bgClass: "bg-red-950/30 ring-red-800/40",    label: "Failed" },
 };
 
@@ -2108,14 +2108,14 @@ function ExecutionCard({ execution }: { execution: any }) {
   const StatusIcon = statusMeta.icon;
 
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 overflow-hidden transition-all hover:border-zinc-700/60">
+    <div className="border border-rule bg-surface overflow-hidden transition-all hover:bg-surface-sunken/30">
       {/* Header */}
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+              className="text-ink-faint hover:text-ink-muted transition-colors shrink-0"
             >
               {expanded ? (
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -2134,14 +2134,14 @@ function ExecutionCard({ execution }: { execution: any }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-semibold truncate">{execution.name}</span>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full ring-1 font-medium ${statusMeta.bgClass} ${statusMeta.colorClass}`}
+                  className={`text-[10px] px-2 py-0.5 ring-1 font-medium ${statusMeta.bgClass} ${statusMeta.colorClass}`}
                 >
                   {statusMeta.label}
                 </span>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  className={`text-[10px] px-2 py-0.5 font-medium ${
                     execution.kind === "automation"
-                      ? "text-neon-400 bg-neon-950/30"
+                      ? "text-accent bg-accent-soft/20"
                       : "text-blue-400 bg-blue-950/30"
                   }`}
                 >
@@ -2151,7 +2151,7 @@ function ExecutionCard({ execution }: { execution: any }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 text-[11px] text-zinc-500">
+          <div className="flex items-center gap-3 shrink-0 text-[11px] text-ink-faint">
             {execution.duration !== undefined && (
               <span className="flex items-center gap-1">
                 <Timer className="h-3 w-3" />
@@ -2165,18 +2165,18 @@ function ExecutionCard({ execution }: { execution: any }) {
         {/* Quick info row */}
         <div className="flex items-center gap-3 mt-1.5 ml-9 flex-wrap">
           {execution.triggerEvent && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
-              <Zap className="h-2.5 w-2.5 text-neon-400" />
+            <span className="inline-flex items-center gap-1 text-[10px] text-ink-faint">
+              <Zap className="h-2.5 w-2.5 text-accent" />
               {execution.triggerEvent}
             </span>
           )}
           {execution.scheduleType && (
-            <span className="text-[10px] text-zinc-500 font-mono">
+            <span className="text-[10px] text-ink-faint font-mono">
               {execution.schedule}
             </span>
           )}
           {execution.actionType && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
+            <span className="inline-flex items-center gap-1 text-[10px] text-ink-faint">
               <ArrowRight className="h-2.5 w-2.5" />
               {execution.actionType}
             </span>
@@ -2186,11 +2186,11 @@ function ExecutionCard({ execution }: { execution: any }) {
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-zinc-800/40 px-4 py-3 space-y-3">
+        <div className="border-t border-rule px-4 py-3 space-y-3">
           {/* Actions executed (automation runs) */}
           {execution.actionsExecuted && execution.actionsExecuted.length > 0 && (
             <div>
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold mb-2">
+              <p className="eyebrow mb-2">
                 Actions Executed
               </p>
               <div className="space-y-1.5">
@@ -2203,15 +2203,15 @@ function ExecutionCard({ execution }: { execution: any }) {
                   return (
                     <div
                       key={i}
-                      className="flex items-start gap-2.5 rounded-lg bg-zinc-800/30 px-3 py-2"
+                      className="flex items-start gap-2.5 bg-surface-sunken border border-rule px-3 py-2"
                     >
-                      <span className="text-[10px] text-zinc-600 font-mono w-4 text-right mt-0.5 shrink-0">
+                      <span className="text-[10px] text-ink-faint font-mono w-4 text-right mt-0.5 shrink-0">
                         {i + 1}
                       </span>
                       {ActionIcon && (
                         <ActionIcon
                           className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${
-                            actionMeta?.colorClass ?? "text-zinc-400"
+                            actionMeta?.colorClass ?? "text-ink-faint"
                           }`}
                         />
                       )}
@@ -2226,18 +2226,18 @@ function ExecutionCard({ execution }: { execution: any }) {
                             }`}
                           />
                           {action.duration !== undefined && (
-                            <span className="text-[10px] text-zinc-600">
+                            <span className="text-[10px] text-ink-faint">
                               {formatDuration(action.duration)}
                             </span>
                           )}
                         </div>
                         {action.result && (
-                          <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+                          <p className="text-[11px] text-ink-faint mt-0.5 truncate">
                             {action.result}
                           </p>
                         )}
                         {action.error && (
-                          <p className="text-[11px] text-red-400/80 mt-0.5">
+                          <p className="text-[11px] text-danger/80 mt-0.5">
                             {action.error}
                           </p>
                         )}
@@ -2252,10 +2252,10 @@ function ExecutionCard({ execution }: { execution: any }) {
           {/* Result / Error */}
           {execution.result && (
             <div>
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold mb-1">
+              <p className="eyebrow mb-1">
                 Result
               </p>
-              <pre className="text-[11px] text-zinc-400 font-mono bg-zinc-950/60 rounded-lg p-2.5 overflow-x-auto border border-zinc-800/40 whitespace-pre-wrap">
+              <pre className="text-[11px] text-ink-muted font-mono bg-surface-sunken border border-rule p-2.5 overflow-x-auto whitespace-pre-wrap">
                 {execution.result}
               </pre>
             </div>
@@ -2263,10 +2263,10 @@ function ExecutionCard({ execution }: { execution: any }) {
 
           {execution.error && (
             <div>
-              <p className="text-[10px] text-red-400/70 uppercase tracking-wider font-semibold mb-1">
+              <p className="eyebrow mb-1 text-danger/70">
                 Error
               </p>
-              <pre className="text-[11px] text-red-400/80 font-mono bg-red-950/20 rounded-lg p-2.5 overflow-x-auto border border-red-900/30 whitespace-pre-wrap">
+              <pre className="text-[11px] text-danger/80 font-mono bg-danger/5 border border-danger/30 p-2.5 overflow-x-auto whitespace-pre-wrap">
                 {execution.error}
               </pre>
             </div>
@@ -2276,17 +2276,17 @@ function ExecutionCard({ execution }: { execution: any }) {
           {execution.triggerPayload &&
             Object.keys(execution.triggerPayload).length > 0 && (
               <div>
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold mb-1">
+                <p className="eyebrow mb-1">
                   Trigger Payload
                 </p>
-                <pre className="text-[10px] text-zinc-500 font-mono bg-zinc-950/60 rounded-lg p-2.5 overflow-x-auto border border-zinc-800/40">
+                <pre className="text-[10px] text-ink-faint font-mono bg-surface-sunken border border-rule p-2.5 overflow-x-auto">
                   {JSON.stringify(execution.triggerPayload, null, 2)}
                 </pre>
               </div>
             )}
 
           {/* Timing */}
-          <div className="flex items-center gap-4 text-[10px] text-zinc-600">
+          <div className="flex items-center gap-4 text-[10px] text-ink-faint">
             <span>Started: {new Date(execution.startedAt).toLocaleString()}</span>
             {execution.completedAt && (
               <span>
@@ -2322,17 +2322,17 @@ function ExecutionsView({ agentId }: { agentId: string }) {
       {stats && (
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: "Total", value: stats.total, color: "text-zinc-300", bg: "bg-zinc-800/60" },
-            { label: "Completed", value: stats.completed, color: "text-neon-400", bg: "bg-neon-950/30" },
-            { label: "Failed", value: stats.failed, color: "text-red-400", bg: "bg-red-950/30" },
+            { label: "Total", value: stats.total, color: "text-ink-muted", bg: "bg-surface-sunken" },
+            { label: "Completed", value: stats.completed, color: "text-accent", bg: "bg-accent-soft/20" },
+            { label: "Failed", value: stats.failed, color: "text-danger", bg: "bg-danger/10" },
             { label: "Running", value: stats.running, color: "text-blue-400", bg: "bg-blue-950/30" },
           ].map((stat) => (
             <div
               key={stat.label}
-              className={`rounded-xl border border-zinc-800/60 ${stat.bg} px-4 py-3 text-center`}
+              className={`border border-rule ${stat.bg} px-4 py-3 text-center`}
             >
               <p className={`text-lg font-bold tabular-nums ${stat.color}`}>{stat.value}</p>
-              <p className="text-[10px] text-zinc-500 mt-0.5">{stat.label}</p>
+              <p className="text-[10px] text-ink-faint mt-0.5">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -2341,21 +2341,21 @@ function ExecutionsView({ agentId }: { agentId: string }) {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <Filter className="h-3 w-3 text-zinc-600" />
-          <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">
+          <Filter className="h-3 w-3 text-ink-faint" />
+          <span className="eyebrow">
             Filter
           </span>
         </div>
 
-        <div className="flex items-center rounded-lg border border-zinc-800 overflow-hidden">
+        <div className="flex items-center border border-rule overflow-hidden">
           {(["all", "automation", "schedule"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setKindFilter(f)}
               className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
                 kindFilter === f
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                  ? "bg-surface-sunken text-ink"
+                  : "text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60"
               }`}
             >
               {f === "all" ? "All" : f === "automation" ? "Automations" : "Schedules"}
@@ -2363,7 +2363,7 @@ function ExecutionsView({ agentId }: { agentId: string }) {
           ))}
         </div>
 
-        <div className="flex items-center rounded-lg border border-zinc-800 overflow-hidden">
+        <div className="flex items-center border border-rule overflow-hidden">
           {(["all", "running", "completed", "failed"] as const).map((s) => {
             const meta = s !== "all" ? EXEC_STATUS_META[s] : null;
             return (
@@ -2372,8 +2372,8 @@ function ExecutionsView({ agentId }: { agentId: string }) {
                 onClick={() => setStatusFilter(s)}
                 className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
                   statusFilter === s
-                    ? "bg-zinc-800 text-zinc-200"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                    ? "bg-surface-sunken text-ink"
+                    : "text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60"
                 }`}
               >
                 {s === "all" ? "All" : meta?.label ?? s}
@@ -2387,14 +2387,14 @@ function ExecutionsView({ agentId }: { agentId: string }) {
       {executions === undefined ? (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 rounded-xl bg-zinc-800/20 animate-pulse" />
+            <div key={i} className="h-20 bg-surface-sunken animate-pulse" />
           ))}
         </div>
       ) : executions.length === 0 ? (
         <div className="text-center py-16">
-          <History className="h-10 w-10 text-zinc-800 mx-auto mb-3" />
-          <p className="text-sm text-zinc-500 font-medium">No executions yet</p>
-          <p className="text-xs text-zinc-600 mt-1">
+          <History className="h-10 w-10 text-ink-faint mx-auto mb-3" />
+          <p className="text-sm text-ink-muted font-medium">No executions yet</p>
+          <p className="text-xs text-ink-faint mt-1">
             {kindFilter !== "all" || statusFilter !== "all"
               ? "Try changing your filters"
               : "Executions will appear here when automations or schedules run"}
@@ -2410,7 +2410,7 @@ function ExecutionsView({ agentId }: { agentId: string }) {
           {executions.length >= limit && (
             <button
               onClick={() => setLimit((l) => l + 50)}
-              className="w-full text-xs text-zinc-600 hover:text-zinc-400 py-2.5 hover:bg-zinc-800/40 rounded-xl transition-colors"
+              className="w-full text-xs text-ink-faint hover:text-ink-muted py-2.5 hover:bg-surface-sunken/60 transition-colors"
             >
               Load more
             </button>
@@ -2459,15 +2459,15 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="border-b border-zinc-800/60 px-6 py-4 shrink-0">
+      <div className="border-b border-rule px-6 py-4 shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
-              <GitBranch className="h-4 w-4 text-zinc-300" />
+            <div className="flex h-8 w-8 items-center justify-center border border-rule bg-surface-sunken">
+              <GitBranch className="h-4 w-4 text-ink-muted" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold">{tab.label}</h2>
-              <p className="text-xs text-zinc-500">
+              <p className="eyebrow">{tab.label}</p>
+              <p className="text-xs text-ink-faint">
                 {automations !== undefined && schedules !== undefined
                   ? `${automations.length} automation${automations.length !== 1 ? "s" : ""} · ${schedules.length} schedule${schedules.length !== 1 ? "s" : ""}`
                   : "Automations & pipelines"}
@@ -2476,20 +2476,20 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           </div>
 
           {/* Live indicator */}
-          <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
-            <span className="h-1.5 w-1.5 rounded-full bg-neon-400 status-pulse" />
+          <div className="flex items-center gap-1.5 text-[10px] text-ink-faint">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent status-pulse" />
             live
           </div>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center gap-1 rounded-lg bg-zinc-900/80 border border-zinc-800/60 p-0.5 w-fit">
+        <div className="flex items-center gap-0 border border-rule bg-surface-sunken p-0.5 w-fit">
           <button
             onClick={() => setActiveTab("workflow")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all ${
               activeTab === "workflow"
-                ? "bg-zinc-800 text-zinc-200 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-surface text-ink shadow-sm"
+                : "text-ink-faint hover:text-ink-muted"
             }`}
           >
             <GitBranch className="h-3 w-3" />
@@ -2497,10 +2497,10 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           </button>
           <button
             onClick={() => setActiveTab("executions")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all ${
               activeTab === "executions"
-                ? "bg-zinc-800 text-zinc-200 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-surface text-ink shadow-sm"
+                : "text-ink-faint hover:text-ink-muted"
             }`}
           >
             <History className="h-3 w-3" />
@@ -2518,8 +2518,8 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
 
           {/* ── Automations ── */}
           <Section
-            icon={<Zap className="h-3.5 w-3.5 text-neon-400" />}
-            iconBg="bg-neon-950/50"
+            icon={<Zap className="h-3.5 w-3.5 text-accent" />}
+            iconBg="bg-accent-soft/20"
             title="Automations"
             count={automations?.length}
             actionLabel="New"
@@ -2532,7 +2532,7 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             secondaryAction={
               <button
                 onClick={() => setShowTemplates(true)}
-                className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-neon-400 transition-colors"
+                className="flex items-center gap-1 text-[11px] text-ink-faint hover:text-accent transition-colors"
               >
                 <Sparkles className="h-3 w-3" />
                 Templates
@@ -2563,26 +2563,26 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             {automations === undefined ? (
               <div className="space-y-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-16 rounded-xl bg-zinc-800/20 animate-pulse" />
+                  <div key={i} className="h-16 bg-surface-sunken animate-pulse" />
                 ))}
               </div>
             ) : automations.length === 0 && !showAutoForm && !showTemplates ? (
               <div className="text-center py-8">
-                <Zap className="h-8 w-8 text-zinc-800 mx-auto mb-2" />
-                <p className="text-xs text-zinc-500 font-medium">No automations yet</p>
-                <p className="text-[11px] text-zinc-600 mt-0.5">
+                <Zap className="h-8 w-8 text-ink-faint mx-auto mb-2" />
+                <p className="text-xs text-ink-muted font-medium">No automations yet</p>
+                <p className="text-[11px] text-ink-faint mt-0.5">
                   Create event-triggered pipelines
                 </p>
                 <div className="mt-3 flex items-center gap-2 justify-center">
                   <button
                     onClick={() => { setShowAutoForm(true); setTemplateInitial(null); }}
-                    className="flex items-center gap-1.5 rounded-xl bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    className="flex items-center gap-1.5 border border-rule bg-surface px-3 py-2 text-xs font-medium text-ink-muted hover:bg-surface-sunken transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" /> Create Automation
                   </button>
                   <button
                     onClick={() => setShowTemplates(true)}
-                    className="flex items-center gap-1.5 rounded-xl bg-neon-950/40 border border-neon-800/30 px-3 py-2 text-xs font-medium text-neon-400 hover:bg-neon-950/60 transition-colors"
+                    className="flex items-center gap-1.5 border border-rule px-3 py-2 text-xs font-medium text-accent hover:bg-accent-soft/20 transition-colors"
                   >
                     <Sparkles className="h-3.5 w-3.5" /> From Template
                   </button>
@@ -2645,7 +2645,7 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             secondaryAction={
               <button
                 onClick={() => setShowSchedTemplates(true)}
-                className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-neon-400 transition-colors"
+                className="flex items-center gap-1 text-[11px] text-ink-faint hover:text-accent transition-colors"
               >
                 <Sparkles className="h-3 w-3" />
                 Templates
@@ -2677,26 +2677,26 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             {schedules === undefined ? (
               <div className="space-y-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="h-14 rounded-xl bg-zinc-800/20 animate-pulse" />
+                  <div key={i} className="h-14 bg-surface-sunken animate-pulse" />
                 ))}
               </div>
             ) : schedules.length === 0 && !showSchedForm ? (
               <div className="text-center py-8">
-                <Calendar className="h-8 w-8 text-zinc-800 mx-auto mb-2" />
-                <p className="text-xs text-zinc-500 font-medium">No scheduled actions yet</p>
-                <p className="text-[11px] text-zinc-600 mt-0.5">
+                <Calendar className="h-8 w-8 text-ink-faint mx-auto mb-2" />
+                <p className="text-xs text-ink-muted font-medium">No scheduled actions yet</p>
+                <p className="text-[11px] text-ink-faint mt-0.5">
                   Run cron jobs, intervals, and one-time tasks
                 </p>
                 <div className="mt-3 flex items-center gap-2 justify-center">
                   <button
                     onClick={() => { setShowSchedForm(true); setSchedTemplateInitial(null); }}
-                    className="flex items-center gap-1.5 rounded-xl bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    className="flex items-center gap-1.5 border border-rule bg-surface px-3 py-2 text-xs font-medium text-ink-muted hover:bg-surface-sunken transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" /> Create Schedule
                   </button>
                   <button
                     onClick={() => setShowSchedTemplates(true)}
-                    className="flex items-center gap-1.5 rounded-xl bg-neon-950/40 border border-neon-800/30 px-3 py-2 text-xs font-medium text-neon-400 hover:bg-neon-950/60 transition-colors"
+                    className="flex items-center gap-1.5 border border-rule px-3 py-2 text-xs font-medium text-accent hover:bg-accent-soft/20 transition-colors"
                   >
                     <Sparkles className="h-3.5 w-3.5" /> From Template
                   </button>
@@ -2759,7 +2759,7 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                   <WebhookCard key={wh._id} webhook={wh} />
                 ))}
               </div>
-              <p className="text-[10px] text-zinc-600 mt-3">
+              <p className="text-[10px] text-ink-faint mt-3">
                 Manage webhooks from individual API pages.
               </p>
             </Section>
@@ -2775,20 +2775,20 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             {events === undefined ? (
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-8 rounded-lg bg-zinc-800/20 animate-pulse" />
+                  <div key={i} className="h-8 bg-surface-sunken animate-pulse" />
                 ))}
               </div>
             ) : events.length === 0 ? (
               <div className="text-center py-8">
-                <Activity className="h-8 w-8 text-zinc-800 mx-auto mb-2" />
-                <p className="text-xs text-zinc-500 font-medium">No events yet</p>
-                <p className="text-[11px] text-zinc-600 mt-0.5">
+                <Activity className="h-8 w-8 text-ink-faint mx-auto mb-2" />
+                <p className="text-xs text-ink-muted font-medium">No events yet</p>
+                <p className="text-[11px] text-ink-faint mt-0.5">
                   Events appear here when your agent takes actions
                 </p>
               </div>
             ) : (
               <>
-                <div className="divide-y divide-zinc-800/20">
+                <div className="divide-y divide-rule/20">
                   {shownEvents.map((ev) => (
                     <EventLogEntry key={ev._id} event={ev} />
                   ))}
@@ -2796,7 +2796,7 @@ export function WorkflowPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 {events.length > eventLimit && (
                   <button
                     onClick={() => setEventLimit((l) => l + 50)}
-                    className="mt-3 w-full text-xs text-zinc-600 hover:text-zinc-400 py-2 hover:bg-zinc-800/40 rounded-xl transition-colors"
+                    className="mt-3 w-full text-xs text-ink-faint hover:text-ink-muted py-2 hover:bg-surface-sunken/60 transition-colors"
                   >
                     Show more ({events.length - eventLimit} remaining)
                   </button>

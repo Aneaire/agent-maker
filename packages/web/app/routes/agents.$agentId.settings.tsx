@@ -8,7 +8,6 @@ import {
   Trash2,
   Wrench,
   Bot,
-  ToggleRight,
   Upload,
   Loader2,
   Image,
@@ -58,6 +57,51 @@ const SECTION_TITLES: Record<string, string> = {
   tools: "Tools",
 };
 
+// ── Shared input / label primitives ──────────────────────────────────
+
+const inputClass =
+  "w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors";
+
+const monoInputClass =
+  "w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm font-mono text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors";
+
+const selectClass =
+  "w-full bg-surface-sunken border border-rule px-3 py-2 text-sm text-ink focus:border-rule-strong focus:outline-none transition-colors";
+
+const textareaClass =
+  "w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors resize-none";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="eyebrow block mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+// ── Mini toggle (disc inside bar) ──────────────────────────────────────
+
+function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`relative inline-flex h-5 w-9 items-center border transition-colors ${
+        on ? "bg-ink border-ink" : "bg-surface-sunken border-rule-strong"
+      }`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 border transition-transform ${
+          on ? "translate-x-[18px] bg-surface border-surface" : "translate-x-0.5 bg-ink-faint border-ink-faint"
+        }`}
+      />
+    </button>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────
+
 export default function SettingsPage() {
   const { agent, settingsSection } = useOutletContext<{
     agent: Doc<"agents">;
@@ -67,19 +111,20 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
-              <Settings className="h-4 w-4 text-zinc-300" />
-            </div>
-            <h1 className="text-lg font-semibold">{SECTION_TITLES[section] ?? "Settings"}</h1>
+      <div className="max-w-2xl mx-auto px-8 py-10 space-y-8">
+        {/* Section header */}
+        <div className="flex items-baseline justify-between border-b border-rule pb-4">
+          <div>
+            <p className="eyebrow">Settings</p>
+            <h1 className="mt-1 font-display text-2xl text-ink">
+              {SECTION_TITLES[section] ?? "Settings"}
+            </h1>
           </div>
           <Link
             to={`/agents/${agent._id}/editor`}
-            className="flex items-center gap-2 rounded-xl bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
+            className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors"
           >
-            <Wand2 className="h-4 w-4" />
+            <Wand2 className="h-3 w-3" strokeWidth={1.5} />
             Edit with AI
           </Link>
         </div>
@@ -91,13 +136,9 @@ export default function SettingsPage() {
           </>
         )}
 
-        {section === "models" && (
-          <EnabledModelsSection agent={agent} />
-        )}
+        {section === "models" && <EnabledModelsSection agent={agent} />}
 
-        {section === "capabilities" && (
-          <ToolSetsSection agent={agent} />
-        )}
+        {section === "capabilities" && <ToolSetsSection agent={agent} />}
 
         {section === "integrations" && (
           <>
@@ -105,12 +146,10 @@ export default function SettingsPage() {
             {(agent.enabledToolSets ?? [])
               .filter((ts) => TOOL_SETS_REQUIRING_CREDENTIALS[ts])
               .map((ts) => (
-                <section key={ts} className="rounded-xl border border-zinc-800/60 glass-card p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <h2 className="text-sm font-medium">
-                      {getToolSetLabel(ts)} Credentials
-                    </h2>
-                  </div>
+                <section key={ts} className="border border-rule p-6 bg-surface">
+                  <p className="eyebrow mb-4">
+                    {getToolSetLabel(ts)} Credentials
+                  </p>
                   <CredentialManager agent={agent} toolSetName={ts} />
                 </section>
               ))}
@@ -174,37 +213,30 @@ function AgentIconSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Image className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Agent Icon</h2>
-      </div>
+    <section className="border border-rule p-6 bg-surface">
+      <p className="eyebrow mb-4">Agent Icon</p>
       <div className="flex items-center gap-4">
         {agent.iconUrl ? (
           <img
             src={agent.iconUrl}
             alt="Agent icon"
-            className="h-16 w-16 rounded-xl object-cover border border-zinc-700"
+            className="h-16 w-16 object-cover border border-rule"
           />
         ) : (
-          <div className="h-16 w-16 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-            <Bot className="h-7 w-7 text-zinc-600" />
+          <div className="h-16 w-16 border border-rule bg-surface-sunken flex items-center justify-center">
+            <Bot className="h-7 w-7 text-ink-faint" strokeWidth={1.5} />
           </div>
         )}
         <div>
           <label
-            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
-              uploading
-                ? "bg-zinc-800 text-zinc-500"
-                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-            }`}
+            className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink cursor-pointer transition-colors"
           >
             {uploading ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
             ) : (
-              <Upload className="h-3 w-3" />
+              <Upload className="h-3 w-3" strokeWidth={1.5} />
             )}
-            {uploading ? "Uploading..." : "Upload new icon"}
+            {uploading ? "Uploading…" : "Upload new icon"}
             <input
               ref={fileRef}
               type="file"
@@ -214,7 +246,7 @@ function AgentIconSection({ agent }: { agent: Doc<"agents"> }) {
               disabled={uploading}
             />
           </label>
-          <p className="text-[10px] text-zinc-600 mt-1.5">PNG, JPG up to 2MB</p>
+          <p className="text-[10px] text-ink-faint mt-1">PNG, JPG up to 2MB</p>
         </div>
       </div>
     </section>
@@ -259,31 +291,28 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
 
   return (
     <>
-      <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <Bot className="h-4 w-4 text-zinc-400" />
-            <h2 className="text-sm font-medium">Agent Configuration</h2>
-          </div>
+      <section className="border border-rule p-6 bg-surface">
+        <div className="flex items-baseline justify-between mb-6">
+          <p className="eyebrow">Agent Configuration</p>
           {hasChanges && (
             <button
               onClick={handleSave}
               disabled={saving || !name.trim()}
-              className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold bg-ink text-surface px-3 py-1.5 hover:opacity-90 disabled:opacity-40 transition-all"
             >
-              <Save className="h-3 w-3" />
-              {saving ? "Saving..." : "Save"}
+              <Save className="h-3 w-3" strokeWidth={1.75} />
+              {saving ? "Saving…" : "Save"}
             </button>
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <Field label="Name">
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
+              className={inputClass}
             />
           </Field>
 
@@ -293,41 +322,32 @@ function AgentConfigSection({ agent }: { agent: Doc<"agents"> }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What does this agent do?"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+              className={inputClass}
             />
           </Field>
 
-          {/* System Prompt Preview Card */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
-              System Prompt
-            </label>
+            <p className="eyebrow mb-1.5">System Prompt</p>
             <button
               onClick={() => setShowPromptDialog(true)}
               className="w-full text-left group"
             >
-              <div className="relative rounded-xl border border-zinc-700 bg-zinc-800/50 p-4 hover:border-zinc-600 hover:bg-zinc-800/80 transition-all cursor-pointer">
+              <div className="border border-rule bg-surface-sunken p-4 hover:border-rule-strong transition-all cursor-pointer">
                 {systemPrompt ? (
-                  <>
-                    <p className="text-sm text-zinc-300 font-mono line-clamp-3 leading-relaxed">
-                      {systemPrompt}
-                    </p>
-                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-zinc-800/80 to-transparent rounded-b-xl pointer-events-none" />
-                  </>
+                  <p className="text-sm text-ink-muted font-mono line-clamp-3 leading-relaxed">
+                    {systemPrompt}
+                  </p>
                 ) : (
-                  <p className="text-sm text-zinc-600 italic">
+                  <p className="text-sm text-ink-faint italic">
                     No system prompt configured. Click to add one.
                   </p>
                 )}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-700/50">
-                  <span className="text-[11px] text-zinc-500">
-                    {systemPrompt
-                      ? `${systemPrompt.length} characters`
-                      : "Empty"}
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-rule">
+                  <span className="font-mono text-[11px] text-ink-faint">
+                    {systemPrompt ? `${systemPrompt.length} characters` : "Empty"}
                   </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                    <FileText className="h-3 w-3" />
-                    Edit Prompt
+                  <span className="text-2xs uppercase tracking-[0.1em] font-semibold text-ink-faint group-hover:text-ink transition-colors">
+                    Edit prompt →
                   </span>
                 </div>
               </div>
@@ -376,7 +396,6 @@ function SystemPromptDialog({
   const [draft, setDraft] = useState(value);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  // When AI suggests, we store the draft before the suggestion so we can revert
   const [beforeSuggestion, setBeforeSuggestion] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const aiInputRef = useRef<HTMLInputElement>(null);
@@ -406,7 +425,6 @@ function SystemPromptDialog({
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       if (!data.prompt || !data.prompt.trim()) throw new Error("AI returned empty result");
-      // Save current draft so we can revert, then replace draft with suggestion
       setBeforeSuggestion(draft);
       setDraft(data.prompt);
     } catch (err: any) {
@@ -416,7 +434,6 @@ function SystemPromptDialog({
   }
 
   function acceptSuggestion() {
-    // Draft already has the suggestion text, just clear the revert state
     setBeforeSuggestion(null);
   }
 
@@ -428,28 +445,24 @@ function SystemPromptDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6">
-      <div className="w-full max-w-3xl max-h-[90vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+      <div className="w-full max-w-3xl max-h-[90vh] border border-rule bg-surface shadow-2xl flex flex-col overflow-hidden rise">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80">
+        <div className="flex items-center justify-between px-6 h-14 border-b border-rule shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600/20 to-indigo-600/20 ring-1 ring-violet-500/20">
-              <FileText className="h-4 w-4 text-violet-400" />
-            </div>
+            <FileText className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.5} />
             <div>
-              <h2 className="text-sm font-semibold text-zinc-100">
-                System Prompt
-              </h2>
-              <p className="text-[11px] text-zinc-500">
-                Define how your agent behaves and responds
+              <p className="eyebrow leading-none">System Prompt</p>
+              <p className="text-[11px] text-ink-faint mt-0.5">
+                Define how your agent behaves
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="p-1.5 text-ink-faint hover:text-ink transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" strokeWidth={1.5} />
           </button>
         </div>
 
@@ -461,19 +474,20 @@ function SystemPromptDialog({
               ref={textareaRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="You are a helpful assistant that..."
+              placeholder="You are a helpful assistant that…"
               disabled={aiLoading}
-              className={`w-full min-h-[280px] rounded-xl border px-4 py-3.5 text-sm font-mono leading-relaxed placeholder:text-zinc-600 focus:outline-none resize-none transition-colors disabled:opacity-60 ${
+              rows={12}
+              className={`w-full border font-mono text-sm leading-relaxed px-4 py-3 placeholder:text-ink-faint focus:outline-none resize-none transition-colors disabled:opacity-60 bg-surface ${
                 hasSuggestion
-                  ? "border-violet-500/40 bg-violet-950/10 text-violet-200"
-                  : "border-zinc-700 bg-zinc-900 text-zinc-200 focus:border-zinc-500"
+                  ? "border-accent text-ink bg-accent-soft/20"
+                  : "border-rule text-ink focus:border-rule-strong"
               }`}
             />
             {aiLoading && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-zinc-900/60 backdrop-blur-[2px]">
-                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 shadow-lg">
-                  <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
-                  <span className="text-xs text-zinc-300">Generating improved prompt...</span>
+              <div className="absolute inset-0 flex items-center justify-center bg-surface/70">
+                <div className="flex items-center gap-2.5 px-4 py-2.5 border border-rule bg-surface shadow-sm">
+                  <Loader2 className="h-4 w-4 animate-spin text-ink-muted" strokeWidth={1.5} />
+                  <span className="text-xs text-ink-muted">Generating improved prompt…</span>
                 </div>
               </div>
             )}
@@ -481,26 +495,26 @@ function SystemPromptDialog({
 
           {/* Suggestion action bar */}
           {hasSuggestion && (
-            <div className="flex items-center justify-between rounded-xl border border-violet-500/20 bg-violet-950/20 px-4 py-3">
+            <div className="flex items-center justify-between border border-accent/40 bg-accent-soft/20 px-4 py-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-                <span className="text-xs text-violet-300">
+                <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+                <span className="text-xs text-ink-muted">
                   AI suggestion — review and accept or dismiss
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={dismissSuggestion}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink transition-colors"
                 >
-                  <RotateCcw className="h-3 w-3" />
+                  <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
                   Dismiss
                 </button>
                 <button
                   onClick={acceptSuggestion}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-500 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs bg-ink text-surface px-3 py-1.5 hover:opacity-90 transition-all"
                 >
-                  <Check className="h-3 w-3" />
+                  <Check className="h-3 w-3" strokeWidth={2} />
                   Accept
                 </button>
               </div>
@@ -508,29 +522,25 @@ function SystemPromptDialog({
           )}
 
           {/* AI Assistant */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+          <div className="border border-rule bg-surface-sunken p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-              <span className="text-xs font-medium text-zinc-300">
-                AI Prompt Assistant
-              </span>
+              <Sparkles className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.5} />
+              <span className="eyebrow">AI Prompt Assistant</span>
             </div>
 
-            {/* Quick actions */}
             <div className="flex flex-wrap gap-1.5 mb-3">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action}
                   onClick={() => handleAiAssist(action)}
                   disabled={aiLoading}
-                  className="text-[11px] px-2.5 py-1 rounded-lg border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/50 disabled:opacity-40 transition-all"
+                  className="text-[11px] px-2.5 py-1 border border-rule text-ink-faint hover:text-ink hover:border-rule-strong disabled:opacity-40 transition-all"
                 >
                   {action}
                 </button>
               ))}
             </div>
 
-            {/* Custom instruction input */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -545,22 +555,22 @@ function SystemPromptDialog({
                 disabled={aiLoading}
                 placeholder={
                   draft
-                    ? "Describe how to improve this prompt..."
-                    : "Describe what your agent should do..."
+                    ? "Describe how to improve this prompt…"
+                    : "Describe what your agent should do…"
                 }
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-800/80 pl-4 pr-12 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 disabled:opacity-50 transition-colors"
+                className="w-full border border-rule bg-surface pl-4 pr-12 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-rule-strong disabled:opacity-50 transition-colors"
               />
               <button
                 type="submit"
                 disabled={!aiInput.trim() || aiLoading}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
+                className={`absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center transition-all ${
                   aiInput.trim() && !aiLoading
-                    ? "bg-violet-600 text-white hover:bg-violet-500"
-                    : "bg-zinc-700 text-zinc-500"
+                    ? "bg-ink text-surface hover:opacity-90"
+                    : "bg-surface-sunken text-ink-faint border border-rule"
                 }`}
               >
                 {aiLoading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
                 ) : (
                   <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />
                 )}
@@ -570,23 +580,23 @@ function SystemPromptDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800/80 bg-zinc-900/30">
-          <span className="text-[11px] text-zinc-600">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-rule shrink-0">
+          <span className="font-mono text-[11px] text-ink-faint">
             {draft.length} characters
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-zinc-400 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="text-sm text-ink-muted hover:text-ink transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={hasSuggestion}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-neon-400 text-zinc-950 rounded-lg hover:bg-neon-300 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs bg-ink text-surface px-4 py-2 font-semibold hover:opacity-90 disabled:opacity-40 transition-all"
             >
-              <Save className="h-3 w-3" />
+              <Save className="h-3 w-3" strokeWidth={1.75} />
               Save Changes
             </button>
           </div>
@@ -667,7 +677,6 @@ const ALL_MODELS = [
 function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
   const updateAgent = useMutation(api.agents.update);
 
-  // Filter models by AI provider credentials. If no credentials configured, show all.
   const aiProviders = useQuery(api.credentials.listAiProviders);
   const PROVIDER_TO_CRED: Record<string, string> = {
     Anthropic: "anthropic",
@@ -681,7 +690,6 @@ function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
       })
     : ALL_MODELS;
 
-  // If enabledModels is not set, all available models are enabled by default
   const enabledModels = (agent.enabledModels ?? ALL_MODELS.map((m) => m.id))
     .filter((id) => availableModels.some((m) => m.id === id));
 
@@ -689,8 +697,8 @@ function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
     const isCurrentModel = agent.model === modelId;
     const isEnabled = enabledModels.includes(modelId);
 
-    if (isEnabled && isCurrentModel) return; // can't disable the active model
-    if (isEnabled && enabledModels.length <= 1) return; // must keep at least one
+    if (isEnabled && isCurrentModel) return;
+    if (isEnabled && enabledModels.length <= 1) return;
 
     const newModels = isEnabled
       ? enabledModels.filter((m) => m !== modelId)
@@ -704,76 +712,55 @@ function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <Cpu className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Enabled Models</h2>
-        <span className="text-xs text-zinc-600 ml-auto">
+    <section className="border border-rule bg-surface">
+      <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">Enabled Models</p>
+        <span className="font-mono text-xs text-ink-faint">
           {enabledModels.length} of {availableModels.length}
         </span>
       </div>
-      <p className="text-xs text-zinc-500 mb-4">
-        Choose which models appear in the chat model selector.
-        {aiProviders && aiProviders.length > 0 && availableModels.length < ALL_MODELS.length && (
-          <span className="block mt-1 text-zinc-600">Add AI provider credentials to unlock more models.</span>
-        )}
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      {aiProviders && aiProviders.length > 0 && availableModels.length < ALL_MODELS.length && (
+        <p className="px-6 pt-3 text-xs text-ink-faint">
+          Add AI provider credentials to unlock more models.
+        </p>
+      )}
+      <ol className="divide-y divide-rule">
         {availableModels.map((m) => {
           const enabled = enabledModels.includes(m.id);
           const isCurrentModel = agent.model === m.id;
           const cantDisable = enabled && (isCurrentModel || enabledModels.length <= 1);
           return (
-            <button
-              key={m.id}
-              onClick={() => handleToggle(m.id)}
-              disabled={cantDisable}
-              title={
-                isCurrentModel
-                  ? "Can't disable the currently active model"
-                  : enabledModels.length <= 1 && enabled
-                    ? "At least one model must be enabled"
-                    : undefined
-              }
-              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
-                enabled
-                  ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
-                  : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
-              } ${cantDisable ? "opacity-70 cursor-not-allowed" : ""}`}
-            >
-              <div
-                className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
-                  enabled ? "bg-neon-400/30" : "bg-zinc-700"
-                }`}
+            <li key={m.id}>
+              <button
+                onClick={() => handleToggle(m.id)}
+                disabled={cantDisable}
+                className={`w-full flex items-center gap-4 px-6 py-3.5 text-left transition-colors ${
+                  enabled ? "bg-surface-sunken/60" : "hover:bg-surface-sunken/40"
+                } ${cantDisable ? "opacity-60 cursor-not-allowed" : ""}`}
               >
-                <div
-                  className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
-                    enabled
-                      ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
-                      : "left-0.5 bg-zinc-500"
-                  }`}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
-                    {m.name}
-                  </span>
-                  <span className={`text-[10px] font-mono ${
-                    m.tier === "$$$" ? "text-amber-400" : m.tier === "$$" ? "text-zinc-500" : "text-zinc-600"
-                  }`}>{m.tier}</span>
+                <Toggle on={enabled} onToggle={() => {}} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm ${enabled ? "text-ink" : "text-ink-muted"}`}>
+                      {m.name}
+                    </span>
+                    <span className={`font-mono text-[10px] ${
+                      m.tier === "$$$" ? "text-warn" : "text-ink-faint"
+                    }`}>
+                      {m.tier}
+                    </span>
+                    {isCurrentModel && (
+                      <span className="eyebrow text-accent">Active</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-ink-faint">{m.description}</p>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[11px] text-zinc-600 line-clamp-1">{m.description}</p>
-                  {isCurrentModel && (
-                    <span className="text-[9px] text-neon-400 font-medium shrink-0">ACTIVE</span>
-                  )}
-                </div>
-              </div>
-            </button>
+                <span className="text-[10px] text-ink-faint">{m.provider}</span>
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ol>
     </section>
   );
 }
@@ -793,50 +780,35 @@ function ToolSetCategoryGrid({
     <div className="space-y-6">
       {categories.map((category) => (
         <div key={category.title}>
-          <div className="flex items-center gap-2 mb-2.5">
-            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-              {category.title}
-            </h3>
-            <div className="flex-1 h-px bg-zinc-800/60" />
+          <div className="flex items-center gap-3 mb-2">
+            <p className="eyebrow">{category.title}</p>
+            <div className="flex-1 h-px bg-rule" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <ol className="divide-y divide-rule border-y border-rule">
             {category.items.map((item) => {
               const enabled = enabledSets.includes(item.key);
               return (
-                <button
-                  key={item.key}
-                  onClick={() => onToggle(item.key)}
-                  className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all ${
-                    enabled
-                      ? "border-neon-400/20 bg-neon-400/5 hover:bg-neon-400/10"
-                      : "border-zinc-800 bg-zinc-800/30 hover:bg-zinc-800/60"
-                  }`}
-                >
-                  <div
-                    className={`relative h-5 w-9 rounded-full shrink-0 transition-colors ${
-                      enabled ? "bg-neon-400/30" : "bg-zinc-700"
+                <li key={item.key}>
+                  <button
+                    onClick={() => onToggle(item.key)}
+                    className={`w-full flex items-center gap-4 px-4 py-3 text-left transition-colors ${
+                      enabled ? "bg-surface-sunken/60" : "hover:bg-surface-sunken/40"
                     }`}
                   >
-                    <div
-                      className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
-                        enabled
-                          ? "left-[18px] bg-neon-400 shadow-sm shadow-neon-400/40"
-                          : "left-0.5 bg-zinc-500"
-                      }`}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <span className={`text-sm font-medium ${enabled ? "text-zinc-100" : "text-zinc-400"}`}>
-                      {item.label}
-                    </span>
-                    <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-1">
-                      {item.description}
-                    </p>
-                  </div>
-                </button>
+                    <Toggle on={enabled} onToggle={() => {}} />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm ${enabled ? "text-ink" : "text-ink-muted"}`}>
+                        {item.label}
+                      </span>
+                      <p className="text-[11px] text-ink-faint line-clamp-1">
+                        {item.description}
+                      </p>
+                    </div>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ol>
         </div>
       ))}
     </div>
@@ -853,10 +825,7 @@ function useToolSetToggle(agent: Doc<"agents">) {
       : [...enabledSets, toolSet];
 
     try {
-      await updateAgent({
-        agentId: agent._id,
-        enabledToolSets: newSets,
-      });
+      await updateAgent({ agentId: agent._id, enabledToolSets: newSets });
     } catch (err: any) {
       alert(err.message);
     }
@@ -871,19 +840,18 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
   const { enabledSets, handleToggle } = useToolSetToggle(agent);
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <ToggleRight className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Capabilities</h2>
-        <span className="text-xs text-zinc-600 ml-auto">
-          {enabledSets.length} active
-        </span>
+    <section className="border border-rule bg-surface">
+      <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">Capabilities</p>
+        <span className="font-mono text-xs text-ink-faint">{enabledSets.length} active</span>
       </div>
-      <ToolSetCategoryGrid
-        categories={CAPABILITY_CATEGORIES}
-        enabledSets={enabledSets}
-        onToggle={handleToggle}
-      />
+      <div className="p-6">
+        <ToolSetCategoryGrid
+          categories={CAPABILITY_CATEGORIES}
+          enabledSets={enabledSets}
+          onToggle={handleToggle}
+        />
+      </div>
     </section>
   );
 }
@@ -893,23 +861,45 @@ function ToolSetsSection({ agent }: { agent: Doc<"agents"> }) {
 function IntegrationsSection({ agent }: { agent: Doc<"agents"> }) {
   const { enabledSets, handleToggle } = useToolSetToggle(agent);
 
+  const activeCount = enabledSets.filter((s) =>
+    INTEGRATION_CATEGORIES.some((c) => c.items.some((i) => i.key === s))
+  ).length;
+
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <ToggleRight className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Integrations</h2>
-        <span className="text-xs text-zinc-600 ml-auto">
-          {enabledSets.filter((s) =>
-            INTEGRATION_CATEGORIES.some((c) => c.items.some((i) => i.key === s))
-          ).length} active
-        </span>
+    <section className="border border-rule bg-surface">
+      <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">Integrations</p>
+        <span className="font-mono text-xs text-ink-faint">{activeCount} active</span>
       </div>
-      <ToolSetCategoryGrid
-        categories={INTEGRATION_CATEGORIES}
-        enabledSets={enabledSets}
-        onToggle={handleToggle}
-      />
+      <div className="p-6">
+        <ToolSetCategoryGrid
+          categories={INTEGRATION_CATEGORIES}
+          enabledSets={enabledSets}
+          onToggle={handleToggle}
+        />
+      </div>
     </section>
+  );
+}
+
+// ── Shared bot section helpers ────────────────────────────────────────
+
+function SaveButton({ saving, saved }: { saving: boolean; saved: boolean }) {
+  return (
+    <button
+      type="submit"
+      disabled={saving}
+      className="inline-flex items-center gap-1.5 text-xs bg-ink text-surface px-4 py-2 font-semibold hover:opacity-90 disabled:opacity-40 transition-all"
+    >
+      {saving ? (
+        <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+      ) : saved ? (
+        <Check className="h-3 w-3" strokeWidth={2} />
+      ) : (
+        <Save className="h-3 w-3" strokeWidth={1.75} />
+      )}
+      {saved ? "Saved" : "Save"}
+    </button>
   );
 }
 
@@ -928,7 +918,8 @@ function DiscordBotSection({ agent }: { agent: Doc<"agents"> }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  async function save() {
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
     setSaving(true);
     try {
       await updateDiscordBot({
@@ -959,141 +950,103 @@ function DiscordBotSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6 space-y-5">
-      <div className="flex items-center gap-2">
-        <Bot className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Discord Bot (Two-Way Chat)</h2>
-        <span className="text-xs text-zinc-600 ml-auto">
-          @mention the bot to chat
-        </span>
+    <section className="border border-rule bg-surface">
+      <div className="px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">Discord Bot (Two-Way Chat)</p>
+        <p className="mt-1 text-xs text-ink-faint">
+          @mention the bot in Discord to route messages through this agent.
+        </p>
       </div>
+      <form onSubmit={handleSave} className="p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-ink-muted">Enable Discord Bot</span>
+          <Toggle on={enabled} onToggle={() => setEnabled(!enabled)} />
+        </div>
 
-      <p className="text-xs text-zinc-500">
-        When enabled, @mentioning the bot in Discord routes messages through this agent.
-        Authorized users get full agent access; everyone else gets the Bot Prompt below.
-      </p>
-
-      {/* Master toggle */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-zinc-400">Enable Discord Bot</span>
-        <button
-          type="button"
-          onClick={() => setEnabled(!enabled)}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-            enabled ? "bg-neon-500" : "bg-zinc-700"
-          }`}
-        >
-          <span
-            className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-              enabled ? "translate-x-4.5" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
-
-      {enabled && (
-        <>
-          {/* Bot Prompt */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Bot Prompt</label>
-            <textarea
-              value={botPrompt}
-              onChange={(e) => setBotPrompt(e.target.value)}
-              placeholder="You are a helpful assistant. Answer questions concisely..."
-              rows={4}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors resize-none"
-            />
-            <p className="text-xs text-zinc-600">
-              Used for non-authorized Discord users. Leave blank to use the agent's system prompt for everyone.
-            </p>
-          </div>
-
-          {/* Bot Model */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Bot Model (optional)</label>
-            <select
-              value={botModel}
-              onChange={(e) => setBotModel(e.target.value)}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
-            >
-              <option value="">Use agent's default ({ALL_MODELS.find((m) => m.id === agent.model)?.name ?? agent.model})</option>
-              {(agent.enabledModels ?? ALL_MODELS.map((m) => m.id)).map((modelId) => {
-                const model = ALL_MODELS.find((m) => m.id === modelId);
-                return (
-                  <option key={modelId} value={modelId}>
-                    {model ? `${model.name} — ${model.description}` : modelId}
-                  </option>
-                );
-              })}
-            </select>
-            <p className="text-xs text-zinc-600">
-              Model to use for bot-mode responses. Only shows models enabled for this agent.
-            </p>
-          </div>
-
-          {/* Authorized Users */}
-          <div className="space-y-2">
-            <label className="text-xs text-zinc-400">Authorized Discord Usernames</label>
-            <p className="text-xs text-zinc-600">
-              These users get full agent access (all tools, memory, etc.) when they @mention the bot.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newUser}
-                onChange={(e) => setNewUser(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addUser()}
-                placeholder="discord_username"
-                className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+        {enabled && (
+          <>
+            <Field label="Bot Prompt">
+              <textarea
+                value={botPrompt}
+                onChange={(e) => setBotPrompt(e.target.value)}
+                placeholder="You are a helpful assistant…"
+                rows={4}
+                className={textareaClass}
               />
-              <button
-                type="button"
-                onClick={addUser}
-                className="text-xs bg-zinc-700 text-zinc-300 px-3 py-2 rounded-lg hover:bg-zinc-600 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {authorizedUsers.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {authorizedUsers.map((u) => (
-                  <span
-                    key={u}
-                    className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-xs px-2.5 py-1 rounded-lg"
-                  >
-                    {u}
-                    <button
-                      type="button"
-                      onClick={() => removeUser(u)}
-                      className="text-zinc-500 hover:text-red-400 transition-colors ml-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+              <p className="mt-1 text-[10px] text-ink-faint">
+                Used for non-authorized users. Leave blank to use the agent's system prompt.
+              </p>
+            </Field>
 
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all flex items-center gap-1.5"
-        >
-          {saving ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : saved ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <Save className="h-3 w-3" />
-          )}
-          {saved ? "Saved" : "Save"}
-        </button>
-      </div>
+            <Field label="Bot Model (optional)">
+              <select
+                value={botModel}
+                onChange={(e) => setBotModel(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">
+                  Use agent's default ({ALL_MODELS.find((m) => m.id === agent.model)?.name ?? agent.model})
+                </option>
+                {(agent.enabledModels ?? ALL_MODELS.map((m) => m.id)).map((modelId) => {
+                  const model = ALL_MODELS.find((m) => m.id === modelId);
+                  return (
+                    <option key={modelId} value={modelId}>
+                      {model ? `${model.name} — ${model.description}` : modelId}
+                    </option>
+                  );
+                })}
+              </select>
+            </Field>
+
+            <div className="space-y-2">
+              <p className="eyebrow">Authorized Discord Usernames</p>
+              <p className="text-xs text-ink-faint">
+                These users get full agent access when they @mention the bot.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newUser}
+                  onChange={(e) => setNewUser(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addUser())}
+                  placeholder="discord_username"
+                  className="flex-1 bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={addUser}
+                  className="text-xs text-ink-muted hover:text-ink border border-rule px-3 py-1 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              {authorizedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {authorizedUsers.map((u) => (
+                    <span
+                      key={u}
+                      className="flex items-center gap-1 border border-rule bg-surface-sunken text-xs px-2.5 py-1"
+                    >
+                      {u}
+                      <button
+                        type="button"
+                        onClick={() => removeUser(u)}
+                        className="text-ink-faint hover:text-danger transition-colors ml-1"
+                      >
+                        <X className="h-3 w-3" strokeWidth={1.5} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <SaveButton saving={saving} saved={saved} />
+        </div>
+      </form>
     </section>
   );
 }
@@ -1113,7 +1066,8 @@ function SlackBotSection({ agent }: { agent: Doc<"agents"> }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  async function save() {
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
     setSaving(true);
     try {
       await updateSlackBot({
@@ -1144,143 +1098,105 @@ function SlackBotSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6 space-y-5">
-      <div className="flex items-center gap-2">
-        <Bot className="h-4 w-4 text-zinc-400" />
-        <h2 className="text-sm font-medium">Slack Bot (Two-Way Chat)</h2>
-        <span className="text-xs text-zinc-600 ml-auto">
-          @mention or DM the bot to chat
-        </span>
+    <section className="border border-rule bg-surface">
+      <div className="px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">Slack Bot (Two-Way Chat)</p>
+        <p className="mt-1 text-xs text-ink-faint">
+          @mention or DM the bot to route messages through this agent. Requires Socket Mode and an App-Level Token.
+        </p>
       </div>
+      <form onSubmit={handleSave} className="p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-ink-muted">Enable Slack Bot</span>
+          <Toggle on={enabled} onToggle={() => setEnabled(!enabled)} />
+        </div>
 
-      <p className="text-xs text-zinc-500">
-        When enabled, @mentioning the bot in a Slack channel or sending it a DM routes
-        messages through this agent. Authorized users get full agent access; everyone
-        else gets the Bot Prompt below. Requires an App-Level Token (xapp-…) on the
-        Slack credential and Socket Mode enabled in your Slack app.
-      </p>
-
-      {/* Master toggle */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-zinc-400">Enable Slack Bot</span>
-        <button
-          type="button"
-          onClick={() => setEnabled(!enabled)}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-            enabled ? "bg-neon-500" : "bg-zinc-700"
-          }`}
-        >
-          <span
-            className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-              enabled ? "translate-x-4.5" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
-
-      {enabled && (
-        <>
-          {/* Bot Prompt */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Bot Prompt</label>
-            <textarea
-              value={botPrompt}
-              onChange={(e) => setBotPrompt(e.target.value)}
-              placeholder="You are a helpful assistant. Answer questions concisely..."
-              rows={4}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors resize-none"
-            />
-            <p className="text-xs text-zinc-600">
-              Used for non-authorized Slack users. Leave blank to use the agent's system prompt for everyone.
-            </p>
-          </div>
-
-          {/* Bot Model */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-zinc-400">Bot Model (optional)</label>
-            <select
-              value={botModel}
-              onChange={(e) => setBotModel(e.target.value)}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
-            >
-              <option value="">Use agent's default ({ALL_MODELS.find((m) => m.id === agent.model)?.name ?? agent.model})</option>
-              {(agent.enabledModels ?? ALL_MODELS.map((m) => m.id)).map((modelId) => {
-                const model = ALL_MODELS.find((m) => m.id === modelId);
-                return (
-                  <option key={modelId} value={modelId}>
-                    {model ? `${model.name} — ${model.description}` : modelId}
-                  </option>
-                );
-              })}
-            </select>
-            <p className="text-xs text-zinc-600">
-              Model to use for bot-mode responses. Only shows models enabled for this agent.
-            </p>
-          </div>
-
-          {/* Authorized Users */}
-          <div className="space-y-2">
-            <label className="text-xs text-zinc-400">Authorized Slack User IDs</label>
-            <p className="text-xs text-zinc-600">
-              Slack user IDs (e.g. <code className="text-zinc-400 bg-zinc-800 px-1 rounded">U0AR2KKC2Q3</code>) get full agent access. Find IDs by opening a profile in Slack → "More" → "Copy member ID", or call <code className="text-zinc-400 bg-zinc-800 px-1 rounded">slack_list_users</code>.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newUser}
-                onChange={(e) => setNewUser(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addUser()}
-                placeholder="U01234ABCDE"
-                className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none transition-colors"
+        {enabled && (
+          <>
+            <Field label="Bot Prompt">
+              <textarea
+                value={botPrompt}
+                onChange={(e) => setBotPrompt(e.target.value)}
+                placeholder="You are a helpful assistant…"
+                rows={4}
+                className={textareaClass}
               />
-              <button
-                type="button"
-                onClick={addUser}
-                className="text-xs bg-zinc-700 text-zinc-300 px-3 py-2 rounded-lg hover:bg-zinc-600 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {authorizedUsers.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {authorizedUsers.map((u) => (
-                  <span
-                    key={u}
-                    className="flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-xs px-2.5 py-1 rounded-lg"
-                  >
-                    {u}
-                    <button
-                      type="button"
-                      onClick={() => removeUser(u)}
-                      className="text-zinc-500 hover:text-red-400 transition-colors ml-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+              <p className="mt-1 text-[10px] text-ink-faint">
+                Used for non-authorized Slack users. Leave blank to use the agent's system prompt.
+              </p>
+            </Field>
 
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className="text-xs bg-zinc-100 text-zinc-900 px-4 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all flex items-center gap-1.5"
-        >
-          {saving ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : saved ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <Save className="h-3 w-3" />
-          )}
-          {saved ? "Saved" : "Save"}
-        </button>
-      </div>
+            <Field label="Bot Model (optional)">
+              <select
+                value={botModel}
+                onChange={(e) => setBotModel(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">
+                  Use agent's default ({ALL_MODELS.find((m) => m.id === agent.model)?.name ?? agent.model})
+                </option>
+                {(agent.enabledModels ?? ALL_MODELS.map((m) => m.id)).map((modelId) => {
+                  const model = ALL_MODELS.find((m) => m.id === modelId);
+                  return (
+                    <option key={modelId} value={modelId}>
+                      {model ? `${model.name} — ${model.description}` : modelId}
+                    </option>
+                  );
+                })}
+              </select>
+            </Field>
+
+            <div className="space-y-2">
+              <p className="eyebrow">Authorized Slack User IDs</p>
+              <p className="text-xs text-ink-faint">
+                Slack user IDs (e.g.{" "}
+                <code className="font-mono bg-surface-sunken px-1">U0AR2KKC2Q3</code>
+                ) get full agent access.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newUser}
+                  onChange={(e) => setNewUser(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addUser())}
+                  placeholder="U01234ABCDE"
+                  className="flex-1 font-mono bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={addUser}
+                  className="text-xs text-ink-muted hover:text-ink border border-rule px-3 py-1 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              {authorizedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {authorizedUsers.map((u) => (
+                    <span
+                      key={u}
+                      className="flex items-center gap-1 border border-rule bg-surface-sunken font-mono text-xs px-2.5 py-1"
+                    >
+                      {u}
+                      <button
+                        type="button"
+                        onClick={() => removeUser(u)}
+                        className="text-ink-faint hover:text-danger transition-colors ml-1"
+                      >
+                        <X className="h-3 w-3" strokeWidth={1.5} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <SaveButton saving={saving} saved={saved} />
+        </div>
+      </form>
     </section>
   );
 }
@@ -1317,50 +1233,43 @@ function CustomToolsSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-zinc-400" />
-          <h2 className="text-sm font-medium">Custom HTTP Tools</h2>
+    <section className="border border-rule bg-surface">
+      <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">
+          Custom HTTP Tools
           {tools && (
-            <span className="text-xs text-zinc-500">({tools.length})</span>
+            <span className="ml-2 font-mono font-normal text-ink-faint">{tools.length}</span>
           )}
-        </div>
+        </p>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-md hover:bg-zinc-800 transition-colors"
+          className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors"
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="h-3 w-3" strokeWidth={1.75} />
           Add Tool
         </button>
       </div>
 
       {showAdd && (
-        <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800 p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="border-b border-rule p-6 space-y-4 bg-surface-sunken">
+          <div className="grid grid-cols-2 gap-4">
             <Field label="Tool Name">
               <input
                 type="text"
                 value={newTool.name}
-                onChange={(e) =>
-                  setNewTool({ ...newTool, name: e.target.value })
-                }
+                onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
                 placeholder="get_weather"
-                className="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+                className={inputClass}
               />
             </Field>
             <Field label="HTTP Method">
               <select
                 value={newTool.method}
-                onChange={(e) =>
-                  setNewTool({ ...newTool, method: e.target.value as any })
-                }
-                className="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-sm focus:outline-none"
+                onChange={(e) => setNewTool({ ...newTool, method: e.target.value as any })}
+                className={selectClass}
               >
                 {["GET", "POST", "PUT", "DELETE", "PATCH"].map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
+                  <option key={m} value={m}>{m}</option>
                 ))}
               </select>
             </Field>
@@ -1369,35 +1278,31 @@ function CustomToolsSection({ agent }: { agent: Doc<"agents"> }) {
             <input
               type="text"
               value={newTool.endpoint}
-              onChange={(e) =>
-                setNewTool({ ...newTool, endpoint: e.target.value })
-              }
+              onChange={(e) => setNewTool({ ...newTool, endpoint: e.target.value })}
               placeholder="https://api.example.com/data"
-              className="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-sm font-mono placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+              className={monoInputClass}
             />
           </Field>
           <Field label="Description">
             <input
               type="text"
               value={newTool.description}
-              onChange={(e) =>
-                setNewTool({ ...newTool, description: e.target.value })
-              }
+              onChange={(e) => setNewTool({ ...newTool, description: e.target.value })}
               placeholder="What does this tool do?"
-              className="w-full rounded-md border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-sm placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+              className={inputClass}
             />
           </Field>
-          <div className="flex gap-2">
+          <div className="flex gap-3 pt-1">
             <button
               onClick={handleCreate}
               disabled={!newTool.name.trim() || !newTool.endpoint.trim()}
-              className="text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-md font-medium hover:bg-zinc-200 disabled:opacity-30 transition-colors"
+              className="text-xs bg-ink text-surface px-3 py-1.5 font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
             >
               Add Tool
             </button>
             <button
               onClick={() => setShowAdd(false)}
-              className="text-xs text-zinc-500 px-2 py-1.5 hover:text-zinc-300"
+              className="text-xs text-ink-muted hover:text-ink transition-colors"
             >
               Cancel
             </button>
@@ -1406,46 +1311,39 @@ function CustomToolsSection({ agent }: { agent: Doc<"agents"> }) {
       )}
 
       {tools === undefined ? (
-        <div className="space-y-2">
+        <div className="p-6 space-y-[1px]">
           {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-14 rounded-lg bg-zinc-800 animate-pulse"
-            />
+            <div key={i} className="h-14 bg-surface-sunken animate-pulse" />
           ))}
         </div>
       ) : tools.length === 0 ? (
-        <p className="text-xs text-zinc-500">
-          No custom tools. Add HTTP endpoints that your agent can call during
-          conversations.
+        <p className="px-6 py-8 text-sm text-ink-faint">
+          No custom tools. Add HTTP endpoints for your agent to call during conversations.
         </p>
       ) : (
-        <div className="space-y-2">
+        <ol className="divide-y divide-rule">
           {tools.map((tool) => (
-            <div
-              key={tool._id}
-              className="group flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-800/50 px-4 py-3"
-            >
+            <li key={tool._id} className="group flex items-center justify-between px-6 py-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-[10px] uppercase bg-surface-sunken border border-rule px-1.5 py-0.5 text-ink-muted">
                     {tool.method}
                   </span>
-                  <span className="text-sm font-medium">{tool.name}</span>
+                  <span className="text-sm text-ink">{tool.name}</span>
                 </div>
-                <p className="text-xs text-zinc-500 mt-0.5 font-mono truncate max-w-md">
+                <p className="font-mono text-xs text-ink-faint mt-0.5 truncate max-w-md">
                   {tool.endpoint}
                 </p>
               </div>
               <button
                 onClick={() => removeTool({ toolId: tool._id })}
-                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-all"
+                className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-faint hover:text-danger focus:opacity-100 transition-all"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
     </section>
   );
@@ -1467,7 +1365,7 @@ const FILE_TYPES: Record<string, string> = {
 };
 
 const ACCEPT = ".pdf,.txt,.md,.docx,.csv,.png,.jpg,.jpeg,.webp,.gif";
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
   const documents = useQuery(api.documents.list, { agentId: agent._id });
@@ -1499,7 +1397,6 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
 
     setUploading(true);
     try {
-      // Upload to Convex storage
       const uploadUrl = await generateUploadUrl();
       const result = await fetch(uploadUrl, {
         method: "POST",
@@ -1508,7 +1405,6 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
       });
       const { storageId } = await result.json();
 
-      // Create document record
       const documentId = await uploadDoc({
         agentId: agent._id,
         fileName: file.name,
@@ -1517,12 +1413,8 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
         fileSize: file.size,
       });
 
-      // Get the actual storage URL
-      const storageUrl = await getStorageUrl.query(api.storage.getUrl, {
-        storageId,
-      });
+      const storageUrl = await getStorageUrl.query(api.storage.getUrl, { storageId });
 
-      // Trigger processing
       await fetch(`${AGENT_SERVER_URL}/process-document`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1567,44 +1459,41 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
   }
 
   const statusColors: Record<string, string> = {
-    uploading: "text-yellow-400",
-    processing: "text-blue-400",
-    ready: "text-neon-400",
-    error: "text-red-400",
+    uploading: "text-warn",
+    processing: "text-accent",
+    ready: "text-accent",
+    error: "text-danger",
   };
 
   const statusLabels: Record<string, string> = {
-    uploading: "Uploading...",
-    processing: "Processing...",
+    uploading: "Uploading…",
+    processing: "Processing…",
     ready: "Ready",
     error: "Error",
   };
 
   return (
-    <section className="rounded-xl border border-zinc-800/60 glass-card p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-zinc-400" />
-          <h2 className="text-sm font-medium">Knowledge Base</h2>
+    <section className="border border-rule bg-surface">
+      <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
+        <p className="eyebrow">
+          Knowledge Base
           {documents && (
-            <span className="text-xs text-zinc-500">
-              ({documents.length} document{documents.length !== 1 ? "s" : ""})
+            <span className="ml-2 font-mono font-normal text-ink-faint">
+              {documents.length} document{documents.length !== 1 ? "s" : ""}
             </span>
           )}
-        </div>
+        </p>
         <label
-          className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md cursor-pointer transition-colors ${
-            uploading
-              ? "text-zinc-500"
-              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+          className={`inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold cursor-pointer transition-colors ${
+            uploading ? "text-ink-faint" : "text-ink-muted hover:text-ink"
           }`}
         >
           {uploading ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
           ) : (
-            <Upload className="h-3 w-3" />
+            <Upload className="h-3 w-3" strokeWidth={1.5} />
           )}
-          {uploading ? "Uploading..." : "Upload Document"}
+          {uploading ? "Uploading…" : "Upload Document"}
           <input
             ref={fileRef}
             type="file"
@@ -1617,50 +1506,40 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
       </div>
 
       {documents === undefined ? (
-        <div className="space-y-2">
+        <div className="p-6 space-y-[1px]">
           {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-14 rounded-lg bg-zinc-800 animate-pulse"
-            />
+            <div key={i} className="h-14 bg-surface-sunken animate-pulse" />
           ))}
         </div>
       ) : documents.length === 0 ? (
-        <p className="text-xs text-zinc-500">
+        <p className="px-6 py-8 text-sm text-ink-faint">
           No documents uploaded. Upload PDF, TXT, MD, DOCX, CSV, or image files for
           your agent to search during conversations.
         </p>
       ) : (
-        <div className="space-y-2">
+        <ol className="divide-y divide-rule">
           {documents.map((doc) => (
-            <div
-              key={doc._id}
-              className="group flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-800/50 px-4 py-3"
-            >
+            <li key={doc._id} className="group flex items-center justify-between px-6 py-4">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-[10px] font-mono uppercase bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded shrink-0">
+                <span className="font-mono text-[10px] uppercase bg-surface-sunken border border-rule px-1.5 py-0.5 text-ink-muted shrink-0">
                   {doc.fileType}
                 </span>
                 <div className="min-w-0">
-                  <span className="text-sm font-medium truncate block">
-                    {doc.fileName}
-                  </span>
+                  <span className="text-sm text-ink truncate block">{doc.fileName}</span>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className={`text-[10px] ${statusColors[doc.status] ?? "text-zinc-500"}`}
-                    >
+                    <span className={`text-[10px] ${statusColors[doc.status] ?? "text-ink-faint"}`}>
                       {doc.status === "processing" && (
-                        <Loader2 className="h-2.5 w-2.5 animate-spin inline mr-1" />
+                        <Loader2 className="h-2.5 w-2.5 animate-spin inline mr-1" strokeWidth={1.5} />
                       )}
                       {statusLabels[doc.status] ?? doc.status}
                     </span>
                     {doc.chunkCount && (
-                      <span className="text-[10px] text-zinc-600">
+                      <span className="font-mono text-[10px] text-ink-faint">
                         {doc.chunkCount} chunks
                       </span>
                     )}
                     {doc.error && (
-                      <span className="text-[10px] text-red-400 truncate max-w-48">
+                      <span className="text-[10px] text-danger truncate max-w-48">
                         {doc.error}
                       </span>
                     )}
@@ -1671,40 +1550,23 @@ function DocumentsSection({ agent }: { agent: Doc<"agents"> }) {
                 {doc.status === "error" && (
                   <button
                     onClick={() => handleRetry(doc)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-yellow-400 hover:bg-zinc-800 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-faint hover:text-warn focus:opacity-100 transition-all"
                     title="Retry processing"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.5} />
                   </button>
                 )}
                 <button
                   onClick={() => removeDoc({ documentId: doc._id })}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-faint hover:text-danger focus:opacity-100 transition-all"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </button>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
     </section>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-zinc-400 mb-1">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }

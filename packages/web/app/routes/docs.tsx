@@ -229,14 +229,14 @@ export default function DocsPage() {
           <div className="sticky top-20 space-y-6 overflow-y-auto max-h-[calc(100vh-6rem)]">
             <Link
               to="/docs"
-              className="flex items-center gap-2 text-sm font-semibold text-zinc-100 mb-4"
+              className="flex items-center gap-2 text-sm font-semibold text-ink mb-4"
             >
               <BookOpen className="h-4 w-4" />
               Documentation
             </Link>
             {SECTIONS.map((section) => (
               <div key={section.id}>
-                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+                <div className="flex items-center gap-2 eyebrow mb-2">
                   {section.icon}
                   {section.title}
                 </div>
@@ -247,10 +247,10 @@ export default function DocsPage() {
                       <li key={page.id}>
                         <Link
                           to={`/docs/${section.id}/${page.id}`}
-                          className={`block px-3 py-1.5 rounded-md text-sm transition-colors ${
+                          className={`block px-2 py-1.5 text-sm transition-colors ${
                             isActive
-                              ? "bg-zinc-800 text-zinc-100"
-                              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                              ? "bg-surface-sunken text-ink font-medium"
+                              : "text-ink-faint hover:text-ink-muted hover:bg-surface-sunken/60"
                           }`}
                         >
                           {page.title}
@@ -268,16 +268,16 @@ export default function DocsPage() {
         <div className="flex-1 min-w-0">
           {currentPage ? (
             <div>
-              <div className="flex items-center gap-2 text-sm text-zinc-500 mb-6">
-                <Link to="/docs" className="hover:text-zinc-300">
+              <div className="flex items-center gap-2 text-sm text-ink-faint mb-6">
+                <Link to="/docs" className="hover:text-ink-muted">
                   Docs
                 </Link>
                 <ChevronRight className="h-3 w-3" />
-                <span className="text-zinc-400">
+                <span className="text-ink-faint">
                   {currentSection?.title}
                 </span>
                 <ChevronRight className="h-3 w-3" />
-                <span className="text-zinc-200">{currentPage.title}</span>
+                <span className="text-ink-muted">{currentPage.title}</span>
               </div>
               <div className="docs-content">{currentPage.content}</div>
             </div>
@@ -296,10 +296,10 @@ function DocsIndex() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-zinc-100 mb-2">
+        <h1 className="text-3xl font-display font-bold text-ink mb-2">
           Documentation
         </h1>
-        <p className="text-zinc-400 text-lg">
+        <p className="text-ink-muted text-lg">
           Everything you need to build powerful AI agents.
         </p>
       </div>
@@ -332,14 +332,14 @@ function DocsIndex() {
           icon={<Zap className="h-5 w-5" />}
           title="Event Bus"
           description="Chain actions: when X happens, do Y"
-          color="from-neon-500/20 to-neon-600/10"
+          color="from-accent/10 to-accent-soft/10"
         />
       </div>
 
       {/* All sections */}
       {SECTIONS.map((section) => (
         <div key={section.id}>
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-200 mb-3">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-ink mb-3">
             {section.icon}
             {section.title}
           </h2>
@@ -348,12 +348,12 @@ function DocsIndex() {
               <Link
                 key={page.id}
                 to={`/docs/${section.id}/${page.id}`}
-                className="flex items-center gap-2 px-4 py-3 rounded-lg border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 transition-colors group"
+                className="flex items-center gap-2 px-4 py-3 border border-rule hover:border-rule-strong hover:bg-surface-sunken/60 transition-colors group"
               >
-                <span className="text-sm text-zinc-300 group-hover:text-zinc-100">
+                <span className="text-sm text-ink-muted group-hover:text-ink">
                   {page.title}
                 </span>
-                <ChevronRight className="h-3 w-3 text-zinc-600 group-hover:text-zinc-400 ml-auto" />
+                <ChevronRight className="h-3 w-3 text-ink-faint group-hover:text-ink-muted ml-auto" />
               </Link>
             ))}
           </div>
@@ -379,15 +379,15 @@ function DocCard({
   return (
     <Link
       to={to}
-      className={`relative overflow-hidden rounded-xl border border-zinc-800 hover:border-zinc-700 p-5 transition-all hover:shadow-lg group`}
+      className={`relative overflow-hidden border border-rule hover:border-rule-strong p-5 transition-all group`}
     >
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${color} opacity-50 group-hover:opacity-70 transition-opacity`}
+        className={`absolute inset-0 bg-gradient-to-br ${color} opacity-30 group-hover:opacity-50 transition-opacity`}
       />
       <div className="relative">
-        <div className="text-zinc-300 mb-2">{icon}</div>
-        <h3 className="font-semibold text-zinc-100 mb-1">{title}</h3>
-        <p className="text-sm text-zinc-400">{description}</p>
+        <div className="text-ink-muted mb-2">{icon}</div>
+        <h3 className="font-semibold text-ink mb-1">{title}</h3>
+        <p className="text-sm text-ink-faint">{description}</p>
       </div>
     </Link>
   );
@@ -397,29 +397,29 @@ function DocCard({
 
 function DocH1({ children }: { children: React.ReactNode }) {
   return (
-    <h1 className="text-2xl font-bold text-zinc-100 mb-4">{children}</h1>
+    <h1 className="text-2xl font-display font-bold text-ink mb-4">{children}</h1>
   );
 }
 function DocH2({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xl font-semibold text-zinc-200 mt-8 mb-3">
+    <h2 className="text-xl font-semibold text-ink mt-8 mb-3 border-b border-rule pb-2">
       {children}
     </h2>
   );
 }
 function DocH3({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-lg font-medium text-zinc-300 mt-6 mb-2">
+    <h3 className="text-base font-semibold text-ink mt-6 mb-2">
       {children}
     </h3>
   );
 }
 function DocP({ children }: { children: React.ReactNode }) {
-  return <p className="text-zinc-400 leading-relaxed mb-4">{children}</p>;
+  return <p className="text-ink-muted leading-relaxed mb-4">{children}</p>;
 }
 function DocCode({ children }: { children: React.ReactNode }) {
   return (
-    <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-sm text-zinc-300 overflow-x-auto mb-4 font-mono">
+    <pre className="bg-surface-sunken border border-rule p-4 text-sm text-ink-muted overflow-x-auto mb-4 font-mono">
       {children}
     </pre>
   );
@@ -432,7 +432,7 @@ function DocBadge({
   color?: string;
 }) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-800 text-zinc-300 mr-2">
+    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-surface-sunken border border-rule text-ink-muted mr-2">
       {children}
     </span>
   );
@@ -441,7 +441,7 @@ function AppLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-1 text-neon-400 hover:text-neon-300 underline underline-offset-2 decoration-neon-400/40 hover:decoration-neon-300/60 transition-colors"
+      className="inline-flex items-center gap-1 text-accent hover:opacity-80 underline underline-offset-2 decoration-accent/40 transition-colors"
     >
       {children}
     </Link>
@@ -459,11 +459,11 @@ function DocTable({
     <div className="overflow-x-auto mb-6">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-zinc-800">
+          <tr className="border-b border-rule">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="text-left py-2 px-3 text-zinc-400 font-medium"
+                className="text-left py-2 px-3 text-ink-faint font-medium"
               >
                 {h}
               </th>
@@ -472,9 +472,9 @@ function DocTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-zinc-800/50">
+            <tr key={i} className="border-b border-rule/50">
               {row.map((cell, j) => (
-                <td key={j} className="py-2 px-3 text-zinc-300">
+                <td key={j} className="py-2 px-3 text-ink-muted">
                   {cell}
                 </td>
               ))}
@@ -501,7 +501,7 @@ function QuickStartContent() {
 
       <DocH2>2. Enable Tool Sets</DocH2>
       <DocP>
-        In your agent's <strong className="text-zinc-200">Settings</strong> page, toggle the capabilities you need.
+        In your agent's <strong className="text-ink">Settings</strong> page, toggle the capabilities you need.
       </DocP>
       <DocTable
         headers={["Tool", "What It Does"]}
@@ -546,7 +546,7 @@ function QuickStartContent() {
       <DocH2>4. Set Up Integrations</DocH2>
       <DocH3>Email</DocH3>
       <DocP>
-        Add your Resend API key and from address in your agent's <strong className="text-zinc-200">Settings</strong>. Your agent can now send emails.
+        Add your Resend API key and from address in your agent's <strong className="text-ink">Settings</strong>. Your agent can now send emails.
       </DocP>
       <DocH3>Webhooks</DocH3>
       <DocP>
@@ -562,19 +562,19 @@ function QuickStartContent() {
       </DocP>
       <DocH3>Notion</DocH3>
       <DocP>
-        Enable "Notion", then add your Notion integration token in <strong className="text-zinc-200">Settings</strong>. Share the pages and databases you want accessed with the integration in Notion. Your agent can then search, read, create, and update Notion content.
+        Enable "Notion", then add your Notion integration token in <strong className="text-ink">Settings</strong>. Share the pages and databases you want accessed with the integration in Notion. Your agent can then search, read, create, and update Notion content.
       </DocP>
       <DocH3>Slack</DocH3>
       <DocP>
-        Enable "Slack", then add your Slack Bot token in <strong className="text-zinc-200">Settings</strong>. Create a Slack app, add the required bot scopes, install to your workspace, and paste the Bot User OAuth Token.
+        Enable "Slack", then add your Slack Bot token in <strong className="text-ink">Settings</strong>. Create a Slack app, add the required bot scopes, install to your workspace, and paste the Bot User OAuth Token.
       </DocP>
       <DocH3>Discord</DocH3>
       <DocP>
-        Enable "Discord", then add your Discord Bot token in <strong className="text-zinc-200">Settings</strong>. Go to <strong className="text-zinc-200">discord.com/developers/applications</strong>, create an app, go to the Bot page, reset the token, and invite the bot to your server via OAuth2 → URL Generator.
+        Enable "Discord", then add your Discord Bot token in <strong className="text-ink">Settings</strong>. Go to <strong className="text-ink">discord.com/developers/applications</strong>, create an app, go to the Bot page, reset the token, and invite the bot to your server via OAuth2 → URL Generator.
       </DocP>
       <DocH3>Google Calendar</DocH3>
       <DocP>
-        Enable "Google Calendar", then add your OAuth Client ID, Client Secret, and Refresh Token in <strong className="text-zinc-200">Settings</strong>. Your agent can then list events, schedule meetings, check availability, and manage your calendar.
+        Enable "Google Calendar", then add your OAuth Client ID, Client Secret, and Refresh Token in <strong className="text-ink">Settings</strong>. Your agent can then list events, schedule meetings, check availability, and manage your calendar.
       </DocP>
       <DocH3>Google Drive & Sheets</DocH3>
       <DocP>
@@ -608,15 +608,15 @@ function MemoryContent() {
 
       <DocH2>Categories</DocH2>
       <DocP>
-        Memories can be tagged with categories: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">preference</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">work</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">project</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">contact</code>, or custom categories.
+        Memories can be tagged with categories: <code className="text-ink bg-surface-sunken px-1">preference</code>, <code className="text-ink bg-surface-sunken px-1">work</code>, <code className="text-ink bg-surface-sunken px-1">project</code>, <code className="text-ink bg-surface-sunken px-1">contact</code>, or custom categories.
       </DocP>
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Remember that I prefer TypeScript and always use Tailwind"
+        <strong className="text-ink">User:</strong> "Remember that I prefer TypeScript and always use Tailwind"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent stores:</strong> Content with category "preference". In future conversations, the agent reads this memory and applies the preferences.
+        <strong className="text-ink">Agent stores:</strong> Content with category "preference". In future conversations, the agent reads this memory and applies the preferences.
       </DocP>
     </div>
   );
@@ -703,7 +703,7 @@ function EmailContent() {
       <DocP>Send emails directly from your agent using the Resend API.</DocP>
 
       <DocH2>Setup</DocH2>
-      <DocP>In your agent's <strong className="text-zinc-200">Settings</strong>, enable Email and configure your Resend API key, from email, and from name.</DocP>
+      <DocP>In your agent's <strong className="text-ink">Settings</strong>, enable Email and configure your Resend API key, from email, and from name.</DocP>
 
       <DocH2>Tools</DocH2>
       <DocTable headers={["Tool", "Description"]} rows={[
@@ -767,7 +767,7 @@ function CustomHttpContent() {
       </DocP>
 
       <DocH2>Setup</DocH2>
-      <DocP>In your agent's <strong className="text-zinc-200">Settings</strong> under <strong className="text-zinc-200">Custom HTTP Tools</strong>, click Add Tool. Configure name, method, endpoint URL, headers, and input schema.</DocP>
+      <DocP>In your agent's <strong className="text-ink">Settings</strong> under <strong className="text-ink">Custom HTTP Tools</strong>, click Add Tool. Configure name, method, endpoint URL, headers, and input schema.</DocP>
 
       <DocH2>Example: Slack</DocH2>
       <DocCode>{`Name: send_slack_message
@@ -816,10 +816,10 @@ function SchedulesContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Send me a daily summary of open tasks every morning at 9am"
+        <strong className="text-ink">User:</strong> "Send me a daily summary of open tasks every morning at 9am"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent creates:</strong> A cron schedule "0 9 * * *" with send_email action.
+        <strong className="text-ink">Agent creates:</strong> A cron schedule "0 9 * * *" with send_email action.
       </DocP>
 
       <DocH2>Limits</DocH2>
@@ -885,15 +885,15 @@ function AutomationsContent() {
 
       <DocH2>Template Variables</DocH2>
       <DocP>
-        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.title}}"}</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.status}}"}</code>, etc. in action configs to reference the triggering event's data.
+        Use <code className="text-ink bg-surface-sunken px-1">{"{{event.title}}"}</code>, <code className="text-ink bg-surface-sunken px-1">{"{{event.status}}"}</code>, etc. in action configs to reference the triggering event's data.
       </DocP>
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "When a task is marked done, email the team and post to Slack"
+        <strong className="text-ink">User:</strong> "When a task is marked done, email the team and post to Slack"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent creates:</strong> Automation with trigger <code className="text-zinc-200 bg-zinc-800 px-1 rounded">task.updated</code> (filter: status=done) → send_email + fire_webhook.
+        <strong className="text-ink">Agent creates:</strong> Automation with trigger <code className="text-ink bg-surface-sunken px-1">task.updated</code> (filter: status=done) → send_email + fire_webhook.
       </DocP>
 
       <DocH2>Limits</DocH2>
@@ -934,10 +934,10 @@ function TimersContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Remind me to check the deployment in 30 minutes"
+        <strong className="text-ink">User:</strong> "Remind me to check the deployment in 30 minutes"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Sets a 30-minute timer with send_message action.
+        <strong className="text-ink">Agent:</strong> Sets a 30-minute timer with send_message action.
       </DocP>
 
       <DocH2>Limits</DocH2>
@@ -970,7 +970,7 @@ function WebhooksContent() {
 
       <DocH2>Incoming Webhooks</DocH2>
       <DocP>
-        External services POST to <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/webhook/:secret</code> to create tasks or trigger automations. Configure in the Tasks page webhook settings.
+        External services POST to <code className="text-ink bg-surface-sunken px-1">/webhook/:secret</code> to create tasks or trigger automations. Configure in the Tasks page webhook settings.
       </DocP>
 
       <DocH2>Outgoing Webhooks</DocH2>
@@ -1009,13 +1009,13 @@ function AgentMessagesContent() {
 
       <DocH2>Use Cases</DocH2>
       <DocP>
-        <strong className="text-zinc-200">Router Agent:</strong> Routes work to specialized agents based on the request type.
+        <strong className="text-ink">Router Agent:</strong> Routes work to specialized agents based on the request type.
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Delegation:</strong> PM agent asks research agent for competitive analysis.
+        <strong className="text-ink">Delegation:</strong> PM agent asks research agent for competitive analysis.
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Pipeline:</strong> Data agent → Analysis agent → Report agent.
+        <strong className="text-ink">Pipeline:</strong> Data agent → Analysis agent → Report agent.
       </DocP>
 
       <DocH2>Limits</DocH2>
@@ -1042,10 +1042,10 @@ function NotionContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        1. Create an internal integration at <strong className="text-zinc-200">notion.so/my-integrations</strong>. Copy the integration token.
+        1. Create an internal integration at <strong className="text-ink">notion.so/my-integrations</strong>. Copy the integration token.
       </DocP>
       <DocP>
-        2. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Notion and paste the token.
+        2. In your agent's <strong className="text-ink">Settings</strong>, enable Notion and paste the token.
       </DocP>
       <DocP>
         3. In Notion, share the pages and databases you want the agent to access with your integration (click "..." on a page → "Add connections" → select your integration).
@@ -1066,7 +1066,7 @@ function NotionContent() {
 
       <DocH2>Querying Databases</DocH2>
       <DocP>
-        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">notion_query_database</code> with Notion filter objects to retrieve specific entries. The agent understands natural language — ask "show me all tasks marked Done" and it builds the right filter.
+        Use <code className="text-ink bg-surface-sunken px-1">notion_query_database</code> with Notion filter objects to retrieve specific entries. The agent understands natural language — ask "show me all tasks marked Done" and it builds the right filter.
       </DocP>
       <DocCode>{`// Example filter: Status equals "Done"
 { "property": "Status", "status": { "equals": "Done" } }
@@ -1081,7 +1081,7 @@ function NotionContent() {
 
       <DocH2>Appending Content</DocH2>
       <DocP>
-        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">notion_append_blocks</code> to add content to existing pages. Supports paragraphs, headings (H1-H3), bulleted/numbered lists, to-do items, quotes, callouts, and dividers.
+        Use <code className="text-ink bg-surface-sunken px-1">notion_append_blocks</code> to add content to existing pages. Supports paragraphs, headings (H1-H3), bulleted/numbered lists, to-do items, quotes, callouts, and dividers.
       </DocP>
 
       <DocH2>Events</DocH2>
@@ -1101,10 +1101,10 @@ function NotionContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Add a new task to my Projects database: 'Launch landing page' with status In Progress and due date March 25"
+        <strong className="text-ink">User:</strong> "Add a new task to my Projects database: 'Launch landing page' with status In Progress and due date March 25"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Searches for the Projects database, then creates a new entry with the specified properties.
+        <strong className="text-ink">Agent:</strong> Searches for the Projects database, then creates a new entry with the specified properties.
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1130,54 +1130,54 @@ function SlackContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        1. Create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">api.slack.com/apps</a> — click <strong className="text-zinc-200">Create an App</strong> → <strong className="text-zinc-200">From scratch</strong>.
+        1. Create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-accent hover:opacity-80 underline">api.slack.com/apps</a> — click <strong className="text-ink">Create an App</strong> → <strong className="text-ink">From scratch</strong>.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-create-app.png"
           alt="Slack Your Apps page with the Create an App button"
           className="w-full"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          The "Your Apps" page on api.slack.com — click <strong className="text-zinc-300">Create an App</strong> to begin.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          The "Your Apps" page on api.slack.com — click <strong className="text-ink-muted">Create an App</strong> to begin.
         </figcaption>
       </figure>
       <DocP>
-        2. In the dialog that appears, choose <strong className="text-zinc-200">From scratch</strong>, then enter an app name (e.g. "Agent Maker") and pick the workspace where the bot will live. Click <strong className="text-zinc-200">Create App</strong>.
+        2. In the dialog that appears, choose <strong className="text-ink">From scratch</strong>, then enter an app name (e.g. "Agent Maker") and pick the workspace where the bot will live. Click <strong className="text-ink">Create App</strong>.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-from-scratch.png"
           alt="Slack Create an app dialog with From manifest and From scratch options"
           className="w-full"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          Pick <strong className="text-zinc-300">From scratch</strong> — manifests are optional and not needed here.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          Pick <strong className="text-ink-muted">From scratch</strong> — manifests are optional and not needed here.
         </figcaption>
       </figure>
       <DocP>
-        3. In the left sidebar, click <strong className="text-zinc-200">OAuth & Permissions</strong>.
+        3. In the left sidebar, click <strong className="text-ink">OAuth & Permissions</strong>.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-sidebar-oauth.png"
           alt="Slack app left sidebar with OAuth & Permissions highlighted"
           className="w-full max-w-xs mx-auto"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          The <strong className="text-zinc-300">OAuth & Permissions</strong> link in the sidebar.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          The <strong className="text-ink-muted">OAuth & Permissions</strong> link in the sidebar.
         </figcaption>
       </figure>
       <DocP>
-        4. Scroll to <strong className="text-zinc-200">Scopes → Bot Token Scopes</strong> and click <strong className="text-zinc-200">Add an OAuth Scope</strong> for each scope below. Ignore <strong className="text-zinc-200">User Token Scopes</strong> unless you need <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack_search_messages</code>.
+        4. Scroll to <strong className="text-ink">Scopes → Bot Token Scopes</strong> and click <strong className="text-ink">Add an OAuth Scope</strong> for each scope below. Ignore <strong className="text-ink">User Token Scopes</strong> unless you need <code className="text-ink bg-surface-sunken px-1">slack_search_messages</code>.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-scopes.png"
           alt="Slack OAuth Scopes page showing Bot Token Scopes and User Token Scopes sections"
           className="w-full"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
           Add bot scopes one by one — the list starts empty.
         </figcaption>
       </figure>
@@ -1202,16 +1202,16 @@ channels:manage   — Create channels, invite users (public)
 groups:write      — Create / invite for private channels
 channels:join     — slack_join_channel`}</DocCode>
       <DocP>
-        <strong className="text-zinc-200">Note:</strong> Slack split the legacy <code className="text-zinc-200 bg-zinc-800 px-1 rounded">search:read</code> into granular scopes. Pick the ones matching the surfaces you want searchable (public/private channels, DMs, files). If your workspace only exposes search scopes under <strong className="text-zinc-200">User Token Scopes</strong>, you'll need to install with a user token (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">xoxp-</code>) for the search tools to work.
+        <strong className="text-ink">Note:</strong> Slack split the legacy <code className="text-ink bg-surface-sunken px-1">search:read</code> into granular scopes. Pick the ones matching the surfaces you want searchable (public/private channels, DMs, files). If your workspace only exposes search scopes under <strong className="text-ink">User Token Scopes</strong>, you'll need to install with a user token (<code className="text-ink bg-surface-sunken px-1">xoxp-</code>) for the search tools to work.
       </DocP>
       <DocP>
-        5. Scroll up to the <strong className="text-zinc-200">OAuth Tokens</strong> section and click the green <strong className="text-zinc-200">Install to [YourWorkspace]</strong> button (Slack labels it with your workspace name, e.g. "Install to Aneaire"). Approve the prompt. After install, the page will show a <strong className="text-zinc-200">Bot User OAuth Token</strong> starting with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xoxb-</code> — copy it.
+        5. Scroll up to the <strong className="text-ink">OAuth Tokens</strong> section and click the green <strong className="text-ink">Install to [YourWorkspace]</strong> button (Slack labels it with your workspace name, e.g. "Install to Aneaire"). Approve the prompt. After install, the page will show a <strong className="text-ink">Bot User OAuth Token</strong> starting with <code className="text-ink bg-surface-sunken px-1">xoxb-</code> — copy it.
       </DocP>
       <DocP>
-        6. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Slack and paste the token.
+        6. In your agent's <strong className="text-ink">Settings</strong>, enable Slack and paste the token.
       </DocP>
       <DocP>
-        7. Invite the bot to channels it should access: type <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/invite @YourBotName</code> in each channel.
+        7. Invite the bot to channels it should access: type <code className="text-ink bg-surface-sunken px-1">/invite @YourBotName</code> in each channel.
       </DocP>
 
       <DocH2>Tools</DocH2>
@@ -1252,7 +1252,7 @@ channels:join     — slack_join_channel`}</DocCode>
 <https://example.com|Link Text>
 :emoji_name:`}</DocCode>
       <DocP>
-        To reply in a thread, pass the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">thread_ts</code> parameter (the timestamp of the parent message).
+        To reply in a thread, pass the <code className="text-ink bg-surface-sunken px-1">thread_ts</code> parameter (the timestamp of the parent message).
       </DocP>
 
       <DocH2>Events</DocH2>
@@ -1281,29 +1281,29 @@ channels:join     — slack_join_channel`}</DocCode>
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Post a summary of today's completed tasks to #team-updates"
+        <strong className="text-ink">User:</strong> "Post a summary of today's completed tasks to #team-updates"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Lists channels to find #team-updates, reads the task board, composes a summary, and posts it.
+        <strong className="text-ink">Agent:</strong> Lists channels to find #team-updates, reads the task board, composes a summary, and posts it.
       </DocP>
 
       <DocH2>Conversational Bot (Socket Mode)</DocH2>
       <DocP>
-        In addition to the outbound tools above, you can run the agent as a <strong className="text-zinc-200">two-way conversational bot</strong> that replies when @mentioned in a channel or sent a DM. This uses Slack <strong className="text-zinc-200">Socket Mode</strong> — a persistent WebSocket, no public URL required.
+        In addition to the outbound tools above, you can run the agent as a <strong className="text-ink">two-way conversational bot</strong> that replies when @mentioned in a channel or sent a DM. This uses Slack <strong className="text-ink">Socket Mode</strong> — a persistent WebSocket, no public URL required.
       </DocP>
 
       <DocH3>One-time Slack app setup</DocH3>
       <DocP>
-        1. In <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">api.slack.com/apps</a> → your app → <strong className="text-zinc-200">Socket Mode</strong> → toggle <strong className="text-zinc-200">Enable Socket Mode</strong> on. Generate a token (e.g. "agent-maker") with the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">connections:write</code> scope. Copy the <strong className="text-zinc-200">App-Level Token</strong> (starts with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-</code>).
+        1. In <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-accent hover:opacity-80 underline">api.slack.com/apps</a> → your app → <strong className="text-ink">Socket Mode</strong> → toggle <strong className="text-ink">Enable Socket Mode</strong> on. Generate a token (e.g. "agent-maker") with the <code className="text-ink bg-surface-sunken px-1">connections:write</code> scope. Copy the <strong className="text-ink">App-Level Token</strong> (starts with <code className="text-ink bg-surface-sunken px-1">xapp-</code>).
       </DocP>
       <DocP>
-        2. <strong className="text-zinc-200">Event Subscriptions</strong> → toggle on → under <strong className="text-zinc-200">Subscribe to bot events</strong> add <code className="text-zinc-200 bg-zinc-800 px-1 rounded">app_mention</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">message.im</code>.
+        2. <strong className="text-ink">Event Subscriptions</strong> → toggle on → under <strong className="text-ink">Subscribe to bot events</strong> add <code className="text-ink bg-surface-sunken px-1">app_mention</code> and <code className="text-ink bg-surface-sunken px-1">message.im</code>.
       </DocP>
       <DocP>
-        3. <strong className="text-zinc-200">App Home</strong> → Show Tabs → enable <strong className="text-zinc-200">Messages Tab</strong> and check "Allow users to send Slash commands and messages from the messages tab". Without this, DMs to the bot are blocked.
+        3. <strong className="text-ink">App Home</strong> → Show Tabs → enable <strong className="text-ink">Messages Tab</strong> and check "Allow users to send Slash commands and messages from the messages tab". Without this, DMs to the bot are blocked.
       </DocP>
       <DocP>
-        4. Add these additional bot scopes under <strong className="text-zinc-200">OAuth & Permissions</strong>:
+        4. Add these additional bot scopes under <strong className="text-ink">OAuth & Permissions</strong>:
       </DocP>
       <DocCode>{`app_mentions:read  — receive @mention events
 im:history         — read DMs the bot receives
@@ -1314,13 +1314,13 @@ im:read            — list DM channels`}</DocCode>
 
       <DocH3>Configure in Agent Maker</DocH3>
       <DocP>
-        1. Open the Slack credential and paste the new <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-…</code> token into the <strong className="text-zinc-200">App-Level Token (Socket Mode)</strong> field.
+        1. Open the Slack credential and paste the new <code className="text-ink bg-surface-sunken px-1">xapp-…</code> token into the <strong className="text-ink">App-Level Token (Socket Mode)</strong> field.
       </DocP>
       <DocP>
-        2. Open the agent's <strong className="text-zinc-200">Settings</strong> page → enable <strong className="text-zinc-200">Slack Bot (Two-Way Chat)</strong>.
+        2. Open the agent's <strong className="text-ink">Settings</strong> page → enable <strong className="text-ink">Slack Bot (Two-Way Chat)</strong>.
       </DocP>
       <DocP>
-        3. Optionally fill in <strong className="text-zinc-200">Bot Prompt</strong> (used for unauthorized users), <strong className="text-zinc-200">Bot Model</strong> (override), and <strong className="text-zinc-200">Authorized Slack User IDs</strong> (people who get full agent access — everyone else falls back to Bot mode).
+        3. Optionally fill in <strong className="text-ink">Bot Prompt</strong> (used for unauthorized users), <strong className="text-ink">Bot Model</strong> (override), and <strong className="text-ink">Authorized Slack User IDs</strong> (people who get full agent access — everyone else falls back to Bot mode).
       </DocP>
       <DocP>
         4. Save. The agent server picks up the change on its next sync (within 60s).
@@ -1328,7 +1328,7 @@ im:read            — list DM channels`}</DocCode>
 
       <DocH3>How it works</DocH3>
       <DocP>
-        Inbound messages arrive on the persistent Socket Mode WebSocket and are routed to a Convex conversation that's persistent per <code className="text-zinc-200 bg-zinc-800 px-1 rounded">(agent, channel)</code>. Threaded back-and-forth keeps context across mentions. Each inbound message emits <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.mention_received</code> or <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.dm_received</code> to the event bus so you can wire automations off them. Replies are posted via <code className="text-zinc-200 bg-zinc-800 px-1 rounded">chat.postMessage</code>; if the inbound was in a thread, the reply is posted in the same thread.
+        Inbound messages arrive on the persistent Socket Mode WebSocket and are routed to a Convex conversation that's persistent per <code className="text-ink bg-surface-sunken px-1">(agent, channel)</code>. Threaded back-and-forth keeps context across mentions. Each inbound message emits <code className="text-ink bg-surface-sunken px-1">slack.mention_received</code> or <code className="text-ink bg-surface-sunken px-1">slack.dm_received</code> to the event bus so you can wire automations off them. Replies are posted via <code className="text-ink bg-surface-sunken px-1">chat.postMessage</code>; if the inbound was in a thread, the reply is posted in the same thread.
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1354,16 +1354,16 @@ function DiscordContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        1. Go to <strong className="text-zinc-200">discord.com/developers/applications</strong> and click <strong className="text-zinc-200">New Application</strong>.
+        1. Go to <strong className="text-ink">discord.com/developers/applications</strong> and click <strong className="text-ink">New Application</strong>.
       </DocP>
       <DocP>
-        2. In your new app, go to <strong className="text-zinc-200">Bot</strong> in the left sidebar. Click <strong className="text-zinc-200">Reset Token</strong> and copy the token.
+        2. In your new app, go to <strong className="text-ink">Bot</strong> in the left sidebar. Click <strong className="text-ink">Reset Token</strong> and copy the token.
       </DocP>
       <DocP>
-        3. On the same Bot page, enable <strong className="text-zinc-200">Message Content Intent</strong> so the bot can read message content.
+        3. On the same Bot page, enable <strong className="text-ink">Message Content Intent</strong> so the bot can read message content.
       </DocP>
       <DocP>
-        4. Go to <strong className="text-zinc-200">OAuth2 → URL Generator</strong>. Check the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">bot</code> scope, then check these permissions:
+        4. Go to <strong className="text-ink">OAuth2 → URL Generator</strong>. Check the <code className="text-ink bg-surface-sunken px-1">bot</code> scope, then check these permissions:
       </DocP>
       <DocCode>{`Send Messages
 Read Message History
@@ -1375,7 +1375,7 @@ Send Messages in Threads`}</DocCode>
         5. Copy the generated URL, open it in your browser, and invite the bot to your server.
       </DocP>
       <DocP>
-        6. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Discord and paste the Bot Token.
+        6. In your agent's <strong className="text-ink">Settings</strong>, enable Discord and paste the Bot Token.
       </DocP>
 
       <DocH2>Tools</DocH2>
@@ -1401,7 +1401,7 @@ Send Messages in Threads`}</DocCode>
 \`\`\`code block\`\`\`
 - bullet list`}</DocCode>
       <DocP>
-        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord_list_guilds</code> first to find your server ID, then <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord_list_channels</code> to find a channel ID before sending.
+        Use <code className="text-ink bg-surface-sunken px-1">discord_list_guilds</code> first to find your server ID, then <code className="text-ink bg-surface-sunken px-1">discord_list_channels</code> to find a channel ID before sending.
       </DocP>
 
       <DocH2>Events</DocH2>
@@ -1418,10 +1418,10 @@ Send Messages in Threads`}</DocCode>
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Post the weekly summary to #general in my Discord server"
+        <strong className="text-ink">User:</strong> "Post the weekly summary to #general in my Discord server"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Lists guilds to find your server, lists channels to find #general's ID, then sends the message.
+        <strong className="text-ink">Agent:</strong> Lists guilds to find your server, lists channels to find #general's ID, then sends the message.
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1447,16 +1447,16 @@ function GCalContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        1. Go to the <strong className="text-zinc-200">Google Cloud Console</strong> → APIs & Services → Enable the <strong className="text-zinc-200">Google Calendar API</strong>.
+        1. Go to the <strong className="text-ink">Google Cloud Console</strong> → APIs & Services → Enable the <strong className="text-ink">Google Calendar API</strong>.
       </DocP>
       <DocP>
-        2. Create an <strong className="text-zinc-200">OAuth 2.0 Client ID</strong> (Web application type). Note the Client ID and Client Secret.
+        2. Create an <strong className="text-ink">OAuth 2.0 Client ID</strong> (Web application type). Note the Client ID and Client Secret.
       </DocP>
       <DocP>
-        3. Use the <strong className="text-zinc-200">Google OAuth Playground</strong> (developers.google.com/oauthplayground) to authorize the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">https://www.googleapis.com/auth/calendar</code> scope and obtain a Refresh Token.
+        3. Use the <strong className="text-ink">Google OAuth Playground</strong> (developers.google.com/oauthplayground) to authorize the <code className="text-ink bg-surface-sunken px-1">https://www.googleapis.com/auth/calendar</code> scope and obtain a Refresh Token.
       </DocP>
       <DocP>
-        4. In your agent's <strong className="text-zinc-200">Settings</strong>, enable Google Calendar and enter all three credentials.
+        4. In your agent's <strong className="text-ink">Settings</strong>, enable Google Calendar and enter all three credentials.
       </DocP>
 
       <DocH2>Tools</DocH2>
@@ -1474,12 +1474,12 @@ function GCalContent() {
 
       <DocH2>Creating Events</DocH2>
       <DocP>
-        Events support all-day dates (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">2025-03-20</code>) or specific times (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">2025-03-20T14:00:00-05:00</code>). Add attendees by email, set a location, and optionally attach a Google Meet link with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">add_meet: true</code>.
+        Events support all-day dates (<code className="text-ink bg-surface-sunken px-1">2025-03-20</code>) or specific times (<code className="text-ink bg-surface-sunken px-1">2025-03-20T14:00:00-05:00</code>). Add attendees by email, set a location, and optionally attach a Google Meet link with <code className="text-ink bg-surface-sunken px-1">add_meet: true</code>.
       </DocP>
 
       <DocH2>Checking Availability</DocH2>
       <DocP>
-        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">gcal_find_free_time</code> to check when calendars are free or busy in a given time range. This is useful for finding open slots before scheduling meetings.
+        Use <code className="text-ink bg-surface-sunken px-1">gcal_find_free_time</code> to check when calendars are free or busy in a given time range. This is useful for finding open slots before scheduling meetings.
       </DocP>
 
       <DocH2>Events</DocH2>
@@ -1497,10 +1497,10 @@ function GCalContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Schedule a team standup tomorrow at 10am for 30 minutes with alice@company.com and bob@company.com, add a Meet link"
+        <strong className="text-ink">User:</strong> "Schedule a team standup tomorrow at 10am for 30 minutes with alice@company.com and bob@company.com, add a Meet link"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Creates a calendar event with the specified time, attendees, and Google Meet conference link.
+        <strong className="text-ink">Agent:</strong> Creates a calendar event with the specified time, attendees, and Google Meet conference link.
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1526,7 +1526,7 @@ function GDriveContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        Use the same Google Cloud project as Calendar/Sheets. Enable the <strong className="text-zinc-200">Google Drive API</strong> and generate a refresh token with the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">https://www.googleapis.com/auth/drive</code> scope. You can reuse the same Client ID and Secret.
+        Use the same Google Cloud project as Calendar/Sheets. Enable the <strong className="text-ink">Google Drive API</strong> and generate a refresh token with the <code className="text-ink bg-surface-sunken px-1">https://www.googleapis.com/auth/drive</code> scope. You can reuse the same Client ID and Secret.
       </DocP>
 
       <DocH2>Tools</DocH2>
@@ -1558,10 +1558,10 @@ function GDriveContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Find the Q1 report in my Drive and summarize it"
+        <strong className="text-ink">User:</strong> "Find the Q1 report in my Drive and summarize it"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Searches Drive for "Q1 report", reads the document content, and provides a summary.
+        <strong className="text-ink">Agent:</strong> Searches Drive for "Q1 report", reads the document content, and provides a summary.
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1587,7 +1587,7 @@ function GSheetsContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        Use the same Google Cloud project. Enable the <strong className="text-zinc-200">Google Sheets API</strong> and generate a refresh token with the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">https://www.googleapis.com/auth/spreadsheets</code> scope.
+        Use the same Google Cloud project. Enable the <strong className="text-ink">Google Sheets API</strong> and generate a refresh token with the <code className="text-ink bg-surface-sunken px-1">https://www.googleapis.com/auth/spreadsheets</code> scope.
       </DocP>
 
       <DocH2>Tools</DocH2>
@@ -1614,12 +1614,12 @@ A1:B5           — First sheet, A1 to B5`}</DocCode>
 
       <DocH2>Reading Data</DocH2>
       <DocP>
-        The <code className="text-zinc-200 bg-zinc-800 px-1 rounded">gsheets_read</code> tool returns data as a structured object with headers (first row) and rows. The agent can interpret column structure and answer questions about the data.
+        The <code className="text-ink bg-surface-sunken px-1">gsheets_read</code> tool returns data as a structured object with headers (first row) and rows. The agent can interpret column structure and answer questions about the data.
       </DocP>
 
       <DocH2>Writing Data</DocH2>
       <DocP>
-        Use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">gsheets_write</code> to overwrite a specific range, or <code className="text-zinc-200 bg-zinc-800 px-1 rounded">gsheets_append</code> to add rows at the bottom. Values are interpreted automatically — numbers, dates, and formulas are parsed.
+        Use <code className="text-ink bg-surface-sunken px-1">gsheets_write</code> to overwrite a specific range, or <code className="text-ink bg-surface-sunken px-1">gsheets_append</code> to add rows at the bottom. Values are interpreted automatically — numbers, dates, and formulas are parsed.
       </DocP>
 
       <DocH2>Events</DocH2>
@@ -1634,10 +1634,10 @@ A1:B5           — First sheet, A1 to B5`}</DocCode>
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Create an expense tracker spreadsheet with columns Date, Description, Amount, Category, and add my lunch expense of $15 today"
+        <strong className="text-ink">User:</strong> "Create an expense tracker spreadsheet with columns Date, Description, Amount, Category, and add my lunch expense of $15 today"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Creates the spreadsheet with headers, then appends a row with today's date, "Lunch", 15, and "Food".
+        <strong className="text-ink">Agent:</strong> Creates the spreadsheet with headers, then appends a row with today's date, "Lunch", 15, and "Food".
       </DocP>
 
       <DocH2>Integration Ideas</DocH2>
@@ -1713,12 +1713,12 @@ function RestApiContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        Create an API page → Define endpoints → Generate API key → Call <code className="text-zinc-200 bg-zinc-800 px-1 rounded">POST /api/{"{agentId}"}/{"{endpointSlug}"}</code>.
+        Create an API page → Define endpoints → Generate API key → Call <code className="text-ink bg-surface-sunken px-1">POST /api/{"{agentId}"}/{"{endpointSlug}"}</code>.
       </DocP>
 
       <DocH2>Authentication</DocH2>
       <DocP>
-        Pass API key via <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Authorization: Bearer YOUR_KEY</code> header or <code className="text-zinc-200 bg-zinc-800 px-1 rounded">?api_key=YOUR_KEY</code> query parameter.
+        Pass API key via <code className="text-ink bg-surface-sunken px-1">Authorization: Bearer YOUR_KEY</code> header or <code className="text-ink bg-surface-sunken px-1">?api_key=YOUR_KEY</code> query parameter.
       </DocP>
     </div>
   );
@@ -1801,7 +1801,7 @@ function EventTypesContent() {
 
       <DocH2>Template Variables</DocH2>
       <DocP>
-        Access payload fields in automation configs: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.title}}"}</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.status}}"}</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">{"{{event.taskId}}"}</code>, etc.
+        Access payload fields in automation configs: <code className="text-ink bg-surface-sunken px-1">{"{{event.title}}"}</code>, <code className="text-ink bg-surface-sunken px-1">{"{{event.status}}"}</code>, <code className="text-ink bg-surface-sunken px-1">{"{{event.taskId}}"}</code>, etc.
       </DocP>
     </div>
   );
@@ -1822,7 +1822,7 @@ function ImageGenContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        Enable <strong className="text-zinc-200">Image Generation</strong> in your agent's Settings. Then add a provider credential:
+        Enable <strong className="text-ink">Image Generation</strong> in your agent's Settings. Then add a provider credential:
       </DocP>
       <DocTable
         headers={["Provider", "Credential", "Notes"]}
@@ -1873,10 +1873,10 @@ function ImageGenContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Generate a logo for my coffee shop called Bean There"
+        <strong className="text-ink">User:</strong> "Generate a logo for my coffee shop called Bean There"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Generates image → saves to assets → returns preview with download link
+        <strong className="text-ink">Agent:</strong> Generates image → saves to assets → returns preview with download link
       </DocP>
 
       <DocH2>Integration</DocH2>
@@ -1902,7 +1902,7 @@ function PostgresContent() {
 
       <DocH2>Setup</DocH2>
       <DocP>
-        1. Create a new page and select <strong className="text-zinc-200">PostgreSQL</strong> as the page type (requires Pro or Enterprise plan).
+        1. Create a new page and select <strong className="text-ink">PostgreSQL</strong> as the page type (requires Pro or Enterprise plan).
       </DocP>
       <DocP>
         2. Enter your connection string in the page settings. The connection is tested and stored securely (encrypted at rest).
@@ -1931,10 +1931,10 @@ function PostgresContent() {
 
       <DocH2>Example</DocH2>
       <DocP>
-        <strong className="text-zinc-200">User:</strong> "Show me all orders from the last 7 days"
+        <strong className="text-ink">User:</strong> "Show me all orders from the last 7 days"
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Agent:</strong> Queries the connected database and displays results in a formatted table.
+        <strong className="text-ink">Agent:</strong> Queries the connected database and displays results in a formatted table.
       </DocP>
     </div>
   );
@@ -1945,7 +1945,7 @@ function AssetsContent() {
     <div>
       <DocH1>Asset Management</DocH1>
       <DocP>
-        The Asset Library is where your agent stores generated images and files. Access it from the <strong className="text-zinc-200">Assets</strong> tab in any agent.
+        The Asset Library is where your agent stores generated images and files. Access it from the <strong className="text-ink">Assets</strong> tab in any agent.
       </DocP>
 
       <DocH2>Features</DocH2>
@@ -1972,7 +1972,7 @@ function AssetsContent() {
 
       <DocH2>How It Works</DocH2>
       <DocP>
-        When your agent uses the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">generate_image</code> tool, the resulting image is automatically saved to the Asset Library with full generation metadata. Use the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">list_assets</code> tool to let your agent reference previously generated content.
+        When your agent uses the <code className="text-ink bg-surface-sunken px-1">generate_image</code> tool, the resulting image is automatically saved to the Asset Library with full generation metadata. Use the <code className="text-ink bg-surface-sunken px-1">list_assets</code> tool to let your agent reference previously generated content.
       </DocP>
 
       <DocH2>Integration</DocH2>
@@ -2038,20 +2038,20 @@ function BotsOverviewContent() {
     <div>
       <DocH1>Bot Integrations</DocH1>
       <DocP>
-        Bot Integrations turn your agent into a <strong className="text-zinc-200">two-way conversational presence</strong> on chat platforms. Instead of only sending outbound messages via tools, the agent can <strong className="text-zinc-200">listen for mentions and DMs</strong>, hold a multi-turn conversation, and use any of its tools to respond — all from inside Discord or Slack.
+        Bot Integrations turn your agent into a <strong className="text-ink">two-way conversational presence</strong> on chat platforms. Instead of only sending outbound messages via tools, the agent can <strong className="text-ink">listen for mentions and DMs</strong>, hold a multi-turn conversation, and use any of its tools to respond — all from inside Discord or Slack.
       </DocP>
 
       <DocH2>What it gives you</DocH2>
       <DocP>
         A bot integration is the difference between an agent that <em>sends notifications</em> and an agent that your team can <em>actually talk to</em>. Once enabled, the bot:
       </DocP>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1.5 mb-4 ml-2">
         <li>Replies in real time when @mentioned in any channel it's in</li>
         <li>Holds private 1:1 DMs with team members</li>
         <li>Persists conversation history per channel — threaded back-and-forth keeps context</li>
         <li>Has access to <em>all</em> the agent's tools (memory, pages, search, integrations) when responding</li>
-        <li>Can be locked down to an <strong className="text-zinc-200">authorized user list</strong> — strangers get a different (limited) prompt instead of full agent access</li>
-        <li>Emits inbound events (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord.mention_received</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.mention_received</code>, etc.) so you can wire automations off them</li>
+        <li>Can be locked down to an <strong className="text-ink">authorized user list</strong> — strangers get a different (limited) prompt instead of full agent access</li>
+        <li>Emits inbound events (<code className="text-ink bg-surface-sunken px-1">discord.mention_received</code>, <code className="text-ink bg-surface-sunken px-1">slack.mention_received</code>, etc.) so you can wire automations off them</li>
       </ul>
 
       <DocH2>Common use cases</DocH2>
@@ -2069,7 +2069,7 @@ function BotsOverviewContent() {
 
       <DocH2>How this differs from the Integrations pages</DocH2>
       <DocP>
-        There are <strong className="text-zinc-200">two layers</strong> to chat platform support and they often confuse new users. They build on the same credential but do opposite things:
+        There are <strong className="text-ink">two layers</strong> to chat platform support and they often confuse new users. They build on the same credential but do opposite things:
       </DocP>
       <DocTable
         headers={["Layer", "Direction", "What it gives you"]}
@@ -2087,19 +2087,19 @@ function BotsOverviewContent() {
         ]}
       />
       <DocP>
-        <strong className="text-zinc-200">They build on each other.</strong> The Bot layer requires the Integration layer to be enabled too — replies are posted using the outbound tools (e.g. <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack_send_message</code>) and both layers share the same credential.
+        <strong className="text-ink">They build on each other.</strong> The Bot layer requires the Integration layer to be enabled too — replies are posted using the outbound tools (e.g. <code className="text-ink bg-surface-sunken px-1">slack_send_message</code>) and both layers share the same credential.
       </DocP>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
-        <li><strong className="text-zinc-200">Want notifications only?</strong> Enable just the Integration. The agent can post to channels from the web UI but no one can chat back.</li>
-        <li><strong className="text-zinc-200">Want a two-way bot?</strong> Enable the Integration <em>and</em> the Bot Integration. The Integration page is step 1 (get the workspace connection); the Bot page is step 2 (turn on the conversational layer on top).</li>
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1.5 mb-4 ml-2">
+        <li><strong className="text-ink">Want notifications only?</strong> Enable just the Integration. The agent can post to channels from the web UI but no one can chat back.</li>
+        <li><strong className="text-ink">Want a two-way bot?</strong> Enable the Integration <em>and</em> the Bot Integration. The Integration page is step 1 (get the workspace connection); the Bot page is step 2 (turn on the conversational layer on top).</li>
       </ul>
 
       <DocH2>How the gateway works</DocH2>
       <DocP>
-        Both Discord and Slack bots use a <strong className="text-zinc-200">persistent WebSocket gateway</strong> (no public webhook URL required, no ngrok). Inbound messages route through Convex into a per-channel conversation, the agent runs against the same pipeline as the chat UI, and replies are posted back to the original channel (or thread).
+        Both Discord and Slack bots use a <strong className="text-ink">persistent WebSocket gateway</strong> (no public webhook URL required, no ngrok). Inbound messages route through Convex into a per-channel conversation, the agent runs against the same pipeline as the chat UI, and replies are posted back to the original channel (or thread).
       </DocP>
       <DocP>
-        <strong className="text-zinc-200">Slack vs Discord — small but real differences:</strong>
+        <strong className="text-ink">Slack vs Discord — small but real differences:</strong>
       </DocP>
       <DocTable
         headers={["", "Discord", "Slack"]}
@@ -2112,30 +2112,30 @@ function BotsOverviewContent() {
         ]}
       />
       <DocP>
-        Authorization is per-agent: you maintain a list of user identifiers who get <strong className="text-zinc-200">"agent" mode</strong> (full system prompt + every enabled tool). Anyone else gets <strong className="text-zinc-200">"bot" mode</strong> — a separate, simpler prompt you define in agent settings, optionally with a different model. This lets you safely deploy a bot in a shared workspace without exposing tools or memory to people you don't trust.
+        Authorization is per-agent: you maintain a list of user identifiers who get <strong className="text-ink">"agent" mode</strong> (full system prompt + every enabled tool). Anyone else gets <strong className="text-ink">"bot" mode</strong> — a separate, simpler prompt you define in agent settings, optionally with a different model. This lets you safely deploy a bot in a shared workspace without exposing tools or memory to people you don't trust.
       </DocP>
 
       <DocH2>Pick a platform</DocH2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
         <Link
           to="/docs/bots/discord-bot"
-          className="block rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-4 hover:border-zinc-700/60 transition-colors"
+          className="block border border-rule bg-surface p-4 hover:bg-surface-sunken/60 transition-colors"
         >
           <div className="flex items-center gap-2 mb-1">
-            <Bot className="h-4 w-4 text-zinc-300" />
-            <strong className="text-zinc-200">Discord Bot</strong>
+            <Bot className="h-4 w-4 text-ink-muted" />
+            <strong className="text-ink">Discord Bot</strong>
           </div>
-          <p className="text-xs text-zinc-500">Setup, scopes, and authorized users for the Discord gateway bot.</p>
+          <p className="text-xs text-ink-faint">Setup, scopes, and authorized users for the Discord gateway bot.</p>
         </Link>
         <Link
           to="/docs/bots/slack-bot"
-          className="block rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-4 hover:border-zinc-700/60 transition-colors"
+          className="block border border-rule bg-surface p-4 hover:bg-surface-sunken/60 transition-colors"
         >
           <div className="flex items-center gap-2 mb-1">
-            <Bot className="h-4 w-4 text-zinc-300" />
-            <strong className="text-zinc-200">Slack Bot</strong>
+            <Bot className="h-4 w-4 text-ink-muted" />
+            <strong className="text-ink">Slack Bot</strong>
           </div>
-          <p className="text-xs text-zinc-500">Socket Mode setup, scopes, App Home, and DM enablement for Slack.</p>
+          <p className="text-xs text-ink-faint">Socket Mode setup, scopes, App Home, and DM enablement for Slack.</p>
         </Link>
       </div>
     </div>
@@ -2152,29 +2152,29 @@ function DiscordBotContent() {
         <DocBadge>Requires: Discord Bot Token</DocBadge>
       </div>
       <DocP>
-        The Discord bot opens a persistent <strong className="text-zinc-200">Gateway WebSocket</strong> connection (no public URL needed). When you @mention the bot in a channel, the message is routed to your agent and the reply is posted back. Conversations are persistent per-channel — threaded back-and-forth keeps full context.
+        The Discord bot opens a persistent <strong className="text-ink">Gateway WebSocket</strong> connection (no public URL needed). When you @mention the bot in a channel, the message is routed to your agent and the reply is posted back. Conversations are persistent per-channel — threaded back-and-forth keeps full context.
       </DocP>
 
       <DocH2>Use cases</DocH2>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1 mb-4 ml-2">
         <li>Community Q&A bot in a public Discord server</li>
         <li>Private "ops assistant" inside a team server — DMs only authorized members</li>
         <li>Game / project channel helper that summarizes activity, manages tasks, and pings tools</li>
-        <li>Automation entrypoint — use <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord.mention_received</code> as a trigger</li>
+        <li>Automation entrypoint — use <code className="text-ink bg-surface-sunken px-1">discord.mention_received</code> as a trigger</li>
       </ul>
 
       <DocH2>One-time Discord setup</DocH2>
       <DocP>
-        1. Go to <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">discord.com/developers/applications</a> → <strong className="text-zinc-200">New Application</strong> → name it.
+        1. Go to <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" className="text-accent hover:opacity-80 underline">discord.com/developers/applications</a> → <strong className="text-ink">New Application</strong> → name it.
       </DocP>
       <DocP>
-        2. In the left sidebar, click <strong className="text-zinc-200">Bot</strong> → <strong className="text-zinc-200">Reset Token</strong> and copy the token. Save it for step 6.
+        2. In the left sidebar, click <strong className="text-ink">Bot</strong> → <strong className="text-ink">Reset Token</strong> and copy the token. Save it for step 6.
       </DocP>
       <DocP>
-        3. On the same Bot page, scroll to <strong className="text-zinc-200">Privileged Gateway Intents</strong> and enable <strong className="text-zinc-200">MESSAGE CONTENT INTENT</strong>. Without this, the bot can't read messages it's mentioned in.
+        3. On the same Bot page, scroll to <strong className="text-ink">Privileged Gateway Intents</strong> and enable <strong className="text-ink">MESSAGE CONTENT INTENT</strong>. Without this, the bot can't read messages it's mentioned in.
       </DocP>
       <DocP>
-        4. Go to <strong className="text-zinc-200">OAuth2 → URL Generator</strong>. Under <strong className="text-zinc-200">Scopes</strong> check <code className="text-zinc-200 bg-zinc-800 px-1 rounded">bot</code>. Under <strong className="text-zinc-200">Bot Permissions</strong> check at minimum: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">View Channels</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Send Messages</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Read Message History</code>, and (for thread support) <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Send Messages in Threads</code> + <code className="text-zinc-200 bg-zinc-800 px-1 rounded">Create Public Threads</code>.
+        4. Go to <strong className="text-ink">OAuth2 → URL Generator</strong>. Under <strong className="text-ink">Scopes</strong> check <code className="text-ink bg-surface-sunken px-1">bot</code>. Under <strong className="text-ink">Bot Permissions</strong> check at minimum: <code className="text-ink bg-surface-sunken px-1">View Channels</code>, <code className="text-ink bg-surface-sunken px-1">Send Messages</code>, <code className="text-ink bg-surface-sunken px-1">Read Message History</code>, and (for thread support) <code className="text-ink bg-surface-sunken px-1">Send Messages in Threads</code> + <code className="text-ink bg-surface-sunken px-1">Create Public Threads</code>.
       </DocP>
       <DocP>
         5. Copy the generated URL at the bottom, open it in a new tab, and invite the bot to your server.
@@ -2182,21 +2182,21 @@ function DiscordBotContent() {
 
       <DocH2>Configure in Agent Maker</DocH2>
       <DocP>
-        6. In Agent Maker → <AppLink to="/credentials">Credentials</AppLink>, create a new <strong className="text-zinc-200">Discord Bot</strong> credential and paste the token from step 2.
+        6. In Agent Maker → <AppLink to="/credentials">Credentials</AppLink>, create a new <strong className="text-ink">Discord Bot</strong> credential and paste the token from step 2.
       </DocP>
       <DocP>
-        7. Open the agent's <strong className="text-zinc-200">Settings</strong> page → enable the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">discord</code> tool set → link the credential.
+        7. Open the agent's <strong className="text-ink">Settings</strong> page → enable the <code className="text-ink bg-surface-sunken px-1">discord</code> tool set → link the credential.
       </DocP>
       <DocP>
-        8. Scroll to <strong className="text-zinc-200">Discord Bot (Two-Way Chat)</strong> → toggle <strong className="text-zinc-200">Enable Discord Bot</strong>.
+        8. Scroll to <strong className="text-ink">Discord Bot (Two-Way Chat)</strong> → toggle <strong className="text-ink">Enable Discord Bot</strong>.
       </DocP>
       <DocP>
         9. (Optional) Fill in:
       </DocP>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
-        <li><strong className="text-zinc-200">Bot Prompt</strong> — the system prompt used when an unauthorized user @mentions the bot. Leave blank to use the agent's full prompt for everyone.</li>
-        <li><strong className="text-zinc-200">Bot Model</strong> — model override for unauthorized users (e.g. use a cheaper/faster model for the public).</li>
-        <li><strong className="text-zinc-200">Authorized Discord Usernames</strong> — usernames (case-insensitive) that get full agent access with every tool enabled.</li>
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1 mb-4 ml-2">
+        <li><strong className="text-ink">Bot Prompt</strong> — the system prompt used when an unauthorized user @mentions the bot. Leave blank to use the agent's full prompt for everyone.</li>
+        <li><strong className="text-ink">Bot Model</strong> — model override for unauthorized users (e.g. use a cheaper/faster model for the public).</li>
+        <li><strong className="text-ink">Authorized Discord Usernames</strong> — usernames (case-insensitive) that get full agent access with every tool enabled.</li>
       </ul>
       <DocP>
         10. Save. The agent server picks up the new bot on its next sync (within 60s) and opens the Gateway connection.
@@ -2204,7 +2204,7 @@ function DiscordBotContent() {
 
       <DocH2>How authorization works</DocH2>
       <DocP>
-        On every @mention, the gateway looks up the author's username and checks the <strong className="text-zinc-200">Authorized Discord Usernames</strong> list. Match → "agent" mode (full system prompt + all tools + memory). No match → "bot" mode (uses <strong className="text-zinc-200">Bot Prompt</strong> + optional <strong className="text-zinc-200">Bot Model</strong>, no tools beyond what the bot prompt allows).
+        On every @mention, the gateway looks up the author's username and checks the <strong className="text-ink">Authorized Discord Usernames</strong> list. Match → "agent" mode (full system prompt + all tools + memory). No match → "bot" mode (uses <strong className="text-ink">Bot Prompt</strong> + optional <strong className="text-ink">Bot Model</strong>, no tools beyond what the bot prompt allows).
       </DocP>
 
       <DocH2>Events emitted</DocH2>
@@ -2229,95 +2229,95 @@ function SlackBotContent() {
         <DocBadge>Requires: Bot Token + App Token</DocBadge>
       </div>
       <DocP>
-        The Slack bot uses <strong className="text-zinc-200">Socket Mode</strong> — a persistent WebSocket connection from the agent server to Slack. No public URL or ngrok required. The bot replies when @mentioned in any channel it's a member of, and to direct messages.
+        The Slack bot uses <strong className="text-ink">Socket Mode</strong> — a persistent WebSocket connection from the agent server to Slack. No public URL or ngrok required. The bot replies when @mentioned in any channel it's a member of, and to direct messages.
       </DocP>
 
       <DocH2>Use cases</DocH2>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1 mb-4 ml-2">
         <li>Workspace assistant — DM the bot to query data, run tasks, get summaries</li>
-        <li>Per-channel helper — invite the bot to <code className="text-zinc-200 bg-zinc-800 px-1 rounded">#design</code> and @mention it for design-doc questions</li>
-        <li>Automation entrypoint — wire <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.mention_received</code> / <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack.dm_received</code> as triggers</li>
+        <li>Per-channel helper — invite the bot to <code className="text-ink bg-surface-sunken px-1">#design</code> and @mention it for design-doc questions</li>
+        <li>Automation entrypoint — wire <code className="text-ink bg-surface-sunken px-1">slack.mention_received</code> / <code className="text-ink bg-surface-sunken px-1">slack.dm_received</code> as triggers</li>
         <li>Public-facing FAQ bot — use the unauthorized "Bot Prompt" to answer common questions while reserving full agent power for the team</li>
       </ul>
 
       <DocH2>One-time Slack app setup</DocH2>
       <DocP>
-        Follow the full app creation flow at <AppLink to="/docs/integrations/slack">Slack integration setup</AppLink> first (create the app, add bot scopes, install to workspace, copy the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xoxb-</code> bot token). Then add the conversational-bot pieces below.
+        Follow the full app creation flow at <AppLink to="/docs/integrations/slack">Slack integration setup</AppLink> first (create the app, add bot scopes, install to workspace, copy the <code className="text-ink bg-surface-sunken px-1">xoxb-</code> bot token). Then add the conversational-bot pieces below.
       </DocP>
 
       <DocP>
-        1. In <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-neon-400 hover:text-neon-300 underline">api.slack.com/apps</a> → your app → <strong className="text-zinc-200">Socket Mode</strong> in the left sidebar.
+        1. In <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-accent hover:opacity-80 underline">api.slack.com/apps</a> → your app → <strong className="text-ink">Socket Mode</strong> in the left sidebar.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-socket-mode-page.png"
           alt="Slack Socket Mode settings page with the Enable Socket Mode toggle"
           className="w-full"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          The Socket Mode page. Click <strong className="text-zinc-300">Enable Socket Mode</strong>.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          The Socket Mode page. Click <strong className="text-ink-muted">Enable Socket Mode</strong>.
         </figcaption>
       </figure>
       <DocP>
-        Toggling it on prompts you to generate an App-Level Token. Give it a name (e.g. "HiGantic"), confirm the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">connections:write</code> scope is listed, and click <strong className="text-zinc-200">Generate</strong>.
+        Toggling it on prompts you to generate an App-Level Token. Give it a name (e.g. "HiGantic"), confirm the <code className="text-ink bg-surface-sunken px-1">connections:write</code> scope is listed, and click <strong className="text-ink">Generate</strong>.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-app-token-generate.png"
           alt="Generate an app-level token dialog with token name and connections:write scope"
           className="w-full max-w-md mx-auto"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          Generate dialog. The <code className="text-zinc-300">connections:write</code> scope is required.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          Generate dialog. The <code className="text-ink-muted">connections:write</code> scope is required.
         </figcaption>
       </figure>
       <DocP>
-        Copy the resulting <strong className="text-zinc-200">App-Level Token</strong> — it starts with <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-</code>. Save it for step 6 below; you'll only see it once.
+        Copy the resulting <strong className="text-ink">App-Level Token</strong> — it starts with <code className="text-ink bg-surface-sunken px-1">xapp-</code>. Save it for step 6 below; you'll only see it once.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-app-token-copy.png"
           alt="Slack app-level token details dialog showing the xapp- token and Copy button"
           className="w-full max-w-md mx-auto"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          Click <strong className="text-zinc-300">Copy</strong>, then store it securely — you can't view it again.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          Click <strong className="text-ink-muted">Copy</strong>, then store it securely — you can't view it again.
         </figcaption>
       </figure>
       <DocP>
-        2. <strong className="text-zinc-200">Event Subscriptions</strong> in the left sidebar → toggle <strong className="text-zinc-200">Enable Events</strong> on. Because Socket Mode is on, Slack skips the Request URL field. Expand <strong className="text-zinc-200">Subscribe to bot events</strong> and add both <code className="text-zinc-200 bg-zinc-800 px-1 rounded">app_mention</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">message.im</code> — Slack auto-adds the matching scopes (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">app_mentions:read</code>, <code className="text-zinc-200 bg-zinc-800 px-1 rounded">im:history</code>).
+        2. <strong className="text-ink">Event Subscriptions</strong> in the left sidebar → toggle <strong className="text-ink">Enable Events</strong> on. Because Socket Mode is on, Slack skips the Request URL field. Expand <strong className="text-ink">Subscribe to bot events</strong> and add both <code className="text-ink bg-surface-sunken px-1">app_mention</code> and <code className="text-ink bg-surface-sunken px-1">message.im</code> — Slack auto-adds the matching scopes (<code className="text-ink bg-surface-sunken px-1">app_mentions:read</code>, <code className="text-ink bg-surface-sunken px-1">im:history</code>).
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-event-subscriptions.png"
           alt="Slack Event Subscriptions page with app_mention and message.im subscribed under bot events"
           className="w-full"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          Both events listed under <strong className="text-zinc-300">Subscribe to bot events</strong>. Save changes at the bottom.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          Both events listed under <strong className="text-ink-muted">Subscribe to bot events</strong>. Save changes at the bottom.
         </figcaption>
       </figure>
       <DocP>
-        3. <strong className="text-zinc-200">App Home</strong> in the left sidebar → scroll to <strong className="text-zinc-200">Show Tabs</strong> → toggle <strong className="text-zinc-200">Messages Tab</strong> on, then check <em>"Allow users to send Slash commands and messages from the messages tab"</em>. Without this checkbox, Slack shows "Sending messages to this app has been turned off" when anyone tries to DM the bot.
+        3. <strong className="text-ink">App Home</strong> in the left sidebar → scroll to <strong className="text-ink">Show Tabs</strong> → toggle <strong className="text-ink">Messages Tab</strong> on, then check <em>"Allow users to send Slash commands and messages from the messages tab"</em>. Without this checkbox, Slack shows "Sending messages to this app has been turned off" when anyone tries to DM the bot.
       </DocP>
-      <figure className="my-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
+      <figure className="my-4 border border-rule bg-surface overflow-hidden">
         <img
           src="/docs/slack-app-home-tabs.png"
           alt="Slack App Home Show Tabs section with Messages Tab enabled and the allow checkbox ticked"
           className="w-full max-w-md mx-auto"
         />
-        <figcaption className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60">
-          Messages Tab enabled <strong className="text-zinc-300">and</strong> the "Allow users…" checkbox ticked. Both are required for DMs.
+        <figcaption className="px-4 py-2 text-xs text-ink-faint border-t border-rule">
+          Messages Tab enabled <strong className="text-ink-muted">and</strong> the "Allow users…" checkbox ticked. Both are required for DMs.
         </figcaption>
       </figure>
       <DocP>
-        4. <strong className="text-zinc-200">OAuth & Permissions</strong> → add these bot scopes (in addition to the ones from Slack integration setup):
+        4. <strong className="text-ink">OAuth & Permissions</strong> → add these bot scopes (in addition to the ones from Slack integration setup):
       </DocP>
       <DocCode>{`app_mentions:read   — receive @mention events
 im:history          — read DMs the bot receives
 im:read             — list DM channels`}</DocCode>
       <DocP>
-        5. <strong className="text-zinc-200">Reinstall the app to your workspace</strong> — this step is <strong className="text-zinc-200">required</strong> and easy to miss. After adding the new scopes and event subscriptions, Slack will not deliver any events until you reinstall. Go to <strong className="text-zinc-200">OAuth & Permissions</strong> → click <strong className="text-zinc-200">Reinstall to [YourWorkspace]</strong> → approve.
+        5. <strong className="text-ink">Reinstall the app to your workspace</strong> — this step is <strong className="text-ink">required</strong> and easy to miss. After adding the new scopes and event subscriptions, Slack will not deliver any events until you reinstall. Go to <strong className="text-ink">OAuth & Permissions</strong> → click <strong className="text-ink">Reinstall to [YourWorkspace]</strong> → approve.
       </DocP>
       <div className="my-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3 text-xs text-yellow-200/90">
         <strong className="text-yellow-200">⚠ Common gotcha:</strong> If the bot connects (logs say <code className="text-yellow-100 bg-yellow-900/40 px-1 rounded">[slack-gateway] connected</code>) but never replies to mentions or DMs, you almost certainly skipped the reinstall. Slack silently drops events for new scopes until the app is reinstalled.
@@ -2325,29 +2325,29 @@ im:read             — list DM channels`}</DocCode>
 
       <DocH2>Configure in Agent Maker</DocH2>
       <DocP>
-        6. In <AppLink to="/credentials">Credentials</AppLink>, click <strong className="text-zinc-200">Edit</strong> on your existing Slack credential and paste the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">xapp-</code> token into the new <strong className="text-zinc-200">App-Level Token (Socket Mode)</strong> field. Save.
+        6. In <AppLink to="/credentials">Credentials</AppLink>, click <strong className="text-ink">Edit</strong> on your existing Slack credential and paste the <code className="text-ink bg-surface-sunken px-1">xapp-</code> token into the new <strong className="text-ink">App-Level Token (Socket Mode)</strong> field. Save.
       </DocP>
       <DocP>
-        7. Open the agent's <strong className="text-zinc-200">Settings</strong> page → enable the <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack</code> tool set if it isn't already.
+        7. Open the agent's <strong className="text-ink">Settings</strong> page → enable the <code className="text-ink bg-surface-sunken px-1">slack</code> tool set if it isn't already.
       </DocP>
       <DocP>
-        8. Scroll to <strong className="text-zinc-200">Slack Bot (Two-Way Chat)</strong> → toggle <strong className="text-zinc-200">Enable Slack Bot</strong>.
+        8. Scroll to <strong className="text-ink">Slack Bot (Two-Way Chat)</strong> → toggle <strong className="text-ink">Enable Slack Bot</strong>.
       </DocP>
       <DocP>
         9. (Optional) Fill in:
       </DocP>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1 mb-4 ml-2">
-        <li><strong className="text-zinc-200">Bot Prompt</strong> — system prompt for unauthorized users.</li>
-        <li><strong className="text-zinc-200">Bot Model</strong> — model override for unauthorized users.</li>
-        <li><strong className="text-zinc-200">Authorized Slack User IDs</strong> — Slack user IDs (e.g. <code className="text-zinc-200 bg-zinc-800 px-1 rounded">U0AR2KKC2Q3</code>) that get full agent access. Find IDs by opening a profile → "Copy member ID", or call <code className="text-zinc-200 bg-zinc-800 px-1 rounded">slack_list_users</code>.</li>
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1 mb-4 ml-2">
+        <li><strong className="text-ink">Bot Prompt</strong> — system prompt for unauthorized users.</li>
+        <li><strong className="text-ink">Bot Model</strong> — model override for unauthorized users.</li>
+        <li><strong className="text-ink">Authorized Slack User IDs</strong> — Slack user IDs (e.g. <code className="text-ink bg-surface-sunken px-1">U0AR2KKC2Q3</code>) that get full agent access. Find IDs by opening a profile → "Copy member ID", or call <code className="text-ink bg-surface-sunken px-1">slack_list_users</code>.</li>
       </ul>
       <DocP>
-        10. Save. Restart your agent server (<code className="text-zinc-200 bg-zinc-800 px-1 rounded">cd packages/agent && bun run dev</code>) so the Socket Mode connection opens. Look for <code className="text-zinc-200 bg-zinc-800 px-1 rounded">[slack-gateway] connected as U…</code> in the logs.
+        10. Save. Restart your agent server (<code className="text-ink bg-surface-sunken px-1">cd packages/agent && bun run dev</code>) so the Socket Mode connection opens. Look for <code className="text-ink bg-surface-sunken px-1">[slack-gateway] connected as U…</code> in the logs.
       </DocP>
 
       <DocH2>How authorization works</DocH2>
       <DocP>
-        On every inbound message, the gateway checks the sender's Slack <strong className="text-zinc-200">user ID</strong> against the authorized list. Match → "agent" mode (full system prompt + every enabled tool). No match → "bot" mode (uses <strong className="text-zinc-200">Bot Prompt</strong>, no tools). User IDs are stable — they don't change when someone renames themselves.
+        On every inbound message, the gateway checks the sender's Slack <strong className="text-ink">user ID</strong> against the authorized list. Match → "agent" mode (full system prompt + every enabled tool). No match → "bot" mode (uses <strong className="text-ink">Bot Prompt</strong>, no tools). User IDs are stable — they don't change when someone renames themselves.
       </DocP>
 
       <DocH2>Events emitted</DocH2>
@@ -2361,12 +2361,12 @@ im:read             — list DM channels`}</DocCode>
       />
 
       <DocH2>Troubleshooting</DocH2>
-      <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1.5 mb-4 ml-2">
-        <li><strong className="text-zinc-200">"Sending messages to this app has been turned off"</strong> when DMing — re-check step 3 (App Home → Messages Tab + the checkbox).</li>
-        <li><strong className="text-zinc-200">Bot connects but never replies</strong> — you forgot to reinstall the app after adding scopes/events. Go to <strong className="text-zinc-200">OAuth & Permissions</strong> → <strong className="text-zinc-200">Reinstall to [YourWorkspace]</strong>. This is the #1 cause.</li>
-        <li><strong className="text-zinc-200">Bot doesn't respond to channel mentions</strong> — invite it to the channel: <code className="text-zinc-200 bg-zinc-800 px-1 rounded">/invite @YourBotName</code>.</li>
-        <li><strong className="text-zinc-200">Gateway never connects</strong> — verify the credential has both <code className="text-zinc-200 bg-zinc-800 px-1 rounded">botToken</code> and <code className="text-zinc-200 bg-zinc-800 px-1 rounded">appToken</code> set, and Socket Mode is enabled in your Slack app.</li>
-        <li><strong className="text-zinc-200">Unauthorized users get full access</strong> — make sure you're using <em>user IDs</em>, not display names, in the authorized list.</li>
+      <ul className="list-disc list-inside text-sm text-ink-muted space-y-1.5 mb-4 ml-2">
+        <li><strong className="text-ink">"Sending messages to this app has been turned off"</strong> when DMing — re-check step 3 (App Home → Messages Tab + the checkbox).</li>
+        <li><strong className="text-ink">Bot connects but never replies</strong> — you forgot to reinstall the app after adding scopes/events. Go to <strong className="text-ink">OAuth & Permissions</strong> → <strong className="text-ink">Reinstall to [YourWorkspace]</strong>. This is the #1 cause.</li>
+        <li><strong className="text-ink">Bot doesn't respond to channel mentions</strong> — invite it to the channel: <code className="text-ink bg-surface-sunken px-1">/invite @YourBotName</code>.</li>
+        <li><strong className="text-ink">Gateway never connects</strong> — verify the credential has both <code className="text-ink bg-surface-sunken px-1">botToken</code> and <code className="text-ink bg-surface-sunken px-1">appToken</code> set, and Socket Mode is enabled in your Slack app.</li>
+        <li><strong className="text-ink">Unauthorized users get full access</strong> — make sure you're using <em>user IDs</em>, not display names, in the authorized list.</li>
       </ul>
     </div>
   );

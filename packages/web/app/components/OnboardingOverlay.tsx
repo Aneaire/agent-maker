@@ -2,32 +2,8 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { useNavigate } from "react-router";
-import {
-  Sparkles,
-  User,
-  Briefcase,
-  Palette,
-  ArrowLeft,
-  Loader2,
-  X,
-  Rocket,
-} from "lucide-react";
-import {
-  ONBOARDING_CATEGORIES,
-  type Template,
-} from "~/lib/templates";
-
-const CATEGORY_ICONS = {
-  personal: User,
-  work: Briefcase,
-  creative: Palette,
-} as const;
-
-const CATEGORY_COLORS = {
-  personal: "from-emerald-500/20 to-emerald-600/5 ring-emerald-500/20 text-emerald-400",
-  work: "from-blue-500/20 to-blue-600/5 ring-blue-500/20 text-blue-400",
-  creative: "from-purple-500/20 to-purple-600/5 ring-purple-500/20 text-purple-400",
-} as const;
+import { ArrowLeft, Loader2, X } from "lucide-react";
+import { ONBOARDING_CATEGORIES, type Template } from "~/lib/templates";
 
 type CategoryId = "personal" | "work" | "creative";
 
@@ -75,131 +51,102 @@ export function OnboardingOverlay({ onComplete }: { onComplete: () => void }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-xl">
-      <div className="relative w-full max-w-2xl mx-4">
-        {/* Skip button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/40 backdrop-blur-[2px] p-6">
+      <div className="relative w-full max-w-2xl">
         <button
           onClick={handleSkip}
-          className="absolute -top-12 right-0 flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+          className="absolute -top-10 right-0 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink transition-colors"
         >
           Skip for now
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
 
-        <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950 shadow-2xl shadow-black/40 overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-8 pb-2 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-neon-400/20 to-neon-600/5 ring-1 ring-neon-400/20">
-                {step === 1 ? (
-                  <Sparkles className="h-7 w-7 text-neon-400" />
-                ) : (
-                  <Rocket className="h-7 w-7 text-neon-400" />
-                )}
-              </div>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight">
-              {step === 1 ? "Welcome! What will your agent do?" : "Pick a template to start"}
-            </h2>
-            <p className="mt-2 text-sm text-zinc-500">
+        <div className="bg-surface-raised border border-rule rounded-md rise">
+          <header className="px-10 pt-10 pb-6 border-b border-rule">
+            <p className="eyebrow">{step === 1 ? "Step 1 of 2" : "Step 2 of 2"}</p>
+            <h2 className="mt-3 font-display text-3xl leading-[1.05] text-ink">
               {step === 1
-                ? "Choose a category and we'll set up your first agent in seconds"
-                : `${selectedCategoryData?.label} templates — ${selectedCategoryData?.description}`}
+                ? "What will your agent do?"
+                : `${selectedCategoryData?.label.toLowerCase()} templates`}
+            </h2>
+            <p className="mt-3 text-sm text-ink-muted max-w-lg leading-relaxed">
+              {step === 1
+                ? "Pick a direction. We'll use it to show a short list of starting points — you can customise everything afterwards."
+                : selectedCategoryData?.description}
             </p>
-          </div>
+          </header>
 
-          {/* Step indicator */}
-          <div className="flex justify-center gap-1.5 py-3">
-            <div className={`h-1 w-8 rounded-full transition-colors ${step >= 1 ? "bg-neon-400" : "bg-zinc-800"}`} />
-            <div className={`h-1 w-8 rounded-full transition-colors ${step >= 2 ? "bg-neon-400" : "bg-zinc-800"}`} />
-          </div>
-
-          {/* Content */}
-          <div className="px-8 pb-8">
+          <div className="px-10 py-8">
             {step === 1 ? (
-              /* Step 1: Category selection */
-              <div className="grid grid-cols-3 gap-3 mt-2">
-                {ONBOARDING_CATEGORIES.map((category) => {
-                  const Icon = CATEGORY_ICONS[category.id];
-                  const colorClass = CATEGORY_COLORS[category.id];
-                  return (
+              <ul className="divide-y divide-rule -mx-2">
+                {ONBOARDING_CATEGORIES.map((category) => (
+                  <li key={category.id}>
                     <button
-                      key={category.id}
                       onClick={() => handleCategorySelect(category.id)}
-                      className="group flex flex-col items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 hover:border-zinc-600 hover:bg-zinc-900/60 transition-all"
+                      className="group w-full text-left px-2 py-4 grid grid-cols-[auto_1fr_auto] gap-4 items-baseline hover:bg-surface-sunken transition-colors"
                     >
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${colorClass} ring-1`}
-                      >
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-semibold group-hover:text-white transition-colors">
+                      <span className="font-mono text-2xs text-ink-faint tabular-nums w-6">
+                        {String(ONBOARDING_CATEGORIES.indexOf(category) + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h3 className="font-display text-xl leading-tight text-ink">
                           {category.label}
-                        </p>
-                        <p className="mt-1 text-[11px] text-zinc-600 leading-snug">
+                        </h3>
+                        <p className="mt-1 text-sm text-ink-muted max-w-md leading-relaxed">
                           {category.description}
                         </p>
                       </div>
+                      <span className="text-2xs text-ink-faint group-hover:text-accent transition-colors">
+                        {category.templates.length}&nbsp;templates &rarr;
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              /* Step 2: Template selection */
               <div>
                 <button
                   onClick={() => setStep(1)}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 mb-4 transition-colors"
+                  className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted mb-5 transition-colors"
                 >
-                  <ArrowLeft className="h-3 w-3" />
+                  <ArrowLeft className="h-3 w-3" strokeWidth={1.75} />
                   Back
                 </button>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ul className="divide-y divide-rule -mx-2">
                   {selectedCategoryData?.templates.map((template) => {
-                    const Icon = template.icon;
                     const isCreating = creating === template.id;
                     return (
-                      <button
-                        key={template.id}
-                        onClick={() => handleTemplateSelect(template)}
-                        disabled={creating !== null}
-                        className="group text-left rounded-2xl border border-zinc-800 bg-zinc-900/30 p-4 hover:border-zinc-600 hover:bg-zinc-900/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${template.color} ring-1`}
-                          >
-                            {isCreating ? (
-                              <Loader2 className="h-4.5 w-4.5 text-zinc-300 animate-spin" />
-                            ) : (
-                              <Icon className="h-4.5 w-4.5 text-zinc-300" />
-                            )}
-                          </div>
+                      <li key={template.id}>
+                        <button
+                          onClick={() => handleTemplateSelect(template)}
+                          disabled={creating !== null}
+                          className="group w-full text-left px-2 py-4 grid grid-cols-[1fr_auto] gap-4 items-start hover:bg-surface-sunken transition-colors disabled:opacity-50 disabled:cursor-wait"
+                        >
                           <div className="min-w-0">
-                            <h3 className="text-sm font-semibold group-hover:text-white transition-colors">
+                            <h3 className="font-display text-lg leading-tight text-ink">
                               {template.name}
                             </h3>
-                            <p className="mt-0.5 text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
+                            <p className="mt-1 text-sm text-ink-muted leading-relaxed">
                               {template.description}
                             </p>
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {template.starterPages.map((page) => (
-                                <span
-                                  key={page.label}
-                                  className="text-[9px] text-zinc-600 bg-zinc-800/60 px-1.5 py-0.5 rounded-full"
-                                >
-                                  {page.label}
-                                </span>
-                              ))}
-                            </div>
+                            {template.starterPages.length > 0 && (
+                              <p className="mt-2 text-2xs text-ink-faint font-mono">
+                                {template.starterPages.map((p) => p.label).join(" · ")}
+                              </p>
+                            )}
                           </div>
-                        </div>
-                      </button>
+                          <span className="text-2xs text-ink-faint group-hover:text-accent transition-colors pt-1 shrink-0">
+                            {isCreating ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+                            ) : (
+                              <>Start &rarr;</>
+                            )}
+                          </span>
+                        </button>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               </div>
             )}
           </div>

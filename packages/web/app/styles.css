@@ -1,8 +1,91 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+/* ──────────────────────────────────────────────────────────────────────
+   Fonts
+   Display: Ibarra Real Nova — 18th-c. Spanish revival serif
+   Body:    Public Sans        — humanist workhorse
+   Mono:    JetBrains Mono     — for keys / IDs / code
+   Inter kept for Clerk modal appearance (legacy) until that layer migrates.
+   ────────────────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Ibarra+Real+Nova:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ──────────────────────────────────────────────────────────────────────
+   Design tokens — editorial / refined minimal
+   Neutral canvas is warm-tinted (hue 80, very low chroma) — no pure black,
+   no pure white. Accent is a single muted ochre, restrained 60/30/10.
+   All colors expressed in OKLCH; theme swap handled by light-dark().
+   ────────────────────────────────────────────────────────────────────── */
 @theme {
+  /* — Typography — */
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Ibarra Real Nova", "Public Sans", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* — Modular type scale, 1.25 ratio, fixed rem (app UI, not fluid) — */
+  --text-2xs: 0.6875rem;   /* 11px — labels */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px — default body */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.25rem;      /* 20px */
+  --text-xl: 1.5rem;       /* 24px */
+  --text-2xl: 1.875rem;    /* 30px */
+  --text-3xl: 2.5rem;      /* 40px — display */
+  --text-4xl: 3.25rem;     /* 52px — hero display */
+
+  /* — 4pt spacing — */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-24: 6rem;
+
+  /* — Radius: restrained. No rounded-2xl maximalism. — */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-full: 999px;
+
+  /* — Semantic color tokens (light-dark swap) —
+       Warm-neutral canvas tinted to hue 80 (very faint amber-gray).
+       Chroma capped at 0.012 on neutrals so light extremes don't look garish. */
+  --color-surface:          light-dark(oklch(97.5% 0.006 80), oklch(17% 0.008 80));
+  --color-surface-raised:   light-dark(oklch(100% 0 0),       oklch(21% 0.008 80));
+  --color-surface-sunken:   light-dark(oklch(94.5% 0.008 80), oklch(14% 0.008 80));
+  --color-surface-inverse:  light-dark(oklch(17% 0.008 80),   oklch(97.5% 0.006 80));
+
+  --color-ink:              light-dark(oklch(22% 0.012 80),   oklch(95% 0.005 80));
+  --color-ink-muted:        light-dark(oklch(42% 0.01 80),    oklch(72% 0.006 80));
+  --color-ink-faint:        light-dark(oklch(58% 0.008 80),   oklch(52% 0.006 80));
+  --color-ink-inverse:      light-dark(oklch(97.5% 0.006 80), oklch(17% 0.008 80));
+
+  --color-rule:             light-dark(oklch(88% 0.008 80),   oklch(28% 0.008 80));
+  --color-rule-strong:      light-dark(oklch(78% 0.01 80),    oklch(38% 0.01 80));
+
+  /* Accent: muted ochre. Chroma 0.11 light / 0.09 dark so neither mode glares. */
+  --color-accent:           light-dark(oklch(58% 0.11 65),    oklch(72% 0.09 70));
+  --color-accent-strong:    light-dark(oklch(48% 0.13 60),    oklch(80% 0.11 70));
+  --color-accent-soft:      light-dark(oklch(92% 0.04 75),    oklch(32% 0.05 68));
+  --color-accent-ink:       light-dark(oklch(98% 0.01 75),    oklch(18% 0.02 70));
+
+  --color-danger:           light-dark(oklch(52% 0.18 28),    oklch(74% 0.14 28));
+  --color-danger-soft:      light-dark(oklch(95% 0.03 28),    oklch(28% 0.08 28));
+  --color-warn:             light-dark(oklch(60% 0.13 75),    oklch(78% 0.11 80));
+
+  /* — Motion — */
+  --ease-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo:  cubic-bezier(0.19, 1, 0.22, 1);
+
+  /* — Legacy neon palette — retained ONLY so landing page (home.tsx) and
+       not-yet-migrated authenticated views keep compiling while Phase 2+
+       refactors proceed. Do not use in new code. — */
   --color-neon-50: #ecfdf5;
   --color-neon-100: #d1fae5;
   --color-neon-200: #a7f3d0;
@@ -14,25 +97,128 @@
   --color-neon-800: #065f46;
   --color-neon-900: #064e3b;
   --color-neon-950: #022c22;
-
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* ── Glow utilities ─────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────
+   Theme bootstrap
+   light-dark() reads `color-scheme`. We let the user pick via a toggle
+   that sets data-theme on <html>. No-preference default: light
+   (editorial canvas reads as a studio tool, per impeccable guidance —
+   dark was picked only when the viewing context demanded it).
+   ────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+}
+html[data-theme="light"] { color-scheme: light; }
+html[data-theme="dark"]  { color-scheme: dark; }
+
+html, body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv01", "cv11";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Focus state — quiet, single solid ring in accent color.
+   No glow, no box-shadow stack.
+   ────────────────────────────────────────────────────────────────────── */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+  button, a {
+    outline-color: var(--color-accent);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Typography utilities (new system)
+   ────────────────────────────────────────────────────────────────────── */
+@utility font-display {
+  font-family: var(--font-display);
+  font-feature-settings: "liga", "onum";
+}
+
+@utility font-mono {
+  font-family: var(--font-mono);
+}
+
+@utility display-sm {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-weight: 500;
+}
+
+@utility display-md {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+}
+
+@utility display-lg {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+@utility eyebrow {
+  font-size: var(--text-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Motion utilities (new system)
+   ────────────────────────────────────────────────────────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@utility rise {
+  animation: rise 0.4s var(--ease-quart) both;
+}
+
+@keyframes rise-slow {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@utility rise-slow {
+  animation: rise-slow 0.6s var(--ease-quart) both;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Legacy utilities — retained so not-yet-migrated views and the
+   landing page continue to render. Do not use in new code.
+   ────────────────────────────────────────────────────────────────────── */
 
 @utility glow-neon {
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.12), 0 0 40px rgba(16, 185, 129, 0.04);
 }
-
 @utility glow-neon-sm {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.08), 0 0 20px rgba(16, 185, 129, 0.03);
 }
-
 @utility glow-neon-text {
   text-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
 }
-
-/* ── Glass card ─────────────────────────────────────────────────────── */
 
 @utility glass-card {
   background: rgba(24, 24, 27, 0.6);
@@ -40,15 +226,12 @@
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(63, 63, 70, 0.5);
 }
-
 @utility glass-card-hover {
   background: rgba(24, 24, 27, 0.7);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-color: rgba(82, 82, 91, 0.6);
 }
-
-/* ── Hover lift ─────────────────────────────────────────────────────── */
 
 @utility hover-lift {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -58,30 +241,18 @@
   }
 }
 
-/* ── Smooth status pulse ────────────────────────────────────────────── */
-
 @keyframes status-pulse {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 currentColor;
-  }
-  50% {
-    opacity: 0.6;
-    box-shadow: 0 0 0 4px transparent;
-  }
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  50%      { opacity: 0.6; box-shadow: 0 0 0 4px transparent; }
 }
-
 @utility status-pulse {
   animation: status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ── Animated gradient border ───────────────────────────────────────── */
-
 @keyframes gradient-rotate {
-  0% { --gradient-angle: 0deg; }
+  0%   { --gradient-angle: 0deg; }
   100% { --gradient-angle: 360deg; }
 }
-
 @utility gradient-border {
   position: relative;
   &::before {
@@ -105,34 +276,21 @@
     transition: opacity 0.3s ease;
     pointer-events: none;
   }
-  &:hover::before {
-    opacity: 1;
-  }
+  &:hover::before { opacity: 1; }
 }
-
-/* ── Floating ambient orbs ──────────────────────────────────────────── */
 
 @keyframes float-slow {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 15px) scale(0.95); }
+  33%      { transform: translate(30px, -20px) scale(1.05); }
+  66%      { transform: translate(-20px, 15px) scale(0.95); }
 }
-
 @keyframes float-slow-alt {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, 20px) scale(0.95); }
-  66% { transform: translate(15px, -25px) scale(1.05); }
+  33%      { transform: translate(-25px, 20px) scale(0.95); }
+  66%      { transform: translate(15px, -25px) scale(1.05); }
 }
-
-@utility float-orb {
-  animation: float-slow 20s ease-in-out infinite;
-}
-
-@utility float-orb-alt {
-  animation: float-slow-alt 25s ease-in-out infinite;
-}
-
-/* ── Subtle noise texture overlay ───────────────────────────────────── */
+@utility float-orb      { animation: float-slow 20s ease-in-out infinite; }
+@utility float-orb-alt  { animation: float-slow-alt 25s ease-in-out infinite; }
 
 @utility noise-overlay {
   &::after {
@@ -149,24 +307,13 @@
   }
 }
 
-/* ── Fade in animation ──────────────────────────────────────────────── */
-
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 @utility fade-in-up {
   animation: fade-in-up 0.3s ease-out both;
 }
-
-/* ── Nav link underline animation ───────────────────────────────────── */
 
 @utility nav-underline {
   position: relative;
@@ -181,13 +328,8 @@
     transition: width 0.3s ease, left 0.3s ease;
     border-radius: 999px;
   }
-  &:hover::after {
-    width: 100%;
-    left: 0%;
-  }
+  &:hover::after { width: 100%; left: 0%; }
 }
-
-/* ── Input focus glow ───────────────────────────────────────────────── */
 
 @utility focus-glow {
   transition: all 0.3s ease;
@@ -197,164 +339,116 @@
   }
 }
 
-/* ── Send button bounce ─────────────────────────────────────────────── */
-
 @keyframes send-bounce {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.9); }
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.9); }
   100% { transform: scale(1); }
 }
-
 @utility send-bounce {
-  &:active {
-    animation: send-bounce 0.2s ease-out;
-  }
+  &:active { animation: send-bounce 0.2s ease-out; }
 }
 
-/* ── Image generation preview animations ────────────────────────────── */
-
+/* — Image-gen / landing-only keyframes retained for home.tsx — */
 @keyframes shimmer-bg {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
 @keyframes float-orb-1 {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.2; }
-  50% { transform: translate(20px, -15px) scale(1.2); opacity: 0.35; }
+  50%      { transform: translate(20px, -15px) scale(1.2); opacity: 0.35; }
 }
-
 @keyframes float-orb-2 {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
-  50% { transform: translate(-15px, 10px) scale(1.15); opacity: 0.3; }
+  50%      { transform: translate(-15px, 10px) scale(1.15); opacity: 0.3; }
 }
-
 @keyframes float-orb-3 {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
-  50% { transform: translate(10px, 15px) scale(1.1); opacity: 0.25; }
+  50%      { transform: translate(10px, 15px) scale(1.1); opacity: 0.25; }
 }
-
 @keyframes scan-line {
-  0% { top: -2px; }
+  0%   { top: -2px; }
   100% { top: 100%; }
 }
-
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.15); }
+  50%      { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.15); }
 }
-
-/* ── Landing page animations ───────────────────────────────────────── */
 
 @keyframes fade-in-up-slow {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 @utility fade-in-up-slow {
   animation: fade-in-up-slow 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes hero-glow-pulse {
   0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
+  50%      { opacity: 0.7; transform: scale(1.05); }
 }
-
 @utility hero-glow-pulse {
   animation: hero-glow-pulse 4s ease-in-out infinite;
 }
 
 @keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
 @utility slide-in-left {
   animation: slide-in-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
 @utility slide-in-right {
   animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes count-up-line {
   from { width: 0%; }
-  to { width: 100%; }
+  to   { width: 100%; }
 }
-
 @utility count-up-line {
   animation: count-up-line 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes typing-cursor {
   0%, 100% { border-color: rgba(52, 211, 153, 0.8); }
-  50% { border-color: transparent; }
+  50%      { border-color: transparent; }
 }
-
 @utility typing-cursor {
   animation: typing-cursor 1s step-end infinite;
 }
 
 @keyframes grid-line-horizontal {
   from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  to   { transform: scaleX(1); }
 }
-
 @keyframes grid-line-vertical {
   from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
+  to   { transform: scaleY(1); }
 }
 
 @keyframes orbit {
   from { transform: rotate(0deg) translateX(120px) rotate(0deg); }
-  to { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+  to   { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
 }
-
-@utility orbit-slow {
-  animation: orbit 20s linear infinite;
-}
-
-@utility orbit-medium {
-  animation: orbit 15s linear infinite reverse;
-}
-
-@utility orbit-fast {
-  animation: orbit 10s linear infinite;
-}
+@utility orbit-slow    { animation: orbit 20s linear infinite; }
+@utility orbit-medium  { animation: orbit 15s linear infinite reverse; }
+@utility orbit-fast    { animation: orbit 10s linear infinite; }
 
 @keyframes draw-border {
   from { stroke-dashoffset: 1000; }
-  to { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 0; }
 }
 
 @keyframes shimmer-sweep {
-  0% { transform: translateX(-100%); }
+  0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
-
 @utility shimmer-sweep {
   &::after {
     content: "";
@@ -365,55 +459,42 @@
   }
 }
 
-/* ── Model slideshow (vertical slide) ──────────────────────────────── */
-/* 3 models, each 16px tall. Slide by 16px per step (32px total). */
-
 @keyframes slide-models {
   0%, 27%   { transform: translateY(0); }
   33%, 60%  { transform: translateY(-16px); }
   66%, 93%  { transform: translateY(-32px); }
   100%      { transform: translateY(0); }
 }
-
 .model-slider-track {
   animation: slide-models 9s ease-in-out infinite;
 }
 
-/* ── Marquee scroll ────────────────────────────────────────────────── */
-
 @keyframes marquee-scroll {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to   { transform: translateX(-50%); }
 }
-
 .marquee-scroll {
   animation: marquee-scroll 30s linear infinite;
   will-change: transform;
 }
-
-/* ── Hero dot grid background ─────────────────────────────────────── */
 
 .hero-dot-grid {
   background-image: radial-gradient(circle, rgba(161, 161, 170, 0.5) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
-/* ── SVG constellation animations ─────────────────────────────────── */
-
 @keyframes constellation-fade {
   0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.7; }
+  50%      { opacity: 0.7; }
 }
-
 .constellation-node {
   animation: constellation-fade 4s ease-in-out infinite;
 }
 
 @keyframes constellation-edge-draw {
   from { stroke-dashoffset: 100; }
-  to { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 0; }
 }
-
 .constellation-edge {
   stroke-dasharray: 100;
   animation: constellation-edge-draw 2s ease-out forwards;
@@ -421,43 +502,41 @@
 
 @keyframes constellation-pulse-anim {
   0%, 100% { r: 40; opacity: 0.15; }
-  50% { r: 50; opacity: 0.25; }
+  50%      { r: 50; opacity: 0.25; }
 }
-
 .constellation-pulse {
   animation: constellation-pulse-anim 4s ease-in-out infinite;
 }
 
-/* ── CTA ring animations ──────────────────────────────────────────── */
-
 @keyframes cta-ring-spin {
   from { transform-origin: 200px 200px; transform: rotate(0deg); }
-  to { transform-origin: 200px 200px; transform: rotate(360deg); }
+  to   { transform-origin: 200px 200px; transform: rotate(360deg); }
 }
-
 @keyframes cta-ring-spin-reverse {
   from { transform-origin: 200px 200px; transform: rotate(360deg); }
-  to { transform-origin: 200px 200px; transform: rotate(0deg); }
+  to   { transform-origin: 200px 200px; transform: rotate(0deg); }
 }
-
-/* ── Scroll indicator animation ───────────────────────────────────── */
+.cta-ring-spin {
+  animation: cta-ring-spin 40s linear infinite;
+  will-change: transform;
+}
+.cta-ring-spin-reverse {
+  animation: cta-ring-spin-reverse 60s linear infinite;
+  will-change: transform;
+}
 
 @keyframes scroll-bounce {
   0%, 100% { transform: translateY(0); opacity: 0.6; }
-  50% { transform: translateY(6px); opacity: 1; }
+  50%      { transform: translateY(6px); opacity: 1; }
 }
-
 .scroll-indicator {
   animation: scroll-bounce 2s ease-in-out infinite;
 }
 
-/* ── Integration network animations ──────────────────────────────── */
-
 @keyframes network-float {
   0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50% { transform: translate(-50%, -50%) translateY(-8px); }
+  50%      { transform: translate(-50%, -50%) translateY(-8px); }
 }
-
 .network-bubble {
   animation: network-float 5s ease-in-out infinite;
   will-change: transform;
@@ -465,38 +544,26 @@
 
 @keyframes network-line-draw {
   from { stroke-dashoffset: 28; }
-  to { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 0; }
 }
-
 @keyframes network-line-pulse {
   0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  50%      { opacity: 1; }
 }
-
 .network-line {
   animation:
     network-line-draw 1.5s ease-out both,
     network-line-pulse 4s ease-in-out infinite 1.5s;
 }
 
-.cta-ring-spin {
-  animation: cta-ring-spin 40s linear infinite;
-  will-change: transform;
-}
-
-.cta-ring-spin-reverse {
-  animation: cta-ring-spin-reverse 60s linear infinite;
-  will-change: transform;
-}
-
-/* ── Clerk modal centering ─────────────────────────────────────────── */
-
+/* ──────────────────────────────────────────────────────────────────────
+   Clerk modal centering (unchanged)
+   ────────────────────────────────────────────────────────────────────── */
 .cl-modalBackdrop {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
-
 .cl-modal {
   margin: 0 !important;
   position: relative !important;
@@ -504,8 +571,9 @@
   transform: none !important;
 }
 
-/* ── Scrollbar styling ──────────────────────────────────────────────── */
-
+/* ──────────────────────────────────────────────────────────────────────
+   Scrollbar — tinted to the rule token so it reads in both themes.
+   ────────────────────────────────────────────────────────────────────── */
 @layer base {
   ::-webkit-scrollbar {
     width: 6px;
@@ -515,16 +583,17 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(63, 63, 70, 0.5);
+    background: var(--color-rule);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(82, 82, 91, 0.7);
+    background: var(--color-rule-strong);
   }
 }
 
-/* ── Accessibility: reduced motion ─────────────────────────────────── */
-
+/* ──────────────────────────────────────────────────────────────────────
+   Reduced motion
+   ────────────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

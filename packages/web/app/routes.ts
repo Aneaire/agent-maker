@@ -9,6 +9,7 @@ export default [
   route("agents/:agentId/editor", "routes/agents.$agentId.editor.tsx"),
   route("agents/:agentId", "routes/agents.$agentId.tsx", [
     index("routes/agents.$agentId.index.tsx"),
+    route("chat/new", "routes/agents.$agentId.chat.new.tsx"),
     route("chat/:conversationId", "routes/agents.$agentId.chat.$conversationId.tsx"),
     route("memories", "routes/agents.$agentId.memories.tsx"),
     route("assets", "routes/agents.$agentId.assets.tsx"),

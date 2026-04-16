@@ -1,19 +1,10 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
 import { ChatMessageList } from "~/components/ChatMessageList";
 import { ChatInput } from "~/components/ChatInput";
-import {
-  Bot,
-  ChevronLeft,
-  Wand2,
-  Loader2,
-  Upload,
-  X,
-  Image,
-} from "lucide-react";
-import { Link } from "react-router";
+import { ChevronLeft, Loader2, Upload } from "lucide-react";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import { getToolSetLabelsMap } from "@agent-maker/shared/src/tool-set-registry";
 
@@ -29,30 +20,29 @@ export default function AgentCreatorPage() {
     agentId: Id<"agents">;
     conversationId: Id<"conversations">;
   } | null>(null);
-  const [starting, setStarting] = useState(false);
 
   async function handleStart() {
-    setStarting(true);
     try {
       const data = await startSession();
       setSessionData(data as any);
     } catch (err: any) {
       alert(err.message);
-      setStarting(false);
     }
   }
 
-  // Auto-start session on mount
   useEffect(() => {
     handleStart();
   }, []);
 
   if (!sessionData) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950">
+      <div className="flex h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-zinc-400 mx-auto mb-4" />
-          <p className="text-zinc-400 text-sm">Setting up the Agent Creator...</p>
+          <Loader2
+            className="h-5 w-5 animate-spin text-ink-faint mx-auto mb-3"
+            strokeWidth={1.5}
+          />
+          <p className="text-sm text-ink-muted">Setting up the agent creator\u2026</p>
         </div>
       </div>
     );
@@ -89,7 +79,6 @@ function CreatorView({
   const sendMessage = useMutation(api.messages.send);
   const stopMessage = useMutation(api.messages.stop);
 
-  // Redirect when agent is finalized
   useEffect(() => {
     if (agent && agent.status === "active") {
       navigate(`/agents/${agentId}`);
@@ -119,99 +108,98 @@ function CreatorView({
   const config = (session?.partialConfig as any) ?? {};
 
   return (
-    <div className="flex h-screen bg-zinc-950">
-      {/* Left: Chat */}
+    <div className="flex h-screen bg-surface">
+      {/* ── Left: Chat ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="border-b border-rule px-6 h-14 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
             <Link
               to="/agents/new"
-              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors"
             >
-              <ChevronLeft className="h-3 w-3" />
+              <ChevronLeft className="h-3 w-3" strokeWidth={1.75} />
               Back
             </Link>
-            <div className="h-4 w-px bg-zinc-800" />
-            <div className="flex items-center gap-2">
-              <Wand2 className="h-4 w-4 text-zinc-400" />
-              <span className="text-sm font-medium">Agent Creator</span>
+            <div className="h-4 w-px bg-rule" />
+            <div>
+              <p className="eyebrow leading-none">Agent creator</p>
             </div>
           </div>
           <button
             onClick={onAbandon}
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="text-sm text-ink-muted hover:text-ink transition-colors"
           >
             Cancel
           </button>
         </div>
 
-        {/* Messages */}
         {messages === undefined ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            <Loader2
+              className="h-4 w-4 animate-spin text-ink-faint"
+              strokeWidth={1.5}
+            />
           </div>
         ) : (
           <ChatMessageList messages={messages} onSendSuggestion={handleSend} />
         )}
 
-        {/* Input */}
         <ChatInput
           onSend={handleSend}
           onStop={handleStop}
           isProcessing={hasActiveRun ?? false}
           hasActiveQuestions={(() => {
             const last = messages?.[messages.length - 1];
-            return !!(last?.role === "assistant" && last?.status === "done" && last?.questions?.length);
+            return !!(
+              last?.role === "assistant" &&
+              last?.status === "done" &&
+              last?.questions?.length
+            );
           })()}
         />
       </div>
 
-      {/* Right: Config Preview */}
-      <div className="w-80 border-l border-zinc-800 flex flex-col shrink-0 bg-zinc-950">
-        <div className="p-4 border-b border-zinc-800">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Bot className="h-4 w-4 text-zinc-400" />
-            Agent Preview
-          </h3>
+      {/* ── Right: Agent preview ───────────────────────────────── */}
+      <aside className="w-80 border-l border-rule flex flex-col shrink-0 bg-surface">
+        <div className="px-5 h-14 border-b border-rule flex items-center">
+          <p className="eyebrow">Preview</p>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Icon Upload */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
           <IconUpload agentId={agentId} currentIconUrl={config.iconUrl} />
 
           <ConfigField label="Name" value={config.name} />
           <ConfigField label="Description" value={config.description} />
           <ConfigField label="Model" value={config.model} />
+
           <div>
-            <span className="text-xs text-zinc-500 block mb-1.5">
-              Capabilities
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {(config.enabledToolSets ?? []).map((t: string) => (
-                <span
-                  key={t}
-                  className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full"
-                >
-                  {TOOL_LABELS[t] ?? t}
-                </span>
-              ))}
-            </div>
+            <p className="eyebrow mb-2">Capabilities</p>
+            {(config.enabledToolSets ?? []).length > 0 ? (
+              <p className="text-sm text-ink leading-relaxed">
+                {(config.enabledToolSets as string[]).map((t, i) => (
+                  <span key={t}>
+                    {i > 0 && <span className="text-ink-faint"> &middot; </span>}
+                    {TOOL_LABELS[t] ?? t}
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-sm text-ink-faint italic">Not set</p>
+            )}
           </div>
+
           <div>
-            <span className="text-xs text-zinc-500 block mb-1">
-              System Prompt
-            </span>
+            <p className="eyebrow mb-2">System prompt</p>
             {config.systemPrompt &&
             config.systemPrompt !== "You are a helpful AI assistant." ? (
-              <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-3 max-h-64 overflow-y-auto">
+              <pre className="font-mono text-2xs text-ink-muted whitespace-pre-wrap bg-surface-sunken border border-rule p-3 max-h-64 overflow-y-auto leading-relaxed">
                 {config.systemPrompt}
               </pre>
             ) : (
-              <span className="text-xs text-zinc-600 italic">Not set</span>
+              <p className="text-sm text-ink-faint italic">Not set</p>
             )}
           </div>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
@@ -261,33 +249,25 @@ function IconUpload({
 
   return (
     <div>
-      <span className="text-xs text-zinc-500 block mb-1.5">Icon</span>
-      <div className="flex items-center gap-3">
+      <p className="eyebrow mb-2">Icon</p>
+      <div className="flex items-center gap-4">
         {currentIconUrl ? (
           <img
             src={currentIconUrl}
             alt="Agent icon"
-            className="h-12 w-12 rounded-xl object-cover border border-zinc-700"
+            className="h-12 w-12 rounded-sm object-cover"
           />
         ) : (
-          <div className="h-12 w-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-            <Image className="h-5 w-5 text-zinc-600" />
-          </div>
+          <div className="h-12 w-12 rounded-sm bg-surface-sunken" />
         )}
         <div>
-          <label
-            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
-              uploading
-                ? "bg-zinc-800 text-zinc-500"
-                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-            }`}
-          >
+          <label className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink cursor-pointer transition-colors">
             {uploading ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
             ) : (
-              <Upload className="h-3 w-3" />
+              <Upload className="h-3 w-3" strokeWidth={1.5} />
             )}
-            {uploading ? "Uploading..." : "Upload"}
+            {uploading ? "Uploading\u2026" : "Upload"}
             <input
               ref={fileRef}
               type="file"
@@ -297,27 +277,22 @@ function IconUpload({
               disabled={uploading}
             />
           </label>
-          <p className="text-[10px] text-zinc-600 mt-1">PNG, JPG up to 2MB</p>
+          <p className="mt-1 text-2xs text-ink-faint">PNG or JPG, up to 2MB</p>
         </div>
       </div>
     </div>
   );
 }
 
-function ConfigField({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string;
-}) {
+function ConfigField({ label, value }: { label: string; value?: string }) {
+  const empty = !value || value === "New Agent";
   return (
     <div>
-      <span className="text-xs text-zinc-500 block mb-0.5">{label}</span>
-      {value && value !== "New Agent" ? (
-        <span className="text-sm text-zinc-200">{value}</span>
+      <p className="eyebrow mb-1">{label}</p>
+      {empty ? (
+        <p className="text-sm text-ink-faint italic">Not set</p>
       ) : (
-        <span className="text-xs text-zinc-600 italic">Not set</span>
+        <p className="text-sm text-ink">{value}</p>
       )}
     </div>
   );

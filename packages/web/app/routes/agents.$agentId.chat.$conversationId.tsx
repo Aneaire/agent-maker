@@ -23,15 +23,9 @@ export default function ChatPage() {
   const updateAgent = useMutation(api.agents.update);
   const linkedCredentials = useQuery(api.credentials.listForAgent, { agentId: agent._id });
 
-  // Determine which image gen providers have credentials available
-  // Image gen models are independent from the agent's chat model
   const configuredImageGenProviders = useMemo(() => {
     const providers: string[] = [];
-
-    // Gemini Imagen is always available via GEMINI_API_KEY env var on the server
     providers.push("gemini");
-
-    // Also check credential system links for additional providers
     if (linkedCredentials) {
       for (const link of linkedCredentials) {
         if (link.toolSetName === "image_generation") {
@@ -41,33 +35,33 @@ export default function ChatPage() {
         }
       }
     }
-
     return providers;
   }, [linkedCredentials]);
 
-  // Loading state
   if (conversation === undefined || messages === undefined) {
     return (
       <div className="flex-1 flex flex-col">
-        <div className="border-b border-zinc-800 px-6 py-3">
-          <div className="h-5 w-40 bg-zinc-800 rounded animate-pulse" />
+        <div className="border-b border-rule px-6 py-3">
+          <div className="h-4 w-40 bg-surface-sunken rounded-xs animate-pulse" />
         </div>
-        <div className="flex-1 animate-pulse" />
+        <div className="flex-1 animate-pulse bg-surface" />
       </div>
     );
   }
 
-  // Not found
   if (conversation === null) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-400 mb-4">Conversation not found</p>
+        <div className="max-w-sm">
+          <p className="eyebrow">404</p>
+          <h2 className="mt-2 font-display text-2xl text-ink leading-tight">
+            Conversation not found.
+          </h2>
           <Link
             to={`/agents/${agent._id}`}
-            className="text-sm text-zinc-300 hover:text-zinc-100 underline underline-offset-4"
+            className="mt-4 inline-block text-sm text-accent hover:text-accent-strong transition-colors"
           >
-            Back to agent
+            &larr; Back to agent
           </Link>
         </div>
       </div>
@@ -103,24 +97,29 @@ export default function ChatPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="border-b border-zinc-800 px-6 py-3 flex items-center justify-between shrink-0">
-        <div>
-          <h2 className="text-sm font-medium">
+      <div className="border-b border-rule px-8 py-4 flex items-center justify-between shrink-0">
+        <div className="min-w-0">
+          <p className="eyebrow">{agent.name}</p>
+          <h2 className="mt-1 font-display text-lg leading-tight text-ink truncate">
             {conversation.title || "New conversation"}
           </h2>
-          <p className="text-xs text-zinc-500">{agent.name}</p>
         </div>
         <Link
           to={`/agents/${agent._id}/editor`}
-          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 px-2.5 py-1.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-3 w-3" strokeWidth={1.5} />
           Edit with AI
         </Link>
       </div>
 
       {/* Messages */}
-      <ChatMessageList messages={messages} onSendSuggestion={handleSend} agentId={agent._id} configuredImageGenProviders={configuredImageGenProviders} />
+      <ChatMessageList
+        messages={messages}
+        onSendSuggestion={handleSend}
+        agentId={agent._id}
+        configuredImageGenProviders={configuredImageGenProviders}
+      />
 
       {/* Input */}
       <ChatInput

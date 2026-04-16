@@ -9,15 +9,12 @@ import {
   ChevronLeft,
   Pencil,
   Loader2,
-  Upload,
-  Image,
   History,
   MessageSquare,
   CheckCircle2,
   XCircle,
   Clock,
   X,
-  ChevronRight,
 } from "lucide-react";
 import { Link } from "react-router";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -54,10 +51,10 @@ export default function AgentEditorPage() {
 
   if (!sessionData) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950">
+      <div className="flex h-screen items-center justify-center bg-surface">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-zinc-400 mx-auto mb-4" />
-          <p className="text-zinc-400 text-sm">Starting the Agent Editor...</p>
+          <Loader2 className="h-5 w-5 animate-spin text-ink-faint mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-sm text-ink-muted">Starting the agent editor…</p>
         </div>
       </div>
     );
@@ -106,7 +103,6 @@ function EditorView({
   const [viewingConversationId, setViewingConversationId] =
     useState<Id<"conversations"> | null>(null);
 
-  // Redirect when session is completed
   useEffect(() => {
     if (session && session.status === "completed") {
       onDone();
@@ -148,7 +144,7 @@ function EditorView({
   const config = (session?.partialConfig as any) ?? {};
 
   return (
-    <div className="flex h-screen bg-zinc-950">
+    <div className="flex h-screen bg-surface">
       {/* Left: Edit History Sidebar */}
       {showHistory && (
         <EditHistorySidebar
@@ -174,55 +170,53 @@ function EditorView({
       {/* Center: Chat */}
       <div className={`flex-1 flex flex-col min-w-0 ${viewingConversationId ? "hidden" : ""}`}>
         {/* Header */}
-        <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="border-b border-rule px-6 h-14 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
             <Link
               to={`/agents/${agentId}/settings`}
-              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors"
             >
-              <ChevronLeft className="h-3 w-3" />
+              <ChevronLeft className="h-3 w-3" strokeWidth={1.75} />
               Settings
             </Link>
-            <div className="h-4 w-px bg-zinc-800" />
+            <div className="h-4 w-px bg-rule" />
             <div className="flex items-center gap-2">
-              <Pencil className="h-4 w-4 text-zinc-400" />
-              <span className="text-sm font-medium">
+              <Pencil className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.5} />
+              <span className="text-sm text-ink">
                 Editing{agent ? `: ${agent.name}` : ""}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleNewChat}
               disabled={creatingChat}
-              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors disabled:opacity-40"
             >
               {creatingChat ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
               ) : (
-                <MessageSquare className="h-3.5 w-3.5" />
+                <MessageSquare className="h-3 w-3" strokeWidth={1.5} />
               )}
               New Chat
             </button>
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
-                showHistory
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+              className={`inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold transition-colors ${
+                showHistory ? "text-ink" : "text-ink-muted hover:text-ink"
               }`}
             >
-              <History className="h-3.5 w-3.5" />
+              <History className="h-3 w-3" strokeWidth={1.5} />
               History
               {pastSessions && pastSessions.length > 0 && (
-                <span className="text-[10px] bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                <span className="font-mono text-ink-faint">
                   {pastSessions.length}
                 </span>
               )}
             </button>
             <button
               onClick={onAbandon}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-sm text-ink-muted hover:text-ink transition-colors"
             >
               Cancel
             </button>
@@ -232,7 +226,7 @@ function EditorView({
         {/* Messages */}
         {messages === undefined ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            <Loader2 className="h-4 w-4 animate-spin text-ink-faint" strokeWidth={1.5} />
           </div>
         ) : (
           <ChatMessageList messages={messages} onSendSuggestion={handleSend} />
@@ -252,22 +246,20 @@ function EditorView({
 
       {/* Right: Config Preview */}
       {!viewingConversationId && (
-        <div className="w-80 border-l border-zinc-800 flex flex-col shrink-0 bg-zinc-950">
-          <div className="p-4 border-b border-zinc-800">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <Bot className="h-4 w-4 text-zinc-400" />
-              Agent Config
-            </h3>
+        <aside className="w-80 border-l border-rule flex flex-col shrink-0 bg-surface">
+          <div className="px-5 h-14 border-b border-rule flex items-center gap-2">
+            <Bot className="h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
+            <p className="eyebrow">Preview</p>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
             {/* Icon */}
             {config.iconUrl && (
               <div>
-                <span className="text-xs text-zinc-500 block mb-1.5">Icon</span>
+                <p className="eyebrow mb-2">Icon</p>
                 <img
                   src={config.iconUrl}
                   alt="Agent icon"
-                  className="h-12 w-12 rounded-xl object-cover border border-zinc-700"
+                  className="h-12 w-12 object-cover border border-rule"
                 />
               </div>
             )}
@@ -275,51 +267,50 @@ function EditorView({
             <ConfigField label="Name" value={config.name} />
             <ConfigField label="Description" value={config.description} />
             <ConfigField label="Model" value={config.model} />
+
             <div>
-              <span className="text-xs text-zinc-500 block mb-1.5">
-                Capabilities
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {(config.enabledToolSets ?? []).map((t: string) => (
-                  <span
-                    key={t}
-                    className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full"
-                  >
-                    {TOOL_LABELS[t] ?? t}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {config.pages && config.pages.length > 0 && (
-              <div>
-                <span className="text-xs text-zinc-500 block mb-1.5">Pages</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {config.pages.map((p: any) => (
-                    <span
-                      key={p.label}
-                      className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full"
-                    >
-                      {p.label} ({p.type})
+              <p className="eyebrow mb-2">Capabilities</p>
+              {(config.enabledToolSets ?? []).length > 0 ? (
+                <p className="text-sm text-ink leading-relaxed">
+                  {(config.enabledToolSets as string[]).map((t: string, i: number) => (
+                    <span key={t}>
+                      {i > 0 && <span className="text-ink-faint"> &middot; </span>}
+                      {TOOL_LABELS[t] ?? t}
                     </span>
                   ))}
-                </div>
+                </p>
+              ) : (
+                <p className="text-sm text-ink-faint italic">Not set</p>
+              )}
+            </div>
+
+            {config.pages && config.pages.length > 0 && (
+              <div>
+                <p className="eyebrow mb-2">Pages</p>
+                <p className="text-sm text-ink leading-relaxed">
+                  {config.pages.map((p: any, i: number) => (
+                    <span key={p.label}>
+                      {i > 0 && <span className="text-ink-faint"> &middot; </span>}
+                      {p.label}
+                    </span>
+                  ))}
+                </p>
               </div>
             )}
+
             <div>
-              <span className="text-xs text-zinc-500 block mb-1">
-                System Prompt
-              </span>
+              <p className="eyebrow mb-2">System Prompt</p>
               {config.systemPrompt &&
               config.systemPrompt !== "You are a helpful AI assistant." ? (
-                <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-3 max-h-64 overflow-y-auto">
+                <pre className="font-mono text-2xs text-ink-muted whitespace-pre-wrap bg-surface-sunken border border-rule p-3 max-h-64 overflow-y-auto leading-relaxed">
                   {config.systemPrompt}
                 </pre>
               ) : (
-                <span className="text-xs text-zinc-600 italic">Default</span>
+                <p className="text-sm text-ink-faint italic">Not set</p>
               )}
             </div>
           </div>
-        </div>
+        </aside>
       )}
     </div>
   );
@@ -366,88 +357,86 @@ function EditHistorySidebar({
   }
 
   return (
-    <div className="w-72 border-r border-zinc-800 flex flex-col shrink-0 bg-zinc-950">
-      <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <History className="h-4 w-4 text-zinc-400" />
-          Edit History
-        </h3>
+    <div className="w-72 border-r border-rule flex flex-col shrink-0 bg-surface">
+      <div className="px-5 h-14 border-b border-rule flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <History className="h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
+          <p className="eyebrow">Edit History</p>
+        </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+          className="p-1 text-ink-faint hover:text-ink transition-colors"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {sessions.length === 0 ? (
-          <div className="p-4 text-center">
-            <MessageSquare className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
-            <p className="text-xs text-zinc-500">No previous edit sessions</p>
-            <p className="text-[10px] text-zinc-600 mt-1">
-              Your edit history will appear here
-            </p>
+          <div className="px-5 py-8">
+            <p className="eyebrow">Empty</p>
+            <p className="mt-2 text-sm text-ink-faint">No previous edit sessions.</p>
           </div>
         ) : (
-          <div className="p-2 space-y-1">
+          <ol className="divide-y divide-rule">
             {sessions.map((s) => {
               const isViewing = viewingConversationId === s.conversationId;
               return (
-                <button
-                  key={s._id}
-                  onClick={() =>
-                    s.conversationId && onSelectSession(s.conversationId)
-                  }
-                  disabled={!s.conversationId}
-                  className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors group ${
-                    isViewing
-                      ? "bg-zinc-800 border border-zinc-700"
-                      : "hover:bg-zinc-800/50 border border-transparent"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {s.status === "completed" ? (
-                      <CheckCircle2 className="h-3 w-3 text-neon-400 shrink-0" />
-                    ) : s.status === "abandoned" ? (
-                      <XCircle className="h-3 w-3 text-zinc-600 shrink-0" />
-                    ) : (
-                      <Clock className="h-3 w-3 text-amber-500 shrink-0" />
-                    )}
-                    <span className="text-[10px] text-zinc-500">
-                      {formatDate(s._creationTime)}
-                    </span>
-                    <span className="text-[10px] text-zinc-600 ml-auto">
-                      {s.messageCount} msgs
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 truncate leading-snug">
-                    {s.preview}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span
-                      className={`text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded ${
-                        s.status === "completed"
-                          ? "bg-neon-400/10 text-neon-400"
+                <li key={s._id}>
+                  <button
+                    onClick={() =>
+                      s.conversationId && onSelectSession(s.conversationId)
+                    }
+                    disabled={!s.conversationId}
+                    className={`w-full text-left px-5 py-3.5 transition-colors ${
+                      isViewing ? "bg-surface-sunken" : "hover:bg-surface-sunken/60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {s.status === "completed" ? (
+                        <CheckCircle2 className="h-3 w-3 text-accent shrink-0" strokeWidth={1.5} />
+                      ) : s.status === "abandoned" ? (
+                        <XCircle className="h-3 w-3 text-ink-faint shrink-0" strokeWidth={1.5} />
+                      ) : (
+                        <Clock className="h-3 w-3 text-warn shrink-0" strokeWidth={1.5} />
+                      )}
+                      <span className="font-mono text-2xs text-ink-faint">
+                        {formatDate(s._creationTime)}
+                      </span>
+                      <span className="font-mono text-2xs text-ink-faint ml-auto">
+                        {s.messageCount} msgs
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink truncate leading-snug">
+                      {s.preview}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span
+                        className={`text-2xs uppercase tracking-[0.1em] font-semibold ${
+                          s.status === "completed"
+                            ? "text-accent"
+                            : s.status === "abandoned"
+                              ? "text-ink-faint"
+                              : "text-warn"
+                        }`}
+                      >
+                        {s.status === "completed"
+                          ? "Applied"
                           : s.status === "abandoned"
-                            ? "bg-zinc-800 text-zinc-600"
-                            : "bg-amber-500/10 text-amber-500"
-                      }`}
-                    >
-                      {s.status === "completed"
-                        ? "Applied"
-                        : s.status === "abandoned"
-                          ? "Cancelled"
-                          : "Active"}
-                    </span>
-                    <span className="text-[9px] text-zinc-600 uppercase tracking-wider">
-                      {s.mode ?? "edit"}
-                    </span>
-                  </div>
-                </button>
+                            ? "Cancelled"
+                            : "Active"}
+                      </span>
+                      {s.mode && (
+                        <span className="text-2xs text-ink-faint uppercase tracking-[0.1em]">
+                          {s.mode}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ol>
         )}
       </div>
     </div>
@@ -467,37 +456,31 @@ function PastConversationViewer({
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
-      {/* Header */}
-      <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="border-b border-rule px-6 h-14 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4">
           <button
             onClick={onClose}
-            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors"
           >
-            <ChevronLeft className="h-3 w-3" />
+            <ChevronLeft className="h-3 w-3" strokeWidth={1.75} />
             Back to editor
           </button>
-          <div className="h-4 w-px bg-zinc-800" />
+          <div className="h-4 w-px bg-rule" />
           <div className="flex items-center gap-2">
-            <History className="h-4 w-4 text-zinc-400" />
-            <span className="text-sm font-medium text-zinc-300">
-              Past Edit Session
-            </span>
+            <History className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.5} />
+            <span className="text-sm text-ink">Past Edit Session</span>
           </div>
         </div>
-        <span className="text-[10px] text-zinc-600 uppercase tracking-wider bg-zinc-800 px-2 py-1 rounded">
-          Read-only
-        </span>
+        <span className="eyebrow text-ink-faint">Read-only</span>
       </div>
 
-      {/* Messages (read-only) */}
       {messages === undefined ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+          <Loader2 className="h-4 w-4 animate-spin text-ink-faint" strokeWidth={1.5} />
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
-          No messages found for this session
+        <div className="flex-1 flex items-center justify-center text-sm text-ink-faint">
+          No messages found for this session.
         </div>
       ) : (
         <ChatMessageList messages={messages} />
@@ -506,20 +489,15 @@ function PastConversationViewer({
   );
 }
 
-function ConfigField({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string;
-}) {
+function ConfigField({ label, value }: { label: string; value?: string }) {
+  const empty = !value || value === "New Agent";
   return (
     <div>
-      <span className="text-xs text-zinc-500 block mb-0.5">{label}</span>
-      {value ? (
-        <span className="text-sm text-zinc-200">{value}</span>
+      <p className="eyebrow mb-1">{label}</p>
+      {empty ? (
+        <p className="text-sm text-ink-faint italic">Not set</p>
       ) : (
-        <span className="text-xs text-zinc-600 italic">Not set</span>
+        <p className="text-sm text-ink">{value}</p>
       )}
     </div>
   );

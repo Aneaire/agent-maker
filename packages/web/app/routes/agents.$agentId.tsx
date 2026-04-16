@@ -1,7 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { useParams, Link, Outlet, useLocation } from "react-router";
-import { Bot } from "lucide-react";
 import { AgentSidebar } from "~/components/AgentSidebar";
 import { SettingsSidebar } from "~/components/SettingsSidebar";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
@@ -18,24 +17,29 @@ export default function AgentLayout() {
 
   if (agent === undefined) {
     return (
-      <div className="flex h-screen bg-zinc-950">
-        <div className="w-64 border-r border-zinc-800 animate-pulse bg-zinc-900" />
-        <div className="flex-1 animate-pulse" />
+      <div className="flex h-screen bg-surface">
+        <div className="w-64 border-r border-rule animate-pulse bg-surface-sunken" />
+        <div className="flex-1 animate-pulse bg-surface" />
       </div>
     );
   }
 
   if (agent === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <Bot className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-          <p className="text-zinc-400 mb-4">Agent not found</p>
+      <div className="flex min-h-screen items-center justify-center bg-surface">
+        <div className="max-w-sm px-8 text-left">
+          <p className="eyebrow">404</p>
+          <h1 className="mt-3 font-display text-3xl leading-tight text-ink">
+            Agent not found.
+          </h1>
+          <p className="mt-3 text-sm text-ink-muted leading-relaxed">
+            This agent may have been deleted, or the link is stale.
+          </p>
           <Link
             to="/"
-            className="text-sm text-zinc-300 hover:text-zinc-100 underline underline-offset-4"
+            className="mt-5 inline-flex items-center gap-1.5 text-sm text-accent hover:text-accent-strong transition-colors"
           >
-            Back to dashboard
+            &larr; Back to dashboard
           </Link>
         </div>
       </div>
@@ -43,7 +47,7 @@ export default function AgentLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950">
+    <div className="flex h-screen bg-surface">
       {isSettings ? (
         <SettingsSidebar
           agent={agent}
@@ -53,7 +57,7 @@ export default function AgentLayout() {
       ) : (
         <AgentSidebar agent={agent} />
       )}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 bg-surface">
         <Outlet context={{ agent, settingsSection, setSettingsSection }} />
       </main>
     </div>

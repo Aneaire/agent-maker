@@ -1,21 +1,12 @@
 import { Link } from "react-router";
-import {
-  Bot,
-  ChevronLeft,
-  Settings,
-  User,
-  Cpu,
-  ToggleRight,
-  Plug,
-  Wrench,
-} from "lucide-react";
+import { ChevronLeft, User, Cpu, ToggleRight, Plug, Wrench } from "lucide-react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 
 const SETTINGS_SECTIONS = [
   {
     id: "general",
     label: "General",
-    description: "Name, icon, and system prompt",
+    description: "Name, icon, system prompt",
     icon: User,
   },
   {
@@ -33,7 +24,7 @@ const SETTINGS_SECTIONS = [
   {
     id: "integrations",
     label: "Integrations",
-    description: "Third-party services and credentials",
+    description: "Third-party services",
     icon: Plug,
   },
   {
@@ -54,29 +45,22 @@ export function SettingsSidebar({
   onSectionChange: (section: string) => void;
 }) {
   return (
-    <aside className="w-64 border-r border-zinc-800/50 flex flex-col bg-gradient-to-b from-zinc-950 to-zinc-900/50 shrink-0">
-      {/* Header */}
-      <div className="p-4 border-b border-zinc-800/50">
+    <aside className="w-64 border-r border-rule flex flex-col bg-surface shrink-0">
+      <div className="px-5 pt-6 pb-5 border-b border-rule">
         <Link
           to={`/agents/${agent._id}`}
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-300 transition-colors mb-3 group"
+          className="inline-flex items-center gap-1 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-faint hover:text-ink-muted transition-colors group mb-4"
         >
           <ChevronLeft className="h-3 w-3 group-hover:-translate-x-0.5 transition-transform" />
-          Back to Agent
+          Back
         </Link>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800/80 ring-1 ring-zinc-700/50">
-            <Settings className="h-5 w-5 text-zinc-400" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-sm truncate">Settings</div>
-            <div className="text-xs text-zinc-500 truncate">{agent.name}</div>
-          </div>
-        </div>
+        <p className="eyebrow">Settings</p>
+        <h2 className="mt-2 font-display text-xl leading-tight text-ink truncate">
+          {agent.name}
+        </h2>
       </div>
 
-      {/* Sections */}
-      <nav className="flex-1 p-2 space-y-0.5">
+      <nav className="flex-1 py-3">
         {SETTINGS_SECTIONS.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -84,16 +68,23 @@ export function SettingsSidebar({
             <button
               key={section.id}
               onClick={() => onSectionChange(section.id)}
-              className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-left transition-all ${
+              className={`grid grid-cols-[16px_1fr] gap-3 w-full px-5 py-3 text-left transition-colors ${
                 isActive
-                  ? "bg-neon-400/10 text-neon-400 shadow-sm border-l-2 border-neon-400 pl-2.5"
-                  : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
+                  ? "bg-surface-sunken text-ink"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon
+                className={`h-4 w-4 mt-0.5 ${
+                  isActive ? "text-accent" : "text-ink-faint"
+                }`}
+                strokeWidth={1.5}
+              />
               <div className="min-w-0">
-                <div className="text-sm font-medium">{section.label}</div>
-                <div className={`text-[11px] mt-0.5 ${isActive ? "text-neon-400/60" : "text-zinc-600"}`}>
+                <div className="text-sm leading-tight font-medium">
+                  {section.label}
+                </div>
+                <div className="mt-0.5 text-2xs text-ink-faint leading-snug">
                   {section.description}
                 </div>
               </div>
@@ -101,17 +92,6 @@ export function SettingsSidebar({
           );
         })}
       </nav>
-
-      {/* Footer */}
-      <div className="p-2 border-t border-zinc-800/50">
-        <Link
-          to={`/agents/${agent._id}`}
-          className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300 transition-all"
-        >
-          <Bot className="h-4 w-4" />
-          Back to Agent
-        </Link>
-      </div>
     </aside>
   );
 }

@@ -63,48 +63,46 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   return (
     <div className="flex-1 flex min-h-0">
       {/* Note List */}
-      <div className="w-72 border-r border-zinc-800/60 flex flex-col shrink-0 bg-zinc-950/50">
-        <div className="px-4 py-4 border-b border-zinc-800/60 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-800/80">
-              <FileText className="h-3.5 w-3.5 text-zinc-300" />
-            </div>
-            <span className="text-sm font-semibold">{tab.label}</span>
+      <div className="w-72 border-r border-rule flex flex-col shrink-0 bg-surface">
+        <div className="px-4 py-3.5 border-b border-rule flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
+            <span className="eyebrow">{tab.label}</span>
             {notes && (
-              <span className="text-xs text-zinc-600 bg-zinc-800/60 px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] text-ink-faint tabular-nums">
                 {notes.length}
               </span>
             )}
           </div>
           <button
             onClick={handleStartCreate}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="p-1.5 text-ink-faint hover:text-ink hover:bg-surface-sunken transition-colors"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
           </button>
         </div>
 
-        <div className="px-3 py-2.5">
+        <div className="px-3 py-2.5 border-b border-rule shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600" />
+            <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notes..."
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-colors"
+              placeholder="Search notes…"
+              className="w-full bg-transparent border-0 border-b border-rule pl-6 pr-0 py-1.5 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 space-y-1">
+        <div className="flex-1 overflow-y-auto">
           {isNaming && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleConfirmCreate();
               }}
-              className="rounded-xl bg-zinc-800 px-3.5 py-3 border-l-2 border-neon-400"
+              className="bg-surface-sunken border-b border-rule px-3.5 py-3"
             >
               <input
                 value={newNoteName}
@@ -119,70 +117,73 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                     setNewNoteName("");
                   }
                 }}
-                placeholder="Note name..."
-                className="w-full bg-transparent text-sm font-medium text-zinc-100 outline-none placeholder-zinc-600"
+                placeholder="Note name…"
+                className="w-full bg-transparent text-sm font-medium text-ink outline-none placeholder-ink-faint"
                 autoFocus
               />
-              <div className="text-[10px] text-zinc-600 mt-1.5">
+              <div className="text-[10px] text-ink-faint mt-1.5">
                 Enter to create · Esc to cancel
               </div>
             </form>
           )}
           {displayNotes === undefined ? (
-            <div className="space-y-1.5 px-1">
+            <div className="space-y-px">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-16 rounded-xl bg-zinc-900/50 animate-pulse"
+                  className="h-16 bg-surface-sunken animate-pulse"
                 />
               ))}
             </div>
           ) : displayNotes.length === 0 ? (
-            <div className="flex flex-col items-center py-8 text-center">
-              <FileText className="h-8 w-8 text-zinc-800 mb-2" />
-              <p className="text-xs text-zinc-600">
+            <div className="flex flex-col items-center py-10 text-center px-4">
+              <FileText className="h-8 w-8 text-ink-faint mb-2" strokeWidth={1} />
+              <p className="text-xs text-ink-faint">
                 {searchQuery ? "No matches" : "No notes yet"}
               </p>
               {!searchQuery && (
                 <button
                   onClick={handleStartCreate}
-                  className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2"
+                  className="mt-3 text-xs text-ink-muted hover:text-ink underline underline-offset-2 transition-colors"
                 >
                   Create one
                 </button>
               )}
             </div>
           ) : (
-            displayNotes.map((note) => (
-              <button
-                key={note._id}
-                onClick={() => setSelectedId(note._id)}
-                className={`w-full text-left rounded-xl px-3.5 py-3 transition-all ${
-                  selectedId === note._id
-                    ? "bg-zinc-800 text-zinc-100 shadow-sm border-l-2 border-neon-400 pl-3"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300"
-                }`}
-              >
-                <div className="text-sm font-medium truncate">
-                  {note.title}
-                </div>
-                <div className="text-[11px] text-zinc-600 line-clamp-2 mt-1 leading-relaxed">
-                  {note.content.substring(0, 80) || "Empty note"}
-                </div>
-                <div className="text-[9px] text-zinc-700 mt-1.5">
-                  {new Date(note._creationTime).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </div>
-              </button>
-            ))
+            <ol className="divide-y divide-rule">
+              {displayNotes.map((note) => (
+                <li key={note._id}>
+                  <button
+                    onClick={() => setSelectedId(note._id)}
+                    className={`w-full text-left px-3.5 py-3 transition-all ${
+                      selectedId === note._id
+                        ? "bg-surface-sunken"
+                        : "hover:bg-surface-sunken/60"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-ink truncate">
+                      {note.title}
+                    </div>
+                    <div className="text-[11px] text-ink-faint line-clamp-2 mt-0.5 leading-relaxed">
+                      {note.content.substring(0, 80) || "Empty note"}
+                    </div>
+                    <div className="text-[9px] text-ink-faint mt-1">
+                      {new Date(note._creationTime).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ol>
           )}
         </div>
       </div>
 
       {/* Note Editor */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {selectedNote ? (
           <NoteEditor
             note={selectedNote}
@@ -196,9 +197,9 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <FileText className="h-12 w-12 text-zinc-800 mb-3" />
-            <p className="text-zinc-500 font-medium">No note selected</p>
-            <p className="text-sm text-zinc-600 mt-1">
+            <FileText className="h-10 w-10 text-ink-faint mb-3" strokeWidth={1} />
+            <p className="text-ink-muted font-medium text-sm">No note selected</p>
+            <p className="text-xs text-ink-faint mt-1">
               Select a note or create a new one
             </p>
           </div>
@@ -267,7 +268,6 @@ function NoteEditor({
     }, 500);
   }
 
-  // Flush pending changes on blur — revert if empty
   function handleTitleBlur() {
     isTitleFocused.current = false;
     clearTimeout(titleTimer.current);
@@ -301,7 +301,7 @@ function NoteEditor({
                 setLocalContent(updated);
                 onUpdate({ content: updated });
               }}
-              className="cursor-pointer accent-blue-500 h-4 w-4 rounded border-zinc-600 align-middle mr-1"
+              className="cursor-pointer h-4 w-4 align-middle mr-1"
             />
           );
         }
@@ -315,50 +315,50 @@ function NoteEditor({
 
   return (
     <>
-      <div className="border-b border-zinc-800/60 px-6 py-3.5 flex items-center justify-between shrink-0">
+      <div className="border-b border-rule px-6 py-3.5 flex items-center justify-between shrink-0">
         <input
           type="text"
           value={localTitle}
           onChange={(e) => handleTitleChange(e.target.value)}
           onFocus={() => (isTitleFocused.current = true)}
           onBlur={handleTitleBlur}
-          className="bg-transparent text-base font-semibold text-zinc-100 focus:outline-none flex-1 min-w-0"
-          placeholder="Note title..."
+          className="bg-transparent text-base font-semibold text-ink focus:outline-none flex-1 min-w-0"
+          placeholder="Note title…"
         />
 
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Mode toggle */}
-          <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-0.5">
+          <div className="flex items-center border border-rule">
             <button
               onClick={() => setMode("edit")}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={`p-1.5 transition-colors ${
                 mode === "edit"
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-surface-sunken text-ink"
+                  : "text-ink-faint hover:text-ink-muted"
               }`}
               title="Edit"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
             </button>
             <button
               onClick={() => setMode("preview")}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={`p-1.5 transition-colors ${
                 mode === "preview"
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-surface-sunken text-ink"
+                  : "text-ink-faint hover:text-ink-muted"
               }`}
               title="Preview"
             >
-              <Eye className="h-3.5 w-3.5" />
+              <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
             </button>
           </div>
 
           {/* Delete */}
           <button
             onClick={onDelete}
-            className="p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all ml-1"
+            className="p-2 text-ink-faint hover:text-danger hover:bg-danger/5 transition-all ml-1"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -370,13 +370,13 @@ function NoteEditor({
           onChange={(e) => handleContentChange(e.target.value)}
           onFocus={() => (isContentFocused.current = true)}
           onBlur={handleContentBlur}
-          placeholder="Start writing... (supports markdown)"
-          className="flex-1 bg-transparent px-6 py-5 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none resize-none font-mono leading-relaxed"
+          placeholder="Start writing… (supports markdown)"
+          className="flex-1 bg-transparent px-6 py-5 text-sm text-ink placeholder:text-ink-faint focus:outline-none resize-none font-mono leading-relaxed"
         />
       ) : (
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {localContent ? (
-            <div className="max-w-2xl mx-auto prose prose-invert prose-sm prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-300 prose-a:text-blue-400 prose-strong:text-zinc-200 prose-code:text-zinc-300 prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 prose-blockquote:border-zinc-700 prose-hr:border-zinc-800 prose-th:text-zinc-300 prose-td:text-zinc-400">
+            <div className="max-w-2xl mx-auto prose prose-sm prose-headings:font-display prose-headings:text-ink prose-p:text-ink-muted prose-a:text-accent prose-a:no-underline hover:prose-a:underline prose-strong:text-ink prose-code:text-accent prose-code:bg-surface-sunken prose-code:px-1.5 prose-code:py-0.5 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-surface-sunken prose-pre:border prose-pre:border-rule prose-blockquote:border-l-2 prose-blockquote:border-rule prose-blockquote:text-ink-muted prose-hr:border-rule prose-th:text-ink prose-th:bg-surface-sunken prose-td:text-ink-muted">
               <Markdown
                 remarkPlugins={[remarkGfm]}
                 components={markdownComponents}
@@ -386,8 +386,8 @@ function NoteEditor({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <Pencil className="h-8 w-8 text-zinc-800 mb-3" />
-              <p className="text-zinc-600 text-sm">
+              <Pencil className="h-8 w-8 text-ink-faint mb-3" strokeWidth={1} />
+              <p className="text-ink-faint text-sm">
                 Switch to edit mode to start writing
               </p>
             </div>

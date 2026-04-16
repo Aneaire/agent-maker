@@ -1,26 +1,10 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@agent-maker/shared/convex/_generated/api";
 import { useOutletContext } from "react-router";
-import { Brain, Trash2, Search, Tag, Sparkles } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Doc } from "@agent-maker/shared/convex/_generated/dataModel";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
-
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  preference: { bg: "bg-blue-950/50 ring-1 ring-blue-500/20", text: "text-blue-400" },
-  fact: { bg: "bg-neon-950/50 ring-1 ring-neon-500/20", text: "text-neon-400" },
-  instruction: { bg: "bg-amber-950/50 ring-1 ring-amber-500/20", text: "text-amber-400" },
-  context: { bg: "bg-purple-950/50 ring-1 ring-purple-500/20", text: "text-purple-400" },
-};
-
-function getCategoryStyle(category: string) {
-  return (
-    CATEGORY_COLORS[category.toLowerCase()] ?? {
-      bg: "bg-zinc-800/50 ring-1 ring-zinc-700/30",
-      text: "text-zinc-400",
-    }
-  );
-}
 
 export default function MemoriesPage() {
   const { agent } = useOutletContext<{ agent: Doc<"agents"> }>();
@@ -36,7 +20,6 @@ export default function MemoriesPage() {
   );
   const removeMemory = useMutation(api.memories.remove);
 
-  // Collect all unique categories
   const allCategories = Array.from(
     new Set(memories?.map((m) => m.category).filter(Boolean) as string[])
   ).sort();
@@ -54,150 +37,126 @@ export default function MemoriesPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="border-b border-zinc-800/60 px-6 py-4 flex items-center justify-between shrink-0 bg-zinc-950/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-zinc-800/80 ring-1 ring-purple-500/20">
-            <Brain className="h-4 w-4 text-purple-400" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold">Memories</h2>
-            {memories && (
-              <p className="text-xs text-zinc-500">
-                {memories.length} memor{memories.length !== 1 ? "ies" : "y"} stored
-              </p>
-            )}
-          </div>
+      <header className="border-b border-rule px-8 py-6 shrink-0">
+        <div className="max-w-3xl">
+          <p className="eyebrow">Long-term context</p>
+          <h1 className="mt-2 font-display text-3xl leading-[1.05] tracking-tight text-ink">
+            Memories
+          </h1>
+          {memories && (
+            <p className="mt-2 text-sm text-ink-muted">
+              {memories.length} memor{memories.length !== 1 ? "ies" : "y"} stored
+              &middot; created automatically during conversations
+            </p>
+          )}
         </div>
-      </div>
+      </header>
 
-      {/* Search + Filters */}
-      <div className="px-6 py-3 border-b border-zinc-800/60 space-y-2.5">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
+      {/* Search + filters */}
+      <div className="border-b border-rule px-8 py-4 shrink-0">
+        <div className="max-w-3xl space-y-3">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search memories..."
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus-glow transition-all"
+            placeholder="Search memories"
+            className="w-full bg-transparent border-0 border-b border-rule-strong pb-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
           />
-        </div>
 
-        {allCategories.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {filterCategory && (
+          {allCategories.length > 0 && (
+            <div className="flex flex-wrap gap-4 text-2xs uppercase tracking-[0.12em] font-semibold">
               <button
                 onClick={() => setFilterCategory(null)}
-                className="inline-flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+                className={`transition-colors ${
+                  !filterCategory ? "text-ink" : "text-ink-faint hover:text-ink-muted"
+                }`}
               >
                 All
               </button>
-            )}
-            {allCategories.map((cat) => {
-              const style = getCategoryStyle(cat);
-              return (
+              {allCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() =>
                     setFilterCategory(filterCategory === cat ? null : cat)
                   }
-                  className={`inline-flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full transition-colors ${
+                  className={`transition-colors ${
                     filterCategory === cat
-                      ? `${style.bg} ${style.text}`
-                      : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
+                      ? "text-accent"
+                      : "text-ink-faint hover:text-ink-muted"
                   }`}
                 >
-                  <Tag className="h-2.5 w-2.5" />
                   {cat}
                 </button>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        {displayMemories === undefined ? (
-          <div className="space-y-3 max-w-2xl">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-2xl bg-zinc-900/30 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : displayMemories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 ring-1 ring-zinc-800 mb-5">
-              <Brain className="h-7 w-7 text-zinc-700" />
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="max-w-3xl">
+          {displayMemories === undefined ? (
+            <div className="space-y-[1px]">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-surface-sunken animate-pulse" />
+              ))}
             </div>
-            <p className="text-zinc-400 font-medium">
-              {searchQuery.trim() || filterCategory
-                ? "No memories match"
-                : "No memories stored yet"}
-            </p>
-            <p className="text-zinc-600 text-sm mt-1.5 max-w-xs">
-              {searchQuery.trim() || filterCategory
-                ? "Try a different search or filter"
-                : "Memories are automatically created during conversations to give your agent long-term context"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5 max-w-2xl">
-            {displayMemories.map((memory) => {
-              const catStyle = memory.category
-                ? getCategoryStyle(memory.category)
-                : null;
-              return (
-                <div
-                  key={memory._id}
-                  className="group rounded-2xl border border-zinc-800/60 glass-card p-4 hover:border-zinc-700/60 transition-all relative overflow-hidden"
-                >
-                  {/* Category color band */}
-                  {catStyle && (
-                    <div
-                      className={`absolute left-0 top-0 bottom-0 w-[3px] ${catStyle.bg}`}
-                    />
-                  )}
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800/60 mt-0.5">
-                      <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-zinc-200 leading-relaxed">
+          ) : displayMemories.length === 0 ? (
+            <div className="py-16 max-w-md">
+              <p className="eyebrow">Empty</p>
+              <h2 className="mt-2 font-display text-2xl leading-tight text-ink">
+                {searchQuery.trim() || filterCategory
+                  ? "No memories match."
+                  : "No memories stored yet."}
+              </h2>
+              <p className="mt-3 text-sm text-ink-muted leading-relaxed">
+                {searchQuery.trim() || filterCategory
+                  ? "Try a different search or clear the filter."
+                  : "Your agent will start remembering things from conversations as soon as it has context worth keeping."}
+              </p>
+            </div>
+          ) : (
+            <ol className="divide-y divide-rule border-y border-rule">
+              {displayMemories.map((memory, i) => (
+                <li key={memory._id} className="group">
+                  <div className="grid grid-cols-[3ch_1fr_auto] gap-6 items-start py-5">
+                    <span className="font-mono text-2xs text-ink-faint tabular-nums pt-1">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm text-ink leading-relaxed max-w-[65ch]">
                         {memory.content}
                       </p>
-                      <div className="flex items-center gap-2 mt-2.5">
+                      <div className="mt-2 flex items-center gap-3 text-2xs">
                         {memory.category && (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${catStyle!.bg} ${catStyle!.text}`}
-                          >
+                          <span className="uppercase tracking-[0.12em] font-semibold text-accent">
                             {memory.category}
                           </span>
                         )}
-                        <span className="text-[10px] text-zinc-700">
-                          {new Date(memory._creationTime).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                          })}
+                        <span className="font-mono text-ink-faint tabular-nums">
+                          {new Date(memory._creationTime).toLocaleDateString(
+                            undefined,
+                            { month: "short", day: "numeric", year: "numeric" }
+                          )}
                         </span>
                       </div>
                     </div>
                     <button
                       onClick={() => handleDelete(memory._id)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 text-ink-faint hover:text-danger transition-all shrink-0"
+                      aria-label="Delete memory"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                     </button>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
     </div>
   );

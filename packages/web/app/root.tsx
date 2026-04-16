@@ -11,6 +11,7 @@ import { ConvexProviderWithAuth } from "convex/react";
 import { ConvexReactClient } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
 import "./styles.css";
+import { themeBootstrapScript } from "./lib/theme";
 
 /* ── Clerk dark theme matching our zinc-950 + neon-400 branding ────── */
 const clerkAppearance = {
@@ -285,15 +286,18 @@ const clerkAppearance = {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="bg-zinc-950 overscroll-none">
+    <html lang="en" className="overscroll-none">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/png" href="/logo.png" />
         <Meta />
         <Links />
+        <script
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
       </head>
-      <body className="min-h-screen bg-zinc-950 text-zinc-100 antialiased overscroll-none">
+      <body className="min-h-screen bg-surface text-ink antialiased overscroll-none">
         {children}
         <ScrollRestoration />
         <Scripts />

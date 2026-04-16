@@ -90,16 +90,14 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="border-b border-zinc-800/60 px-6 py-4 flex items-center justify-between shrink-0">
+      <div className="border-b border-rule px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/80">
-            <Table className="h-4 w-4 text-zinc-300" />
-          </div>
+          <Table className="h-4 w-4 text-ink-faint" strokeWidth={1.5} />
           <div>
-            <h2 className="text-sm font-semibold">{tab.label}</h2>
+            <p className="eyebrow">{tab.label}</p>
             {rows && columns && (
-              <p className="text-xs text-zinc-500">
-                {rows.length} row{rows.length !== 1 ? "s" : ""} · {columns.length} column{columns.length !== 1 ? "s" : ""}
+              <p className="text-[10px] text-ink-faint">
+                {rows.length} row{rows.length !== 1 ? "s" : ""} · {columns.length} col{columns.length !== 1 ? "s" : ""}
               </p>
             )}
           </div>
@@ -108,61 +106,61 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           {rows && rows.length > 0 && (
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink-muted px-3 py-1.5 hover:bg-surface-sunken transition-colors"
             >
-              <Download className="h-3.5 w-3.5" />
+              <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
               CSV
             </button>
           )}
           <button
             onClick={() => setShowAddCol(true)}
-            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink-muted px-3 py-1.5 hover:bg-surface-sunken transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
             Column
           </button>
           <button
             onClick={handleAddRow}
             disabled={!columns || columns.length === 0}
-            className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 px-3 py-1.5 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
+            className="flex items-center gap-1.5 text-xs bg-ink text-surface px-3 py-1.5 font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
             Row
           </button>
         </div>
       </div>
 
-      {/* Add Column Dialog */}
+      {/* Add Column Panel */}
       {showAddCol && (
-        <div className="px-6 py-3 border-b border-zinc-800/60 bg-zinc-900/50 flex items-center gap-3">
+        <div className="px-6 py-3 border-b border-rule bg-surface-sunken flex items-center gap-3">
           <input
             type="text"
             value={newColName}
             onChange={(e) => setNewColName(e.target.value)}
             placeholder="Column name"
             autoFocus
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
+            className="bg-transparent border-0 border-b border-rule-strong px-0 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddColumn();
               if (e.key === "Escape") setShowAddCol(false);
             }}
           />
 
-          {/* Type selector with icons */}
-          <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
+          {/* Type selector */}
+          <div className="flex items-center gap-0.5 border border-rule">
             {(["text", "number", "date", "checkbox"] as const).map((t) => {
               const Icon = COL_TYPE_ICONS[t];
               return (
                 <button
                   key={t}
                   onClick={() => setNewColType(t)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs transition-colors ${
                     newColType === t
-                      ? "bg-zinc-800 text-zinc-200"
-                      : "text-zinc-500 hover:text-zinc-300"
+                      ? "bg-surface-sunken text-ink"
+                      : "text-ink-faint hover:text-ink-muted"
                   }`}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-3 w-3" strokeWidth={1.5} />
                   {COL_TYPE_LABELS[t]}
                 </button>
               );
@@ -172,13 +170,13 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
           <button
             onClick={handleAddColumn}
             disabled={!newColName.trim()}
-            className="text-xs bg-zinc-100 text-zinc-900 px-3 py-2 rounded-lg font-semibold hover:bg-white disabled:opacity-30 transition-all"
+            className="text-xs bg-ink text-surface px-3 py-1.5 font-semibold hover:opacity-90 disabled:opacity-30 transition-all"
           >
             Add
           </button>
           <button
             onClick={() => setShowAddCol(false)}
-            className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-2"
+            className="text-xs text-ink-faint hover:text-ink-muted px-2 py-1.5 transition-colors"
           >
             Cancel
           </button>
@@ -189,24 +187,22 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
       <div className="flex-1 overflow-auto">
         {!columns || columns.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <Table className="h-12 w-12 text-zinc-800 mb-3" />
-            <p className="text-zinc-500 font-medium">No columns yet</p>
-            <p className="text-sm text-zinc-600 mt-1">
-              Add a column to get started
-            </p>
+            <Table className="h-10 w-10 text-ink-faint mb-3" strokeWidth={1} />
+            <p className="font-display text-2xl text-ink mb-1">No columns yet</p>
+            <p className="text-sm text-ink-faint">Add a column to get started</p>
             <button
               onClick={() => setShowAddCol(true)}
-              className="mt-4 flex items-center gap-2 rounded-xl bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
+              className="mt-4 flex items-center gap-2 border border-rule px-4 py-2.5 text-sm font-medium text-ink-muted hover:bg-surface-sunken transition-colors"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
               Add Column
             </button>
           </div>
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 z-10">
-              <tr className="border-b-2 border-zinc-800 bg-zinc-900/95 backdrop-blur-sm">
-                <th className="w-12 px-3 py-3 text-zinc-600 text-xs font-medium text-center">
+              <tr className="border-b-2 border-rule bg-surface">
+                <th className="w-12 px-3 py-3 text-ink-faint text-xs font-medium text-center">
                   #
                 </th>
                 {columns.map((col) => {
@@ -214,18 +210,18 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                   return (
                     <th
                       key={col._id}
-                      className="px-3 py-3 text-left text-xs font-semibold text-zinc-400 group border-r border-zinc-800/30 last:border-r-0"
+                      className="px-3 py-3 text-left text-xs font-semibold text-ink-muted group border-r border-rule last:border-r-0"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Icon className="h-3 w-3 text-zinc-600" />
+                          <Icon className="h-3 w-3 text-ink-faint" strokeWidth={1.5} />
                           <span>{col.name}</span>
                         </div>
                         <button
                           onClick={() => removeColumn({ columnId: col._id })}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-zinc-600 hover:text-red-400 transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-ink-faint hover:text-danger transition-all"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3" strokeWidth={1.5} />
                         </button>
                       </div>
                     </th>
@@ -238,11 +234,11 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
               {rows?.map((row, i) => (
                 <tr
                   key={row._id}
-                  className={`border-b border-zinc-800/40 group transition-colors hover:bg-zinc-900/50 ${
-                    i % 2 === 0 ? "bg-transparent" : "bg-zinc-900/20"
+                  className={`border-b border-rule group transition-colors hover:bg-surface-sunken/60 ${
+                    i % 2 === 0 ? "bg-transparent" : "bg-surface-sunken/30"
                   }`}
                 >
-                  <td className="px-3 py-1.5 text-xs text-zinc-600 text-center tabular-nums">
+                  <td className="px-3 py-1.5 text-xs text-ink-faint text-center tabular-nums">
                     {i + 1}
                   </td>
                   {columns.map((col) => (
@@ -262,9 +258,9 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                   <td className="px-1">
                     <button
                       onClick={() => removeRow({ rowId: row._id })}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-ink-faint hover:text-danger hover:bg-danger/5 transition-all"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" strokeWidth={1.5} />
                     </button>
                   </td>
                 </tr>
@@ -273,7 +269,7 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 <tr>
                   <td
                     colSpan={columns.length + 2}
-                    className="text-center py-12 text-sm text-zinc-600"
+                    className="text-center py-12 text-sm text-ink-faint"
                   >
                     No rows yet — click "+ Row" to add data
                   </td>
@@ -320,7 +316,7 @@ function DebouncedCellEditor({
             setLocalValue(e.target.checked);
             onChange(e.target.checked);
           }}
-          className="rounded border-zinc-600 h-4 w-4 text-blue-500 bg-zinc-800 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+          className="h-4 w-4 cursor-pointer"
         />
       </div>
     );
@@ -347,7 +343,7 @@ function DebouncedCellEditor({
       onChange={(e) => handleChange(e.target.value)}
       onFocus={() => (isFocused.current = true)}
       onBlur={handleBlur}
-      className="w-full bg-transparent px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:bg-zinc-800/80 rounded-md transition-colors"
+      className="w-full bg-transparent px-2 py-1.5 text-sm text-ink focus:outline-none focus:bg-surface-sunken transition-colors"
     />
   );
 }
