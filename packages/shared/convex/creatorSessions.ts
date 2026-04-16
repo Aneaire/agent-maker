@@ -88,7 +88,7 @@ export const start = mutation({
     const conversationId = await ctx.db.insert("conversations", {
       agentId,
       userId: user._id,
-      title: "Agent Creator",
+      title: "Agent Builder",
     });
 
     // Create session
@@ -174,7 +174,7 @@ export const startEdit = mutation({
     const conversationId = await ctx.db.insert("conversations", {
       agentId: args.agentId,
       userId: user._id,
-      title: "Agent Editor",
+      title: "Agent Builder",
     });
 
     // Build current config snapshot for the preview panel
@@ -317,7 +317,11 @@ export const setCreatorModel = mutation({
     if (!session || session.userId !== user._id) {
       throw new Error("Session not found");
     }
-    await ctx.db.patch(args.sessionId, { creatorModel: args.model });
+    const partialConfig = session.partialConfig as Record<string, any> | undefined;
+    await ctx.db.patch(args.sessionId, {
+      creatorModel: args.model,
+      partialConfig: { ...(partialConfig ?? {}), model: args.model },
+    });
   },
 });
 

@@ -20,7 +20,7 @@ import {
 import { Link } from "react-router";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import { getToolSetLabelsMap } from "@agent-maker/shared/src/tool-set-registry";
-import { CHAT_MODELS } from "~/components/ModelDropdown";
+import { CHAT_MODELS, getProviderIcon } from "~/components/ModelDropdown";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -46,17 +46,24 @@ export default function AgentEditorPage() {
   const [starting, setStarting] = useState(false);
   const startedRef = useRef(false);
 
+  async function handleStartSession() {
+    setStarting(true);
+    setSessionData(null);
+    try {
+      const data = await startEdit({ agentId: agentId as Id<"agents"> });
+      setSessionData(data as any);
+    } catch (err: any) {
+      alert(err.message);
+      navigate(`/agents/${agentId}/settings`);
+    } finally {
+      setStarting(false);
+    }
+  }
+
   useEffect(() => {
     if (startedRef.current || !agentId) return;
     startedRef.current = true;
-    setStarting(true);
-    startEdit({ agentId: agentId as Id<"agents"> })
-      .then((data) => setSessionData(data as any))
-      .catch((err) => {
-        alert(err.message);
-        navigate(`/agents/${agentId}/settings`);
-      })
-      .finally(() => setStarting(false));
+    handleStartSession();
   }, [agentId]);
 
   if (!sessionData) {
@@ -64,7 +71,7 @@ export default function AgentEditorPage() {
       <div className="flex h-screen items-center justify-center bg-surface">
         <div className="text-center">
           <Loader2 className="h-5 w-5 animate-spin text-ink-faint mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-ink-muted">Starting the agent editor…</p>
+          <p className="text-sm text-ink-muted">Starting the agent builder…</p>
         </div>
       </div>
     );
@@ -76,6 +83,7 @@ export default function AgentEditorPage() {
       agentId={sessionData.agentId}
       conversationId={sessionData.conversationId}
       onDone={() => navigate(`/agents/${agentId}`)}
+      onNewChat={handleStartSession}
       onAbandon={async () => {
         await abandonSession({ sessionId: sessionData.sessionId });
         navigate(`/agents/${agentId}/settings`);
@@ -89,12 +97,14 @@ function EditorView({
   agentId,
   conversationId,
   onDone,
+  onNewChat,
   onAbandon,
 }: {
   sessionId: Id<"creatorSessions">;
   agentId: Id<"agents">;
   conversationId: Id<"conversations">;
   onDone: () => void;
+  onNewChat: () => void;
   onAbandon: () => void;
 }) {
   const navigate = useNavigate();
@@ -103,11 +113,9 @@ function EditorView({
   const messages = useQuery(api.messages.list, { conversationId });
   const sendMessage = useMutation(api.messages.send);
   const stopMessage = useMutation(api.messages.stop);
-  const createConversation = useMutation(api.conversations.create);
   const setCreatorModel = useMutation(api.creatorSessions.setCreatorModel);
   const aiProviders = useQuery(api.credentials.listAiProviders);
   const pastSessions = useQuery(api.creatorSessions.listByAgent, { agentId });
-  const [creatingChat, setCreatingChat] = useState(false);
 
   const creatorModel = (session as any)?.creatorModel ?? "claude-sonnet-4-6";
   const enabledModels =
@@ -150,16 +158,8 @@ function EditorView({
     }
   }
 
-  async function handleNewChat() {
-    setCreatingChat(true);
-    try {
-      const convId = await createConversation({ agentId });
-      navigate(`/agents/${agentId}/chat/${convId}`);
-    } catch (err: any) {
-      console.error("Failed to create chat:", err);
-    } finally {
-      setCreatingChat(false);
-    }
+  function handleNewChat() {
+    onNewChat();
   }
 
   const config = (session?.partialConfig as any) ?? {};
@@ -213,21 +213,16 @@ function EditorView({
             <div className="flex items-center gap-2">
               <Pencil className="h-3.5 w-3.5 text-ink-muted" strokeWidth={1.5} />
               <span className="text-sm text-ink">
-                Editing{agent ? `: ${agent.name}` : ""}
+                Agent Builder{agent ? ` — ${agent.name}` : ""}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleNewChat}
-              disabled={creatingChat}
-              className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink transition-colors"
             >
-              {creatingChat ? (
-                <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
-              ) : (
-                <MessageSquare className="h-3 w-3" strokeWidth={1.5} />
-              )}
+              <MessageSquare className="h-3 w-3" strokeWidth={1.5} />
               New Chat
             </button>
             <button
@@ -285,62 +280,75 @@ function EditorView({
             <Bot className="h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
             <p className="eyebrow">Preview</p>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
-            {/* Icon */}
-            {config.iconUrl && (
-              <div>
-                <p className="eyebrow mb-2">Icon</p>
-                <img
-                  src={config.iconUrl}
-                  alt="Agent icon"
-                  className="h-12 w-12 object-cover border border-rule"
-                />
+          <div className="flex-1 overflow-y-auto">
+
+            {/* Identity */}
+            <div className="px-5 py-5 border-b border-rule">
+              <div className="flex items-start gap-3">
+                {config.iconUrl ? (
+                  <img src={config.iconUrl} alt="Agent icon" className="h-12 w-12 object-cover border border-rule shrink-0" />
+                ) : (
+                  <div className="h-12 w-12 bg-surface-sunken border border-rule shrink-0 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-ink-faint" strokeWidth={1.5} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 pt-0.5">
+                  {config.name && config.name !== "New Agent" ? (
+                    <p className="text-sm font-semibold text-ink leading-snug">{config.name}</p>
+                  ) : (
+                    <p className="text-sm text-ink-faint italic leading-snug">Unnamed agent</p>
+                  )}
+                  {config.description ? (
+                    <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">{config.description}</p>
+                  ) : (
+                    <p className="text-xs text-ink-faint italic mt-1.5">No description yet</p>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
 
-            <ConfigField label="Name" value={config.name} />
-            <ConfigField label="Description" value={config.description} />
-            <ConfigField label="Model" value={config.model} />
+            {/* Model */}
+            <div className="px-5 py-4 border-b border-rule">
+              <p className="eyebrow mb-2.5">Model</p>
+              <ModelPreviewChip model={config.model} />
+            </div>
 
-            <div>
-              <p className="eyebrow mb-2">Capabilities</p>
+            {/* Capabilities */}
+            <div className="px-5 py-4 border-b border-rule">
+              <p className="eyebrow mb-2.5">Capabilities</p>
               {(config.enabledToolSets ?? []).length > 0 ? (
-                <p className="text-sm text-ink leading-relaxed">
-                  {(config.enabledToolSets as string[]).map((t: string, i: number) => (
-                    <span key={t}>
-                      {i > 0 && <span className="text-ink-faint"> &middot; </span>}
+                <div className="flex flex-wrap gap-1.5">
+                  {(config.enabledToolSets as string[]).map((t: string) => (
+                    <span key={t} className="px-2 py-0.5 text-2xs bg-surface-sunken border border-rule text-ink-muted">
                       {TOOL_LABELS[t] ?? t}
                     </span>
                   ))}
-                </p>
+                </div>
               ) : (
                 <p className="text-sm text-ink-faint italic">Not set</p>
               )}
             </div>
 
+            {/* Pages */}
             {config.pages && config.pages.length > 0 && (
-              <div>
-                <p className="eyebrow mb-2">Pages</p>
-                <p className="text-sm text-ink leading-relaxed">
-                  {config.pages.map((p: any, i: number) => (
-                    <span key={p.label}>
-                      {i > 0 && <span className="text-ink-faint"> &middot; </span>}
+              <div className="px-5 py-4 border-b border-rule">
+                <p className="eyebrow mb-2.5">Pages</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {config.pages.map((p: any) => (
+                    <span key={p.label} className="px-2 py-0.5 text-2xs bg-surface-sunken border border-rule text-ink-muted">
                       {p.label}
                     </span>
                   ))}
-                </p>
+                </div>
               </div>
             )}
 
-            <div>
-              <p className="eyebrow mb-2">System Prompt</p>
-              {config.systemPrompt &&
-              config.systemPrompt !== "You are a helpful AI assistant." ? (
-                <button
-                  onClick={() => setSystemPromptOpen(true)}
-                  className="group w-full text-left relative"
-                >
-                  <pre className="font-mono text-2xs text-ink-muted whitespace-pre-wrap bg-surface-sunken border border-rule p-3 max-h-40 overflow-hidden leading-relaxed transition-colors group-hover:border-zinc-600">
+            {/* System Prompt */}
+            <div className="px-5 py-4">
+              <p className="eyebrow mb-2.5">System Prompt</p>
+              {config.systemPrompt && config.systemPrompt !== "You are a helpful AI assistant." ? (
+                <button onClick={() => setSystemPromptOpen(true)} className="group w-full text-left relative">
+                  <pre className="font-mono text-2xs text-ink-muted whitespace-pre-wrap bg-surface-sunken border border-rule p-3 max-h-40 overflow-hidden leading-relaxed transition-colors group-hover:border-rule-strong">
                     {config.systemPrompt}
                   </pre>
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-sunken/80 flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -351,10 +359,7 @@ function EditorView({
                   </div>
                 </button>
               ) : (
-                <button
-                  onClick={() => setSystemPromptOpen(true)}
-                  className="text-sm text-ink-faint italic hover:text-ink-muted transition-colors"
-                >
+                <button onClick={() => setSystemPromptOpen(true)} className="text-sm text-ink-faint italic hover:text-ink-muted transition-colors">
                   Not set — click to add
                 </button>
               )}
@@ -589,7 +594,7 @@ function SystemPromptDialog({
                   onClick={onSave}
                   className="text-xs bg-ink text-ink-inverse px-4 py-1.5 font-semibold hover:opacity-80 transition-all"
                 >
-                  Send to editor
+                  Send to builder
                 </button>
               </>
             ) : (
@@ -646,16 +651,14 @@ function SystemPromptDialog({
   );
 }
 
-function ConfigField({ label, value }: { label: string; value?: string }) {
-  const empty = !value || value === "New Agent";
+function ModelPreviewChip({ model }: { model?: string }) {
+  if (!model) return <p className="text-sm text-ink-faint italic">Not set</p>;
+  const entry = CHAT_MODELS.find((m) => m.value === model);
+  const Icon = getProviderIcon(entry?.group ?? "Claude");
   return (
-    <div>
-      <p className="eyebrow mb-1">{label}</p>
-      {empty ? (
-        <p className="text-sm text-ink-faint italic">Not set</p>
-      ) : (
-        <p className="text-sm text-ink">{value}</p>
-      )}
+    <div className="inline-flex items-center gap-2">
+      <Icon className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+      <span className="text-sm text-ink">{entry?.label ?? model}</span>
     </div>
   );
 }

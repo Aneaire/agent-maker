@@ -7,7 +7,7 @@ import { ChatInput } from "~/components/ChatInput";
 import { ChevronLeft, Loader2, Upload } from "lucide-react";
 import type { Id } from "@agent-maker/shared/convex/_generated/dataModel";
 import { getToolSetLabelsMap } from "@agent-maker/shared/src/tool-set-registry";
-import { CHAT_MODELS } from "~/components/ModelDropdown";
+import { CHAT_MODELS, getProviderIcon } from "~/components/ModelDropdown";
 
 const TOOL_LABELS = getToolSetLabelsMap();
 
@@ -49,7 +49,7 @@ export default function AgentCreatorPage() {
             className="h-5 w-5 animate-spin text-ink-faint mx-auto mb-3"
             strokeWidth={1.5}
           />
-          <p className="text-sm text-ink-muted">Setting up the agent creator\u2026</p>
+          <p className="text-sm text-ink-muted">Setting up the agent builder\u2026</p>
         </div>
       </div>
     );
@@ -140,7 +140,7 @@ function CreatorView({
             </Link>
             <div className="h-4 w-px bg-rule" />
             <div>
-              <p className="eyebrow leading-none">Agent creator</p>
+              <p className="eyebrow leading-none">Agent Builder</p>
             </div>
           </div>
           <button
@@ -186,34 +186,54 @@ function CreatorView({
         <div className="px-5 h-14 border-b border-rule flex items-center">
           <p className="eyebrow">Preview</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
-          <IconUpload agentId={agentId} currentIconUrl={config.iconUrl} />
+        <div className="flex-1 overflow-y-auto">
 
-          <ConfigField label="Name" value={config.name} />
-          <ConfigField label="Description" value={config.description} />
-          <ConfigField label="Model" value={config.model} />
+          {/* Identity */}
+          <div className="px-5 py-5 border-b border-rule">
+            <div className="flex items-start gap-3">
+              <IconUpload agentId={agentId} currentIconUrl={config.iconUrl} />
+              <div className="flex-1 min-w-0 pt-0.5">
+                {config.name && config.name !== "New Agent" ? (
+                  <p className="text-sm font-semibold text-ink leading-snug">{config.name}</p>
+                ) : (
+                  <p className="text-sm text-ink-faint italic leading-snug">Unnamed agent</p>
+                )}
+                {config.description ? (
+                  <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">{config.description}</p>
+                ) : (
+                  <p className="text-xs text-ink-faint italic mt-1.5">No description yet</p>
+                )}
+              </div>
+            </div>
+          </div>
 
-          <div>
-            <p className="eyebrow mb-2">Capabilities</p>
+          {/* Model */}
+          <div className="px-5 py-4 border-b border-rule">
+            <p className="eyebrow mb-2.5">Model</p>
+            <ModelPreviewChip model={config.model} />
+          </div>
+
+          {/* Capabilities */}
+          <div className="px-5 py-4 border-b border-rule">
+            <p className="eyebrow mb-2.5">Capabilities</p>
             {(config.enabledToolSets ?? []).length > 0 ? (
-              <p className="text-sm text-ink leading-relaxed">
-                {(config.enabledToolSets as string[]).map((t, i) => (
-                  <span key={t}>
-                    {i > 0 && <span className="text-ink-faint"> &middot; </span>}
+              <div className="flex flex-wrap gap-1.5">
+                {(config.enabledToolSets as string[]).map((t) => (
+                  <span key={t} className="px-2 py-0.5 text-2xs bg-surface-sunken border border-rule text-ink-muted">
                     {TOOL_LABELS[t] ?? t}
                   </span>
                 ))}
-              </p>
+              </div>
             ) : (
               <p className="text-sm text-ink-faint italic">Not set</p>
             )}
           </div>
 
-          <div>
-            <p className="eyebrow mb-2">System prompt</p>
-            {config.systemPrompt &&
-            config.systemPrompt !== "You are a helpful AI assistant." ? (
-              <pre className="font-mono text-2xs text-ink-muted whitespace-pre-wrap bg-surface-sunken border border-rule p-3 max-h-64 overflow-y-auto leading-relaxed">
+          {/* System prompt */}
+          <div className="px-5 py-4">
+            <p className="eyebrow mb-2.5">System prompt</p>
+            {config.systemPrompt && config.systemPrompt !== "You are a helpful AI assistant." ? (
+              <pre className="font-mono text-2xs text-ink-muted whitespace-pre-wrap bg-surface-sunken border border-rule p-3 max-h-40 overflow-hidden leading-relaxed">
                 {config.systemPrompt}
               </pre>
             ) : (
@@ -242,24 +262,12 @@ function IconUpload({
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image must be under 2MB");
-      return;
-    }
-
+    if (!file.type.startsWith("image/")) { alert("Please select an image file"); return; }
+    if (file.size > 2 * 1024 * 1024) { alert("Image must be under 2MB"); return; }
     setUploading(true);
     try {
       const uploadUrl = await generateUploadUrl();
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
+      const result = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       const { storageId } = await result.json();
       await setIcon({ agentId, storageId });
     } catch (err: any) {
@@ -271,52 +279,36 @@ function IconUpload({
   }
 
   return (
-    <div>
-      <p className="eyebrow mb-2">Icon</p>
-      <div className="flex items-center gap-4">
-        {currentIconUrl ? (
-          <img
-            src={currentIconUrl}
-            alt="Agent icon"
-            className="h-12 w-12 rounded-sm object-cover"
-          />
-        ) : (
-          <div className="h-12 w-12 rounded-sm bg-surface-sunken" />
-        )}
-        <div>
-          <label className="inline-flex items-center gap-1.5 text-2xs uppercase tracking-[0.12em] font-semibold text-ink-muted hover:text-ink cursor-pointer transition-colors">
-            {uploading ? (
-              <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
-            ) : (
-              <Upload className="h-3 w-3" strokeWidth={1.5} />
-            )}
-            {uploading ? "Uploading\u2026" : "Upload"}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileSelect}
-              disabled={uploading}
-            />
-          </label>
-          <p className="mt-1 text-2xs text-ink-faint">PNG or JPG, up to 2MB</p>
+    <label className="relative group/icon shrink-0 cursor-pointer block h-12 w-12">
+      {currentIconUrl ? (
+        <img src={currentIconUrl} alt="Agent icon" className="h-12 w-12 object-cover border border-rule" />
+      ) : (
+        <div className="h-12 w-12 bg-surface-sunken border border-dashed border-rule flex items-center justify-center">
+          {uploading
+            ? <Loader2 className="h-4 w-4 text-ink-faint animate-spin" strokeWidth={1.5} />
+            : <Upload className="h-3.5 w-3.5 text-ink-faint" strokeWidth={1.5} />
+          }
         </div>
+      )}
+      <div className="absolute inset-0 bg-surface-inverse/50 flex items-center justify-center opacity-0 group-hover/icon:opacity-100 transition-opacity">
+        {uploading
+          ? <Loader2 className="h-3.5 w-3.5 text-ink-inverse animate-spin" strokeWidth={1.5} />
+          : <Upload className="h-3.5 w-3.5 text-ink-inverse" strokeWidth={1.5} />
+        }
       </div>
-    </div>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} disabled={uploading} />
+    </label>
   );
 }
 
-function ConfigField({ label, value }: { label: string; value?: string }) {
-  const empty = !value || value === "New Agent";
+function ModelPreviewChip({ model }: { model?: string }) {
+  if (!model) return <p className="text-sm text-ink-faint italic">Not set</p>;
+  const entry = CHAT_MODELS.find((m) => m.value === model);
+  const Icon = getProviderIcon(entry?.group ?? "Claude");
   return (
-    <div>
-      <p className="eyebrow mb-1">{label}</p>
-      {empty ? (
-        <p className="text-sm text-ink-faint italic">Not set</p>
-      ) : (
-        <p className="text-sm text-ink">{value}</p>
-      )}
+    <div className="inline-flex items-center gap-2">
+      <Icon className="h-3.5 w-3.5 text-ink-faint shrink-0" />
+      <span className="text-sm text-ink">{entry?.label ?? model}</span>
     </div>
   );
 }
