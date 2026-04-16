@@ -99,11 +99,31 @@ export default function MemoriesPage() {
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="max-w-3xl">
           {displayMemories === undefined ? (
-            <div className="space-y-[1px]">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-surface-sunken animate-pulse" />
+            <ol className="divide-y divide-rule border-y border-rule">
+              {[
+                { line1W: "w-full", line2W: "w-3/4", catW: "w-16", dateW: "w-20" },
+                { line1W: "w-5/6",  line2W: "w-2/3", catW: "w-20", dateW: "w-16" },
+                { line1W: "w-full", line2W: "w-4/5", catW: "w-12", dateW: "w-20" },
+              ].map(({ line1W, line2W, catW, dateW }, i) => (
+                <li key={i} className="grid grid-cols-[3ch_1fr_auto] gap-6 items-start py-5">
+                  {/* index: font-mono text-2xs pt-1 */}
+                  <div className="h-[9px] w-4 bg-surface-sunken animate-pulse mt-1" />
+                  {/* content + meta */}
+                  <div>
+                    {/* text-sm leading-relaxed — two lines */}
+                    <div className={`h-5 ${line1W} bg-surface-sunken animate-pulse`} />
+                    <div className={`h-5 ${line2W} bg-surface-sunken animate-pulse mt-1`} />
+                    {/* category + date: text-2xs mt-2 */}
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className={`h-[9px] ${catW} bg-surface-sunken animate-pulse`} />
+                      <div className={`h-[9px] ${dateW} bg-surface-sunken animate-pulse`} />
+                    </div>
+                  </div>
+                  {/* delete button: p-1.5 icon h-3.5 w-3.5 */}
+                  <div className="h-[27px] w-[27px] bg-surface-sunken animate-pulse" />
+                </li>
               ))}
-            </div>
+            </ol>
           ) : displayMemories.length === 0 ? (
             <div className="py-16 max-w-md">
               <p className="eyebrow">Empty</p>

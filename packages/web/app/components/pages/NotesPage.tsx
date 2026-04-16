@@ -127,12 +127,21 @@ export function NotesPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
             </form>
           )}
           {displayNotes === undefined ? (
-            <div className="space-y-px">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 bg-surface-sunken animate-pulse"
-                />
+            <div className="divide-y divide-rule">
+              {[
+                { titleW: "w-3/4", preview1W: "w-full", preview2W: "w-2/3" },
+                { titleW: "w-1/2", preview1W: "w-5/6", preview2W: "w-3/4" },
+                { titleW: "w-2/3", preview1W: "w-full", preview2W: "w-1/2" },
+              ].map(({ titleW, preview1W, preview2W }, i) => (
+                <div key={i} className="px-3.5 py-3">
+                  {/* title: text-sm font-medium → h-5 */}
+                  <div className={`h-5 ${titleW} bg-surface-sunken animate-pulse`} />
+                  {/* preview: text-[11px] line-clamp-2 mt-0.5 → h-[15px] × 2 */}
+                  <div className={`h-[15px] ${preview1W} bg-surface-sunken animate-pulse mt-1.5`} />
+                  <div className={`h-[15px] ${preview2W} bg-surface-sunken animate-pulse mt-0.5`} />
+                  {/* date: text-[9px] mt-1 */}
+                  <div className="h-[9px] w-16 bg-surface-sunken animate-pulse mt-1" />
+                </div>
               ))}
             </div>
           ) : displayNotes.length === 0 ? (

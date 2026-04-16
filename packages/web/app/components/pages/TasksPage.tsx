@@ -398,6 +398,7 @@ export function TasksPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                   <SortableColumn
                     key={col.key}
                     col={col}
+                    isLoading={tasks === undefined}
                     tasks={columnTasks}
                     isAddingTask={newTaskColumn === col.key}
                     newTitle={newTitle}
@@ -532,6 +533,7 @@ function AddColumnDialog({
 function SortableColumn(props: {
   col: ColumnConfig;
   tasks: Doc<"tabTasks">[];
+  isLoading?: boolean;
   isAddingTask: boolean;
   newTitle: string;
   canDelete: boolean;
@@ -571,6 +573,7 @@ function SortableColumn(props: {
     >
       <KanbanColumn
         {...props}
+        isLoading={props.isLoading}
         columnDragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
@@ -582,6 +585,7 @@ function SortableColumn(props: {
 function KanbanColumn({
   col,
   tasks,
+  isLoading,
   isAddingTask,
   newTitle,
   canDelete,
@@ -602,6 +606,7 @@ function KanbanColumn({
 }: {
   col: ColumnConfig;
   tasks: Doc<"tabTasks">[];
+  isLoading?: boolean;
   isAddingTask: boolean;
   newTitle: string;
   canDelete: boolean;
@@ -773,6 +778,18 @@ function KanbanColumn({
 
       {/* Tasks */}
       <div ref={setNodeRef} className="flex-1 overflow-y-auto p-2.5 space-y-2 min-h-[80px]">
+        {isLoading && (
+          <>
+            {[{ w: "w-3/4" }, { w: "w-1/2" }].map(({ w }, i) => (
+              <div key={i} className="border border-rule bg-surface p-3.5 animate-pulse">
+                {/* title: text-sm → h-5 */}
+                <div className={`h-5 ${w} bg-surface-sunken`} />
+                {/* optional second line */}
+                {i === 0 && <div className="h-5 w-2/5 bg-surface-sunken mt-1" />}
+              </div>
+            ))}
+          </>
+        )}
         {isAddingTask && (
           <div className="border border-rule bg-surface p-3.5">
             <input
@@ -822,7 +839,7 @@ function KanbanColumn({
           ))}
         </SortableContext>
 
-        {tasks.length === 0 && !isAddingTask && (
+        {tasks.length === 0 && !isAddingTask && !isLoading && (
           <button
             onClick={onOpenCreateDialog}
             className="flex flex-col items-center justify-center py-6 text-center w-full border border-dashed border-rule hover:border-rule-strong hover:bg-surface-sunken/60 transition-all group"

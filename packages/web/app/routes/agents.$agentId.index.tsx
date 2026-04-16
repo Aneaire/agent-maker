@@ -47,14 +47,8 @@ export default function AgentIndexPage() {
 
         {/* ── Stats ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 border border-rule divide-x divide-rule mb-8">
-          <StatCell
-            label="Chats"
-            value={conversations?.length ?? "—"}
-          />
-          <StatCell
-            label="Memories"
-            value={memories?.length ?? "—"}
-          />
+          <StatCell label="Chats" value={conversations?.length} />
+          <StatCell label="Memories" value={memories?.length} />
           <StatCell
             label="Since"
             value={new Date(agent._creationTime).toLocaleDateString(undefined, {
@@ -112,14 +106,19 @@ function StatCell({
   value,
 }: {
   label: string;
-  value: number | string;
+  value: number | string | undefined;
 }) {
   return (
     <div className="px-5 py-4">
       <p className="eyebrow text-ink-faint mb-1.5">{label}</p>
-      <p className="font-display text-2xl text-ink tabular-nums leading-none">
-        {value}
-      </p>
+      {value === undefined ? (
+        /* font-display text-2xl leading-none → 24px */
+        <div className="h-6 w-10 bg-surface-sunken animate-pulse" />
+      ) : (
+        <p className="font-display text-2xl text-ink tabular-nums leading-none">
+          {value}
+        </p>
+      )}
     </div>
   );
 }

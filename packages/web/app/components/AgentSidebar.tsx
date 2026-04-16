@@ -268,7 +268,19 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
       </nav>
 
       {/* ── Pages ──────────────────────────────────────────────────── */}
-      {tabs && tabs.length > 0 && (
+      {tabs === undefined ? (
+        <div className="pb-1">
+          <div className="eyebrow px-4 py-2">Pages</div>
+          {[{ w: "w-28" }, { w: "w-32" }, { w: "w-24" }].map(({ w }, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-4 py-2">
+              {/* tab icon: h-3.5 w-3.5 */}
+              <div className="h-3.5 w-3.5 shrink-0 bg-surface-sunken animate-pulse" />
+              {/* label: text-sm → h-5 */}
+              <div className={`h-5 ${w} bg-surface-sunken animate-pulse`} />
+            </div>
+          ))}
+        </div>
+      ) : tabs.length > 0 ? (
         <div className="pb-1">
           <div className="eyebrow px-4 py-2">Pages</div>
           {tabs.map((tab) => {
@@ -345,7 +357,7 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
             );
           })}
         </div>
-      )}
+      ) : null}
 
       {/* ── Add page ───────────────────────────────────────────────── */}
       <div className="px-4 pb-2 relative">
@@ -500,9 +512,26 @@ export function AgentSidebar({ agent }: { agent: Doc<"agents"> }) {
       <div className="flex-1 overflow-y-auto pb-2 min-h-0">
         <div className="eyebrow px-4 py-2">Conversations</div>
         {conversations === undefined ? (
-          <div className="space-y-[1px] px-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-8 bg-surface-sunken animate-pulse" />
+          <div>
+            {/* "Today" group label */}
+            <div className="px-4 py-1.5">
+              <div className="h-[9px] w-8 bg-surface-sunken animate-pulse" />
+            </div>
+            {[{ w: "w-32" }, { w: "w-28" }, { w: "w-36" }].map(({ w }, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-4 py-2">
+                <div className="h-3 w-3 shrink-0 bg-surface-sunken animate-pulse" />
+                <div className={`h-5 ${w} bg-surface-sunken animate-pulse`} />
+              </div>
+            ))}
+            {/* "Yesterday" group label */}
+            <div className="px-4 py-1.5 mt-0.5">
+              <div className="h-[9px] w-14 bg-surface-sunken animate-pulse" />
+            </div>
+            {[{ w: "w-24" }, { w: "w-40" }].map(({ w }, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-4 py-2">
+                <div className="h-3 w-3 shrink-0 bg-surface-sunken animate-pulse" />
+                <div className={`h-5 ${w} bg-surface-sunken animate-pulse`} />
+              </div>
             ))}
           </div>
         ) : conversations.length === 0 ? (

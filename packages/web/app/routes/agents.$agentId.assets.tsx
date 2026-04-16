@@ -411,11 +411,41 @@ export default function AssetsPage() {
 
         {/* Assets Grid/List */}
         <div>
-          {(assets ?? []).length > 0 && (
+          {assets !== undefined && assets.length > 0 && (
             <p className="eyebrow mb-3">Images & Files</p>
           )}
 
-          {viewMode === "grid" ? (
+          {assets === undefined ? (
+            viewMode === "grid" ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                  <div key={i} className="border border-rule bg-surface animate-pulse">
+                    {/* aspect-square thumbnail */}
+                    <div className="aspect-square bg-surface-sunken" />
+                    {/* name: text-xs border-t → h-[13px] + padding */}
+                    <div className="p-2.5 border-t border-rule">
+                      <div className="h-[13px] w-3/4 bg-surface-sunken" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ol className="divide-y divide-rule border-y border-rule">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <li key={i} className="flex items-center gap-3 px-3 py-2.5">
+                    {/* thumbnail: h-10 w-10 */}
+                    <div className="h-10 w-10 border border-rule bg-surface-sunken animate-pulse shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      {/* name: text-sm → h-5 */}
+                      <div className="h-5 w-40 bg-surface-sunken animate-pulse" />
+                      {/* meta: text-[10px] → h-[9px] */}
+                      <div className="h-[9px] w-24 bg-surface-sunken animate-pulse" />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {(assets ?? []).map((asset) => (
                 <div
@@ -611,7 +641,7 @@ export default function AssetsPage() {
           )}
 
           {/* Empty State */}
-          {(assets ?? []).length === 0 && subFolders.length === 0 && (
+          {assets !== undefined && assets.length === 0 && subFolders.length === 0 && (
             <div className="py-20 max-w-md">
               <p className="eyebrow">Empty</p>
               <h2 className="mt-2 font-display text-2xl text-ink">No assets yet.</h2>

@@ -185,7 +185,45 @@ export function SpreadsheetPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        {!columns || columns.length === 0 ? (
+        {columns === undefined ? (
+          /* Loading skeleton — matches sticky header + rows layout */
+          <table className="w-full text-sm border-collapse">
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b-2 border-rule bg-surface">
+                {/* row-number col */}
+                <th className="w-12 px-3 py-3" />
+                {[{ w: "w-20" }, { w: "w-28" }, { w: "w-16" }].map(({ w }, i) => (
+                  <th key={i} className="px-3 py-3 border-r border-rule last:border-r-0">
+                    <div className="flex items-center gap-2">
+                      {/* col type icon: h-3 w-3 */}
+                      <div className="h-3 w-3 bg-surface-sunken animate-pulse shrink-0" />
+                      {/* col name: text-xs font-semibold ~13px */}
+                      <div className={`h-[13px] ${w} bg-surface-sunken animate-pulse`} />
+                    </div>
+                  </th>
+                ))}
+                <th className="w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3, 4].map((i) => (
+                <tr key={i} className={`border-b border-rule ${i % 2 === 0 ? "bg-surface-sunken/30" : ""}`}>
+                  {/* row number */}
+                  <td className="px-3 py-1.5">
+                    <div className="h-[13px] w-4 bg-surface-sunken animate-pulse mx-auto" />
+                  </td>
+                  {/* cells: px-1 py-0.5, input is py-1.5 text-sm → h-5 */}
+                  {[1, 2, 3].map((j) => (
+                    <td key={j} className="px-2 py-1.5 border-r border-rule last:border-r-0">
+                      <div className="h-5 w-full bg-surface-sunken animate-pulse" />
+                    </td>
+                  ))}
+                  <td className="w-10" />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : columns.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Table className="h-10 w-10 text-ink-faint mb-3" strokeWidth={1} />
             <p className="font-display text-2xl text-ink mb-1">No columns yet</p>

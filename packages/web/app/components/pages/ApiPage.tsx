@@ -130,7 +130,22 @@ export function ApiPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 </div>
               )}
 
-              {keys && keys.length > 0 ? (
+              {keys === undefined ? (
+                <div className="divide-y divide-rule">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                      {/* Shield icon: h-3.5 w-3.5 */}
+                      <div className="h-3.5 w-3.5 bg-surface-sunken animate-pulse shrink-0" />
+                      <div className="flex items-center gap-2">
+                        {/* label: text-sm font-medium → h-5 */}
+                        <div className="h-5 w-24 bg-surface-sunken animate-pulse" />
+                        {/* key prefix: text-xs font-mono → h-[13px] */}
+                        <div className="h-[13px] w-20 bg-surface-sunken animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : keys.length > 0 ? (
                 <ol className="divide-y divide-rule">
                   {keys.map((k: any) => (
                     <li
@@ -159,7 +174,8 @@ export function ApiPage({ tab }: { tab: Doc<"sidebarTabs"> }) {
                 <p className="text-xs text-ink-faint text-center py-2">
                   Generate an API key to authenticate requests
                 </p>
-              ) : null}
+              ) : null
+              }
             </div>
           </section>
 

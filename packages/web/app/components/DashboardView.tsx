@@ -182,11 +182,37 @@ export default function DashboardView() {
 
       {/* ── Agent list ──────────────────────────────────────────────── */}
       {filteredAgents === undefined ? (
-        <div className="space-y-[1px]">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-surface-sunken animate-pulse" />
+        <ol className="divide-y divide-rule border-b border-rule">
+          {[
+            { nameW: "w-44", modelW: "w-28", descW: "w-72" },
+            { nameW: "w-56", modelW: "w-32", descW: "w-64" },
+            { nameW: "w-36", modelW: "w-24", descW: "w-80" },
+          ].map(({ nameW, modelW, descW }, i) => (
+            <li key={i} className="grid grid-cols-[3ch_1fr_auto] gap-6 items-baseline py-5 px-1">
+              {/* index: font-mono text-2xs */}
+              <div className="h-[9px] w-4 bg-surface-sunken animate-pulse" />
+              {/* name + model badge + description */}
+              <div>
+                <div className="flex items-baseline gap-3">
+                  {/* font-display text-xl leading-tight ~22px */}
+                  <div className={`h-[22px] ${nameW} bg-surface-sunken animate-pulse`} />
+                  {/* font-mono text-2xs ~9px */}
+                  <div className={`h-[9px] ${modelW} bg-surface-sunken animate-pulse`} />
+                </div>
+                {/* description: text-sm mt-1.5 */}
+                <div className={`h-5 ${descW} bg-surface-sunken animate-pulse mt-1.5`} />
+              </div>
+              {/* status dot + label + date */}
+              <div className="flex flex-col items-end gap-1.5 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-surface-sunken animate-pulse" />
+                  <div className="h-[9px] w-10 bg-surface-sunken animate-pulse" />
+                </div>
+                <div className="h-[9px] w-12 bg-surface-sunken animate-pulse" />
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
       ) : filteredAgents.length === 0 ? (
         <EmptyState hasSearch={!!searchQuery} />
       ) : viewMode === "list" ? (

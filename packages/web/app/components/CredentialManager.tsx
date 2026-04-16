@@ -96,6 +96,33 @@ export function CredentialManager({ agent, toolSetName }: CredentialManagerProps
     compatibleTypes.some((t) => t.type === c.type)
   );
 
+  // Loading skeleton — mirrors the linked-state row layout
+  if (allCredentials === undefined || agentLinks === undefined) {
+    return (
+      <div className="bg-surface-sunken/60 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Link2 icon: h-3.5 w-3.5 */}
+            <div className="h-3.5 w-3.5 shrink-0 bg-surface-sunken animate-pulse" />
+            {/* name: text-sm font-medium → ~20px line-height */}
+            <div className="h-5 w-36 bg-surface-sunken animate-pulse" />
+            {/* StatusBadge: dot + text-2xs label */}
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-surface-sunken animate-pulse" />
+              <div className="h-[13px] w-14 bg-surface-sunken animate-pulse" />
+            </div>
+          </div>
+          {/* action buttons: text-2xs py-1.5 → ~27px tall */}
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="h-7 w-10 bg-surface-sunken animate-pulse" />
+            <div className="h-7 w-10 bg-surface-sunken animate-pulse" />
+            <div className="h-7 w-14 bg-surface-sunken animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   async function handleLink(credentialId: string) {
     await linkToAgent({
       agentId: agent._id,
@@ -600,10 +627,28 @@ function InlineEditForm({
   }
 
   if (loading) {
+    // Each field: eyebrow label (text-[10px] ~13px) + mb-1.5 + input (text-sm h-5 + pb-2 border-b)
+    const FieldSkeleton = ({ labelW }: { labelW: string }) => (
+      <div>
+        <div className={`h-[13px] ${labelW} bg-surface-sunken animate-pulse mb-1.5`} />
+        <div className="border-b border-rule-strong pb-2">
+          <div className="h-5 bg-surface-sunken animate-pulse" />
+        </div>
+      </div>
+    );
     return (
-      <div className="flex items-center gap-2 text-sm text-ink-faint py-1">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
-        Loading\u2026
+      <div className="space-y-5">
+        {/* Name field */}
+        <FieldSkeleton labelW="w-8" />
+        {/* One field per typeDef.fields */}
+        {typeDef.fields.map((f, i) => (
+          <FieldSkeleton key={i} labelW={i % 2 === 0 ? "w-20" : "w-16"} />
+        ))}
+        {/* Buttons: Save (text-sm py-2 → h-9) + Cancel (text-sm inline → h-5) */}
+        <div className="flex items-center gap-4 pt-1">
+          <div className="h-9 w-24 bg-surface-sunken animate-pulse" />
+          <div className="h-5 w-12 bg-surface-sunken animate-pulse" />
+        </div>
       </div>
     );
   }

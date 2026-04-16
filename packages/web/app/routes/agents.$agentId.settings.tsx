@@ -711,6 +711,45 @@ function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
     }
   }
 
+  if (aiProviders === undefined) {
+    return (
+      <section className="border border-rule bg-surface">
+        <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
+          <p className="eyebrow">Enabled Models</p>
+          <div className="h-3 w-10 bg-surface-sunken animate-pulse" />
+        </div>
+        <div className="divide-y divide-rule">
+          {[
+            { nameW: "w-36", descW: "w-52", tierW: "w-5", provW: "w-14" },
+            { nameW: "w-28", descW: "w-48", tierW: "w-6", provW: "w-10" },
+            { nameW: "w-32", descW: "w-44", tierW: "w-5", provW: "w-10" },
+            { nameW: "w-40", descW: "w-56", tierW: "w-4", provW: "w-14" },
+          ].map(({ nameW, descW, tierW, provW }, i) => (
+            <div key={i} className="flex items-center gap-4 px-6 py-3.5">
+              {/* Toggle: border box + inner disc */}
+              <div className="relative inline-flex h-5 w-9 shrink-0 items-center border border-rule-strong bg-surface-sunken animate-pulse">
+                <span className="inline-block h-3.5 w-3.5 bg-rule ml-0.5" />
+              </div>
+              {/* Name row + description */}
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  {/* name: text-sm → ~20px line-height */}
+                  <div className={`h-5 ${nameW} bg-surface-sunken animate-pulse`} />
+                  {/* tier: text-[10px] mono → ~13px */}
+                  <div className={`h-[13px] ${tierW} bg-surface-sunken animate-pulse`} />
+                </div>
+                {/* description: text-[11px] → ~15px */}
+                <div className={`h-[15px] ${descW} bg-surface-sunken animate-pulse`} />
+              </div>
+              {/* provider: text-[10px] → ~13px */}
+              <div className={`h-[13px] ${provW} shrink-0 bg-surface-sunken animate-pulse`} />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="border border-rule bg-surface">
       <div className="flex items-baseline justify-between px-6 pt-6 pb-4 border-b border-rule">
@@ -719,7 +758,7 @@ function EnabledModelsSection({ agent }: { agent: Doc<"agents"> }) {
           {enabledModels.length} of {availableModels.length}
         </span>
       </div>
-      {aiProviders && aiProviders.length > 0 && availableModels.length < ALL_MODELS.length && (
+      {aiProviders.length > 0 && availableModels.length < ALL_MODELS.length && (
         <p className="px-6 pt-3 text-xs text-ink-faint">
           Add AI provider credentials to unlock more models.
         </p>
