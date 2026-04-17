@@ -14,7 +14,7 @@ Kanban-style task boards with drag-and-drop columns.
 |------|-------------|
 | `create_task` | Create a task with title, description, status, priority |
 | `update_task` | Update any task field |
-| `list_tasks` | List all tasks on a board |
+| `list_tasks` | List tasks on a board (supports `limit` / `offset` for pagination) |
 
 **Status values**: `todo`, `in_progress`, `done` (plus custom statuses via column config)
 **Priority values**: `low`, `medium`, `high`
@@ -26,24 +26,59 @@ Markdown note collections.
 |------|-------------|
 | `save_note` | Create a new note with title and content |
 | `update_note` | Update title or content |
-| `list_notes` | List all notes on a page |
+| `list_notes` | List notes (returns titles + content length only) |
+| `get_note` | Read the full content of a note by ID |
 
 ### Spreadsheets
 Structured data tables with typed columns. **Pro+ only**.
 
 | Tool | Description |
 |------|-------------|
-| `add_spreadsheet_column` | Define a column (text, number, date, checkbox) |
-| `add_spreadsheet_row` | Add a row with data mapped to column names |
+| `add_spreadsheet_column` | Define a single column (text, number, date, checkbox) |
+| `add_spreadsheet_columns` | **Batch**: define multiple columns in one call |
+| `add_spreadsheet_row` | Add a single row with data mapped to column names |
+| `add_spreadsheet_rows` | **Batch**: add multiple rows in one call |
 | `update_spreadsheet_row` | Update an existing row |
-| `list_spreadsheet_data` | Get all columns and rows |
+| `list_spreadsheet_data` | Get columns + rows (supports `rowLimit` / `rowOffset` for pagination) |
 
 ### Markdown / Data Table
-Static content pages the agent writes.
+Content pages the agent can read and write.
 
 | Tool | Description |
 |------|-------------|
 | `write_page_content` | Write or overwrite the full page content |
+| `read_page_content` | Read the current page content |
+
+### REST API
+Expose the agent as a REST endpoint at `/api/<agentId>/<slug>`. **Pro+ only**.
+
+| Tool | Description |
+|------|-------------|
+| `list_api_endpoints` | List endpoints (method, slug, prompt, allowed tool sets, input schema) |
+| `create_api_endpoint` | Create a new endpoint with optional `allowedToolSets` + `inputSchema` |
+| `update_api_endpoint` | Update any endpoint field |
+| `toggle_api_endpoint` | Activate/deactivate (inactive endpoints return 404) |
+| `list_api_keys` | List API keys for this agent (masked — last 8 chars only) |
+
+**Template variables in `promptTemplate`:** `{{body.field}}`, `{{query.param}}`, `{{headers.x-header-name}}` (case-insensitive headers). Example: `"Look up the user {{body.email}} and return their last 5 events."`
+
+**Input schema format (optional, rejected with 400 before agent runs):**
+```json
+{
+  "body": {
+    "properties": {
+      "email": { "type": "string" },
+      "priority": { "type": "string", "enum": ["low", "high"] }
+    },
+    "required": ["email"]
+  },
+  "query": {
+    "properties": { "limit": { "type": "number" } }
+  }
+}
+```
+
+**Tool allowlist (`allowedToolSets`):** when set, narrows the agent to a subset of its enabled tool sets for this endpoint only. A feedback-processing endpoint might allow only `memory` + `pages` and exclude Slack/Discord/email tools — principle of least privilege for untrusted callers.
 
 ### Creating Pages
 

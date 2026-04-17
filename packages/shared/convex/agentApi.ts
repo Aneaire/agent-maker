@@ -242,13 +242,21 @@ export const listTasks = query({
   args: {
     serverToken: v.string(),
     tabId: v.id("sidebarTabs"),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireServerAuth(ctx, args.serverToken);
-    return await ctx.db
+    const all = await ctx.db
       .query("tabTasks")
       .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
       .collect();
+    const offset = Math.max(0, args.offset ?? 0);
+    const limit = args.limit && args.limit > 0 ? args.limit : all.length;
+    return {
+      tasks: all.slice(offset, offset + limit),
+      totalCount: all.length,
+    };
   },
 });
 
@@ -270,6 +278,8 @@ export const listSpreadsheetData = query({
   args: {
     serverToken: v.string(),
     tabId: v.id("sidebarTabs"),
+    rowLimit: v.optional(v.number()),
+    rowOffset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireServerAuth(ctx, args.serverToken);
@@ -277,11 +287,35 @@ export const listSpreadsheetData = query({
       .query("tabSpreadsheetColumns")
       .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
       .collect();
-    const rows = await ctx.db
+    const allRows = await ctx.db
       .query("tabSpreadsheetRows")
       .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
       .collect();
-    return { columns, rows: rows.sort((a, b) => a.rowIndex - b.rowIndex) };
+    const sortedRows = allRows.sort((a, b) => a.rowIndex - b.rowIndex);
+    const offset = Math.max(0, args.rowOffset ?? 0);
+    const limit = args.rowLimit && args.rowLimit > 0 ? args.rowLimit : sortedRows.length;
+    return {
+      columns,
+      rows: sortedRows.slice(offset, offset + limit),
+      totalRows: sortedRows.length,
+    };
+  },
+});
+
+export const getTabContent = query({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const tab = await ctx.db.get(args.tabId);
+    if (!tab) return null;
+    const content =
+      (tab.config && typeof tab.config === "object" && "content" in tab.config)
+        ? String((tab.config as any).content ?? "")
+        : "";
+    return { tabId: tab._id, type: tab.type, label: tab.label, content };
   },
 });
 
@@ -480,6 +514,51 @@ export const addSpreadsheetRow = mutation({
   },
 });
 
+export const addSpreadsheetRows = mutation({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+    agentId: v.id("agents"),
+    rows: v.array(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    await requireTabOwnership(ctx, args.tabId, args.agentId);
+
+    if (args.rows.length === 0) return { insertedIds: [] as string[] };
+
+    for (const row of args.rows) {
+      const serialized = JSON.stringify(row);
+      if (serialized.length > MAX_CELL_DATA_SIZE) {
+        throw new Error(
+          `Row data too large (${serialized.length} chars, max ${MAX_CELL_DATA_SIZE})`
+        );
+      }
+    }
+
+    const existing = await ctx.db
+      .query("tabSpreadsheetRows")
+      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
+      .collect();
+    if (existing.length + args.rows.length > 10000) {
+      throw new Error("Row limit would exceed 10,000");
+    }
+    let nextIndex = existing.reduce((max, r) => Math.max(max, r.rowIndex), -1) + 1;
+
+    const insertedIds: string[] = [];
+    for (const row of args.rows) {
+      const id = await ctx.db.insert("tabSpreadsheetRows", {
+        tabId: args.tabId,
+        agentId: args.agentId,
+        rowIndex: nextIndex++,
+        data: row,
+      });
+      insertedIds.push(id);
+    }
+    return { insertedIds };
+  },
+});
+
 export const updateSpreadsheetRow = mutation({
   args: {
     serverToken: v.string(),
@@ -603,6 +682,53 @@ export const addSpreadsheetColumn = mutation({
   },
 });
 
+export const addSpreadsheetColumns = mutation({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+    agentId: v.id("agents"),
+    columns: v.array(
+      v.object({
+        name: v.string(),
+        type: v.union(
+          v.literal("text"),
+          v.literal("number"),
+          v.literal("date"),
+          v.literal("checkbox")
+        ),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    await requireTabOwnership(ctx, args.tabId, args.agentId);
+
+    if (args.columns.length === 0) return { insertedIds: [] as string[] };
+
+    const existing = await ctx.db
+      .query("tabSpreadsheetColumns")
+      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
+      .collect();
+    if (existing.length + args.columns.length > 100) {
+      throw new Error("Column limit would exceed 100");
+    }
+    let nextOrder = existing.reduce((max, c) => Math.max(max, c.sortOrder), -1) + 1;
+
+    const insertedIds: string[] = [];
+    for (const col of args.columns) {
+      const id = await ctx.db.insert("tabSpreadsheetColumns", {
+        tabId: args.tabId,
+        agentId: args.agentId,
+        name: col.name.substring(0, 100),
+        type: col.type,
+        sortOrder: nextOrder++,
+      });
+      insertedIds.push(id);
+    }
+    return { insertedIds };
+  },
+});
+
 export const updateTabConfig = mutation({
   args: {
     serverToken: v.string(),
@@ -662,6 +788,177 @@ export const validateApiKey = query({
   },
 });
 
+// List all API endpoints on a tab (server-auth). Used by agent MCP tooling
+// and the agent server's introspection paths.
+export const listApiEndpoints = query({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    return await ctx.db
+      .query("tabApiEndpoints")
+      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
+      .collect();
+  },
+});
+
+// List API keys for an agent (server-auth), returning masked key strings only.
+export const listApiKeysForAgent = query({
+  args: {
+    serverToken: v.string(),
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const keys = await ctx.db
+      .query("agentApiKeys")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+    return keys.map((k) => ({
+      _id: k._id,
+      label: k.label,
+      createdAt: k.createdAt,
+      maskedKey: `ak_...${k.key.slice(-8)}`,
+    }));
+  },
+});
+
+const API_ENDPOINT_METHOD = v.union(
+  v.literal("GET"),
+  v.literal("POST"),
+  v.literal("PUT"),
+  v.literal("DELETE"),
+  v.literal("PATCH")
+);
+
+function makeSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export const createApiEndpoint = mutation({
+  args: {
+    serverToken: v.string(),
+    tabId: v.id("sidebarTabs"),
+    agentId: v.id("agents"),
+    name: v.string(),
+    method: API_ENDPOINT_METHOD,
+    description: v.optional(v.string()),
+    promptTemplate: v.string(),
+    responseFormat: v.optional(v.union(v.literal("json"), v.literal("text"))),
+    isActive: v.optional(v.boolean()),
+    allowedToolSets: v.optional(v.array(v.string())),
+    inputSchema: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const tab = await requireTabOwnership(ctx, args.tabId, args.agentId);
+    if (tab.type !== "api") {
+      throw new Error(`Tab is not an API page (type: ${tab.type})`);
+    }
+
+    const existing = await ctx.db
+      .query("tabApiEndpoints")
+      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
+      .collect();
+    if (existing.length >= 20) {
+      throw new Error("Maximum 20 endpoints per API page");
+    }
+
+    const slug = makeSlug(args.name);
+    if (!slug) throw new Error("Endpoint name must contain at least one alphanumeric character");
+
+    const dupes = await ctx.db
+      .query("tabApiEndpoints")
+      .withIndex("by_agent_slug", (q) =>
+        q.eq("agentId", args.agentId).eq("slug", slug)
+      )
+      .collect();
+    if (dupes.length > 0) {
+      throw new Error(`Endpoint slug "${slug}" already exists for this agent`);
+    }
+
+    return await ctx.db.insert("tabApiEndpoints", {
+      tabId: args.tabId,
+      agentId: args.agentId,
+      name: args.name.substring(0, 100),
+      slug,
+      method: args.method,
+      description: args.description?.substring(0, 500),
+      promptTemplate: args.promptTemplate.substring(0, 5000),
+      responseFormat: args.responseFormat ?? "json",
+      isActive: args.isActive ?? true,
+      allowedToolSets: args.allowedToolSets,
+      inputSchema: args.inputSchema,
+    });
+  },
+});
+
+export const updateApiEndpoint = mutation({
+  args: {
+    serverToken: v.string(),
+    endpointId: v.id("tabApiEndpoints"),
+    name: v.optional(v.string()),
+    method: v.optional(API_ENDPOINT_METHOD),
+    description: v.optional(v.string()),
+    promptTemplate: v.optional(v.string()),
+    responseFormat: v.optional(v.union(v.literal("json"), v.literal("text"))),
+    isActive: v.optional(v.boolean()),
+    allowedToolSets: v.optional(v.array(v.string())),
+    inputSchema: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const endpoint = await ctx.db.get(args.endpointId);
+    if (!endpoint) throw new Error("Endpoint not found");
+
+    const filtered: Record<string, any> = {};
+    if (args.name !== undefined) {
+      filtered.name = args.name.substring(0, 100);
+      const newSlug = makeSlug(args.name);
+      if (newSlug && newSlug !== endpoint.slug) {
+        const dupes = await ctx.db
+          .query("tabApiEndpoints")
+          .withIndex("by_agent_slug", (q) =>
+            q.eq("agentId", endpoint.agentId).eq("slug", newSlug)
+          )
+          .collect();
+        if (dupes.some((d) => d._id !== args.endpointId)) {
+          throw new Error(`Endpoint slug "${newSlug}" already exists for this agent`);
+        }
+        filtered.slug = newSlug;
+      }
+    }
+    if (args.method !== undefined) filtered.method = args.method;
+    if (args.description !== undefined) filtered.description = args.description.substring(0, 500);
+    if (args.promptTemplate !== undefined) filtered.promptTemplate = args.promptTemplate.substring(0, 5000);
+    if (args.responseFormat !== undefined) filtered.responseFormat = args.responseFormat;
+    if (args.isActive !== undefined) filtered.isActive = args.isActive;
+    if (args.allowedToolSets !== undefined) filtered.allowedToolSets = args.allowedToolSets;
+    if (args.inputSchema !== undefined) filtered.inputSchema = args.inputSchema;
+
+    await ctx.db.patch(args.endpointId, filtered);
+  },
+});
+
+export const toggleApiEndpoint = mutation({
+  args: {
+    serverToken: v.string(),
+    endpointId: v.id("tabApiEndpoints"),
+    isActive: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireServerAuth(ctx, args.serverToken);
+    const endpoint = await ctx.db.get(args.endpointId);
+    if (!endpoint) throw new Error("Endpoint not found");
+    await ctx.db.patch(args.endpointId, { isActive: args.isActive });
+  },
+});
+
 export const setQuestions = mutation({
   args: {
     serverToken: v.string(),
@@ -710,70 +1007,6 @@ export const findTabByLabel = query({
       .collect();
     const tab = tabs.find((t) => t.label === args.label);
     return tab ? tab._id : null;
-  },
-});
-
-export const createApiEndpoint = mutation({
-  args: {
-    serverToken: v.string(),
-    agentId: v.id("agents"),
-    tabId: v.id("sidebarTabs"),
-    name: v.string(),
-    method: v.union(
-      v.literal("GET"),
-      v.literal("POST"),
-      v.literal("PUT"),
-      v.literal("DELETE"),
-      v.literal("PATCH")
-    ),
-    description: v.optional(v.string()),
-    promptTemplate: v.string(),
-    responseFormat: v.optional(
-      v.union(v.literal("json"), v.literal("text"))
-    ),
-  },
-  handler: async (ctx, args) => {
-    await requireServerAuth(ctx, args.serverToken);
-
-    const tab = await ctx.db.get(args.tabId);
-    if (!tab || tab.agentId !== args.agentId || tab.type !== "api") {
-      throw new Error("API tab not found");
-    }
-
-    const existing = await ctx.db
-      .query("tabApiEndpoints")
-      .withIndex("by_tab", (q) => q.eq("tabId", args.tabId))
-      .collect();
-    if (existing.length >= 20) {
-      throw new Error("Maximum 20 endpoints per API page");
-    }
-
-    const slug = args.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
-    const dupes = await ctx.db
-      .query("tabApiEndpoints")
-      .withIndex("by_agent_slug", (q) =>
-        q.eq("agentId", args.agentId).eq("slug", slug)
-      )
-      .collect();
-    if (dupes.length > 0) {
-      throw new Error(`Endpoint slug "${slug}" already exists for this agent`);
-    }
-
-    return await ctx.db.insert("tabApiEndpoints", {
-      tabId: args.tabId,
-      agentId: args.agentId,
-      name: args.name.substring(0, 100),
-      slug,
-      method: args.method,
-      description: args.description?.substring(0, 500),
-      promptTemplate: args.promptTemplate.substring(0, 5000),
-      responseFormat: args.responseFormat ?? "json",
-      isActive: true,
-    });
   },
 });
 

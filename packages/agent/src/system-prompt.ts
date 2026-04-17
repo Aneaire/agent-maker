@@ -38,23 +38,25 @@ interface AutomationInfo {
   isActive: boolean;
 }
 
-// ── Keyword map for lazy integration guide loading ────────────────────
-const INTEGRATION_KEYWORDS: Record<string, string[]> = {
-  notion: ["notion"],
-  slack: ["slack", "post to channel", "send a message to #", "dm "],
-  discord: ["discord", "server", "guild"],
-  google_calendar: ["calendar", "meeting", "schedule a", "book a", "gcal", "availability", "free time"],
-  google_drive: ["drive", "gdrive", "google drive"],
-  google_sheets: ["gsheets", "google sheets", "google sheet"],
-  gmail: ["gmail", "inbox", "check my email", "send an email", "reply to"],
-  image_generation: ["generate image", "generate a image", "create an image", "make an image", "draw ", "picture of", "generate a picture"],
+// ── Keyword patterns for lazy integration guide loading ──────────────
+// Word-boundary regex (not substring) so "meeting" doesn't trigger on
+// "fleeting" and "server" doesn't trigger on "observer". Compiled once
+// at module load.
+const INTEGRATION_PATTERNS: Record<string, RegExp> = {
+  notion: /\bnotion\b/i,
+  slack: /\b(slack|post to channel|send a message to #)\b/i,
+  discord: /\b(discord|guild)\b/i,
+  google_calendar: /\b(calendar|gcal|availability|free time|meeting with|my meetings|schedule a|book a)\b/i,
+  google_drive: /\b(gdrive|google drive|my drive)\b/i,
+  google_sheets: /\b(gsheets|google sheets?|spreadsheet)\b/i,
+  gmail: /\b(gmail|inbox|check my email|send an email|reply to)\b/i,
+  image_generation: /\b(generate (an? )?image|create an? image|make an? image|draw (me|a|an)|picture of|generate a picture)\b/i,
 };
 
 function messageRelatesToIntegration(message: string, integration: string): boolean {
-  const lower = message.toLowerCase();
-  const keywords = INTEGRATION_KEYWORDS[integration];
-  if (!keywords) return true; // no keywords defined = always include
-  return keywords.some((kw) => lower.includes(kw));
+  const pattern = INTEGRATION_PATTERNS[integration];
+  if (!pattern) return true; // no pattern defined = always include
+  return pattern.test(message);
 }
 
 export function buildSystemPrompt(
@@ -74,12 +76,27 @@ export function buildSystemPrompt(
   // integration guides for integrations the user is actively referencing.
   // On the first message (no history), include all guides for full context.
   const hasHistory = conversationHistory.length > 0;
+  const isFirstTurn = !hasHistory;
   const shouldIncludeGuide = (integration: string): boolean => {
     if (!hasHistory || !latestMessage) return true; // first message = show all
     return messageRelatesToIntegration(latestMessage, integration);
   };
 
+  // Multi-step intent heuristic — include the cognitive framework on turns
+  // that look like they need deliberate planning.
+  const MULTI_STEP_MARKERS = /\b(and then|after that|first,? |finally|step \d|also |plus |as well as)\b/i;
+  const looksMultiStep =
+    latestMessage.length > 200 || MULTI_STEP_MARKERS.test(latestMessage);
+  const includeCognitiveFramework = isFirstTurn || looksMultiStep;
+
+  // Cap large lists so agents with many pages/documents/automations don't
+  // blow the prompt. Agents can always discover the full set via list_* tools.
+  const MAX_CONTEXT_LIST = 10;
+  const overflowNote = (overflow: number, listToolHint: string): string =>
+    overflow > 0 ? `\n…and ${overflow} more (use \`${listToolHint}\` to see all)` : "";
+
   // ── Memory section (only if memory toolset is enabled) ──────────────
+  // Memories are already capped upstream (vector search → top 15 most relevant).
   const memorySection =
     has(enabled, "memory") && memories.length > 0
       ? `\n\n## Your Memories\nThese are things you've remembered:\n${memories.map((m) => `- ${m.content}${m.category ? ` [${m.category}]` : ""}`).join("\n")}\n`
@@ -88,35 +105,50 @@ export function buildSystemPrompt(
   // ── Pages section (only if pages toolset is enabled) ────────────────
   let tabSection = "";
   if (has(enabled, "pages")) {
-    tabSection =
-      tabs.length > 0
-        ? `\n\n## Your Pages\nYou have these pages available (visible in the user's sidebar):\n${tabs.map((t) => `- "${t.label}" (type: ${t.type}, ID: ${t._id})`).join("\n")}\nYou can interact with these pages using your tools. You can also create new pages with create_page.\n`
-        : "\n\n## Pages\nYou currently have no extra pages. Use create_page to create task boards, notes, spreadsheets, or markdown pages when useful.\n";
+    if (tabs.length > 0) {
+      const shownTabs = tabs.slice(0, MAX_CONTEXT_LIST);
+      const overflow = tabs.length - shownTabs.length;
+      tabSection = `\n\n## Your Pages\nYou have these pages available (visible in the user's sidebar):\n${shownTabs.map((t) => `- "${t.label}" (type: ${t.type}, ID: ${t._id})`).join("\n")}${overflowNote(overflow, "list_pages")}\nYou can interact with these pages using your tools. You can also create new pages with create_page.\n`;
+    } else {
+      tabSection = "\n\n## Pages\nYou currently have no extra pages. Use create_page to create task boards, notes, spreadsheets, or markdown pages when useful.\n";
+    }
   }
 
   // ── Knowledge Base section (only if rag is enabled + docs exist) ────
-  const knowledgeBaseSection =
-    has(enabled, "rag") && documents.length > 0
-      ? `\n\n## Knowledge Base\nYou have access to ${documents.length} uploaded document${documents.length > 1 ? "s" : ""}:\n${documents.map((d) => `- ${d.fileName}`).join("\n")}\nUse the \`search_documents\` tool to find information from these documents before answering questions about their content.\n`
-      : "";
+  let knowledgeBaseSection = "";
+  if (has(enabled, "rag") && documents.length > 0) {
+    const shownDocs = documents.slice(0, MAX_CONTEXT_LIST);
+    const overflow = documents.length - shownDocs.length;
+    knowledgeBaseSection = `\n\n## Knowledge Base\nYou have access to ${documents.length} uploaded document${documents.length > 1 ? "s" : ""}:\n${shownDocs.map((d) => `- ${d.fileName}`).join("\n")}${overflowNote(overflow, "list_documents")}\nUse the \`search_documents\` tool to find information from these documents before answering questions about their content.\n`;
+  }
 
   // ── Custom tools section (only if custom_http_tools is enabled) ─────
-  const customToolSection =
-    has(enabled, "custom_http_tools") && customToolNames.length > 0
-      ? `\n\n## Custom Tools\nYou have these custom HTTP tools: ${customToolNames.join(", ")}\n`
-      : "";
+  let customToolSection = "";
+  if (has(enabled, "custom_http_tools") && customToolNames.length > 0) {
+    const shownTools = customToolNames.slice(0, MAX_CONTEXT_LIST);
+    const overflow = customToolNames.length - shownTools.length;
+    const suffix = overflow > 0 ? ` (+${overflow} more)` : "";
+    customToolSection = `\n\n## Custom Tools\nYou have these custom HTTP tools: ${shownTools.join(", ")}${suffix}\n`;
+  }
 
   // ── Schedules section (only if schedules is enabled) ────────────────
-  const schedulesSection =
-    has(enabled, "schedules") && schedules.length > 0
-      ? `\n\n## Active Schedules\nYou have these scheduled actions running:\n${schedules.map((s) => `- "${s.name}" — ${s.schedule} [${s.status}]`).join("\n")}\nManage them with create_schedule, list_schedules, pause_schedule, resume_schedule, delete_schedule.\n`
-      : "";
+  let schedulesSection = "";
+  if (has(enabled, "schedules") && schedules.length > 0) {
+    const shownSchedules = schedules.slice(0, MAX_CONTEXT_LIST);
+    const overflow = schedules.length - shownSchedules.length;
+    schedulesSection = `\n\n## Active Schedules\nYou have these scheduled actions running:\n${shownSchedules.map((s) => `- "${s.name}" — ${s.schedule} [${s.status}]`).join("\n")}${overflowNote(overflow, "list_schedules")}\nManage them with create_schedule, list_schedules, pause_schedule, resume_schedule, delete_schedule.\n`;
+  }
 
   // ── Automations section (only if automations is enabled) ────────────
-  const automationsSection =
-    has(enabled, "automations") && automations.length > 0
-      ? `\n\n## Active Automations\nYou have these automation rules:\n${automations.filter(a => a.isActive).map((a) => `- "${a.name}" — triggers on: ${a.trigger.event}`).join("\n")}\nManage them with create_automation, list_automations, delete_automation.\n`
-      : "";
+  let automationsSection = "";
+  if (has(enabled, "automations") && automations.length > 0) {
+    const activeAutomations = automations.filter((a) => a.isActive);
+    if (activeAutomations.length > 0) {
+      const shownAutos = activeAutomations.slice(0, MAX_CONTEXT_LIST);
+      const overflow = activeAutomations.length - shownAutos.length;
+      automationsSection = `\n\n## Active Automations\nYou have these automation rules:\n${shownAutos.map((a) => `- "${a.name}" — triggers on: ${a.trigger.event}`).join("\n")}${overflowNote(overflow, "list_automations")}\nManage them with create_automation, list_automations, delete_automation.\n`;
+    }
+  }
 
   // ── Capabilities list (only advertise what's enabled) ───────────────
   const capabilities: string[] = [];
@@ -232,7 +264,9 @@ Your system prompt above defines who you are — your name, personality, domain 
 `;
 
   // ── Cognitive framework (how to approach tasks) ─────────────────────
-  const cognitiveFramework = `
+  // Included only on the first turn or when the message looks multi-step.
+  // For simple follow-up questions this block (~2.5KB) is omitted.
+  const cognitiveFramework = !includeCognitiveFramework ? "" : `
 ## How to Approach Tasks
 1. **Understand** — Read the full request before acting. Identify the type: simple question, multi-step task, creative work, or information lookup.
 2. **Plan** — For multi-step requests (3+ actions), mentally outline the steps and their dependencies. Execute in the right order — create before populate, configure before activate. For simple requests, act directly.
@@ -265,8 +299,13 @@ When a request involves setting up a system, building a workflow, or creating mu
     ? `
 ## Autonomy Guidelines
 - **Be proactive**: When the user needs to track something, create a Tasks page. When they share data, create a Spreadsheet. When they need documentation, create a Notes or Markdown page.
-- **Set up everything**: When creating a spreadsheet, define the columns first (using add_spreadsheet_column) before adding rows. Design the schema based on what makes sense for the data.
+- **Set up everything**: When creating a spreadsheet, define the columns first before adding rows. Design the schema based on what makes sense for the data.
 - **Manage fully**: Don't just create pages — populate them. If the user asks to track expenses, create the spreadsheet, add the columns (Date, Description, Amount, Category), and add the rows they mention.
+- **Batch where possible**: Use \`add_spreadsheet_columns\` and \`add_spreadsheet_rows\` (plural) for bulk inserts — one call beats N. The singular versions are fine for one-offs.
+- **Paginate large lists**: \`list_tasks\` and \`list_spreadsheet_data\` accept \`limit\`/\`offset\` (or \`rowLimit\`/\`rowOffset\`). Use them when you only need a slice — fetching 500 rows when you need the first 20 wastes tokens.
+- **Read before editing**: For Markdown/Data-Table pages, call \`read_page_content\` before \`write_page_content\` — \`write_page_content\` overwrites everything. For Notes, \`list_notes\` returns only titles; call \`get_note\` to see the body.
+- **Tab limits**: 500 tasks/tab, 200 notes/tab, 10,000 rows/spreadsheet, 100 columns/spreadsheet. If the user needs more, suggest splitting across multiple pages.
+- **API pages** (type \`api\`): expose the agent as a REST surface. Use \`list_api_endpoints\` to see what's configured. Use \`create_api_endpoint\` with a clear \`promptTemplate\` — support \`{{body.field}}\`, \`{{query.field}}\`, \`{{headers.x-header}}\` substitution so the template can reference request data precisely instead of dumping the whole payload. Always set \`allowedToolSets\` to the minimum subset the endpoint actually needs (principle of least privilege — e.g. a \`process-feedback\` endpoint should not inherit Slack/Discord tools). Use \`inputSchema\` to reject malformed requests before they reach the model (format: \`{ body: { properties: { field: { type: "string" } }, required: ["field"] } }\`). Use \`toggle_api_endpoint\` to pause a misbehaving endpoint without deleting it.
 `
     : "";
 
@@ -479,7 +518,9 @@ Tell them: *"Go to your agent's Settings page, scroll to Custom HTTP Tools, and 
     (key) => !has(enabled, key)
   ).length;
 
-  const selfAssessmentSection = disabledCount > 0
+  // Self-assessment is only useful once per conversation — include on the
+  // first turn, skip on follow-ups.
+  const selfAssessmentSection = disabledCount > 0 && isFirstTurn
     ? `
 ## Self-Assessment & Improvement
 

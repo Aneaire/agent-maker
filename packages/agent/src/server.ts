@@ -6,6 +6,10 @@ import { api } from "@agent-maker/shared/convex/_generated/api";
 import { ProcessManager } from "./process-manager.js";
 import { runCreator } from "./run-creator.js";
 import { runApiEndpoint } from "./run-api-endpoint.js";
+import {
+  validateEndpointInput,
+  substituteTemplateVars,
+} from "./api-endpoint-helpers.js";
 import { processDocument } from "./document-processor.js";
 import { AgentConvexClient } from "./convex-client.js";
 import { DiscordGatewayManager } from "./discord-gateway-manager.js";
@@ -385,36 +389,68 @@ app.all("/api/:agentId/:endpointSlug", async (c) => {
       return c.json({ error: `Endpoint ${c.req.method} /${endpointSlug} not found` }, 404);
     }
 
-    // Build the prompt from request data
-    let requestBody = "";
+    // Parse body (for POST/PUT/PATCH) — keep both the object form (for
+    // template vars + validation) and the text form (for the prompt).
+    let parsedBody: unknown = null;
+    let requestBodyText = "";
     if (["POST", "PUT", "PATCH"].includes(c.req.method)) {
       try {
-        requestBody = JSON.stringify(await c.req.json());
+        parsedBody = await c.req.json();
+        requestBodyText = JSON.stringify(parsedBody);
       } catch {
-        requestBody = await c.req.text();
+        requestBodyText = await c.req.text();
+        parsedBody = requestBodyText;
       }
     }
 
     const queryParams = Object.fromEntries(new URL(c.req.url).searchParams);
 
-    const prompt = `${endpoint.promptTemplate}
+    // Input schema validation — reject bad requests at the boundary, before
+    // we spend any model tokens.
+    if (endpoint.inputSchema) {
+      const check = validateEndpointInput(
+        endpoint.inputSchema as any,
+        parsedBody,
+        queryParams
+      );
+      if (!check.ok) {
+        return c.json(
+          { error: "Invalid request", details: check.errors },
+          400
+        );
+      }
+    }
+
+    // Template substitution — {{body.x}}, {{query.x}}, {{headers.x}}
+    const headersObj: Record<string, string> = {};
+    c.req.raw.headers.forEach((v, k) => {
+      headersObj[k] = v;
+    });
+    const { output: renderedTemplate } = substituteTemplateVars(
+      endpoint.promptTemplate,
+      { body: parsedBody, query: queryParams, headers: headersObj }
+    );
+
+    const prompt = `${renderedTemplate}
 
 --- Incoming Request ---
 Method: ${c.req.method}
 Endpoint: /${endpointSlug}
 Query Parameters: ${JSON.stringify(queryParams)}
-${requestBody ? `Body: ${requestBody}` : ""}
+${requestBodyText ? `Body: ${requestBodyText}` : ""}
 ---
 
 Respond with ${endpoint.responseFormat === "json" ? "valid JSON only, no markdown, no explanation — just the JSON object/array" : "plain text"}.`;
 
-    // Run agent synchronously
+    // Run agent synchronously. Pass the per-endpoint tool-set allowlist so
+    // the runtime can narrow the agent's tools for this request.
     const result = await runApiEndpoint({
       agentId,
       prompt,
       convexUrl: CONVEX_URL,
       serverToken: SERVER_TOKEN,
       model: undefined, // uses agent default
+      allowedToolSets: endpoint.allowedToolSets ?? undefined,
     });
 
     if (endpoint.responseFormat === "json") {

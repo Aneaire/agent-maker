@@ -189,8 +189,12 @@ export async function runAgent(params: RunAgentParams) {
     ] = await Promise.all([
       convexClient.listMessages(params.conversationId),
       convexClient.listTabs(params.agentId).then((r) => r ?? []),
-      convexClient.listCustomTools(params.agentId).then((r) => r ?? []),
-      convexClient.listMemories(params.agentId),
+      enabled.includes("custom_http_tools")
+        ? convexClient.listCustomTools(params.agentId).then((r) => r ?? [])
+        : Promise.resolve([]),
+      enabled.includes("memory")
+        ? convexClient.listMemories(params.agentId)
+        : Promise.resolve([]),
       enabled.includes("rag")
         ? convexClient.listAgentDocuments(params.agentId)
         : Promise.resolve([]),

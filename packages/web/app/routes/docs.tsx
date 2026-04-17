@@ -662,7 +662,7 @@ function PagesContent() {
       <DocTable headers={["Tool", "Description"]} rows={[
         ["create_task", "Create a task with title, description, status, priority"],
         ["update_task", "Update any task field"],
-        ["list_tasks", "List all tasks on a board"],
+        ["list_tasks", "List tasks (supports limit/offset for pagination)"],
       ]} />
 
       <DocH3>Notes</DocH3>
@@ -670,22 +670,36 @@ function PagesContent() {
       <DocTable headers={["Tool", "Description"]} rows={[
         ["save_note", "Create a new note"],
         ["update_note", "Update title or content"],
-        ["list_notes", "List all notes"],
+        ["list_notes", "List notes (titles + content length only)"],
+        ["get_note", "Read the full content of a note by ID"],
       ]} />
 
       <DocH3>Spreadsheets (Pro+)</DocH3>
       <DocP>Structured data tables with typed columns (text, number, date, checkbox).</DocP>
       <DocTable headers={["Tool", "Description"]} rows={[
-        ["add_spreadsheet_column", "Define a typed column"],
-        ["add_spreadsheet_row", "Add a row of data"],
+        ["add_spreadsheet_column", "Define a single typed column"],
+        ["add_spreadsheet_columns", "Batch: define multiple columns in one call"],
+        ["add_spreadsheet_row", "Add a single row of data"],
+        ["add_spreadsheet_rows", "Batch: add multiple rows in one call"],
         ["update_spreadsheet_row", "Update an existing row"],
-        ["list_spreadsheet_data", "Get all columns and rows"],
+        ["list_spreadsheet_data", "Get columns + rows (supports rowLimit/rowOffset)"],
       ]} />
 
       <DocH3>Markdown / Data Table</DocH3>
-      <DocP>Static content pages.</DocP>
+      <DocP>Content pages the agent can read and write.</DocP>
       <DocTable headers={["Tool", "Description"]} rows={[
         ["write_page_content", "Write or overwrite full page content"],
+        ["read_page_content", "Read the current page content"],
+      ]} />
+
+      <DocH3>REST API (Pro+)</DocH3>
+      <DocP>Expose the agent as a REST endpoint at /api/&lt;agentId&gt;/&lt;slug&gt;. Supports template variables ({`{{body.x}}`}, {`{{query.x}}`}, {`{{headers.x}}`}), per-endpoint tool allowlists, and input schema validation.</DocP>
+      <DocTable headers={["Tool", "Description"]} rows={[
+        ["list_api_endpoints", "List endpoints with their config"],
+        ["create_api_endpoint", "Create with optional allowedToolSets + inputSchema"],
+        ["update_api_endpoint", "Update any endpoint field"],
+        ["toggle_api_endpoint", "Activate/deactivate (inactive → 404)"],
+        ["list_api_keys", "List API keys (masked)"],
       ]} />
     </div>
   );

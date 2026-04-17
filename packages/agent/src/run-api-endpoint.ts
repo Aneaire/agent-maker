@@ -8,6 +8,7 @@ import {
   providerTypeForModel,
   assertProviderCredentialAvailable,
 } from "./model-factory.js";
+import { narrowToolSets } from "./api-endpoint-helpers.js";
 
 export interface RunApiEndpointParams {
   agentId: string;
@@ -15,6 +16,10 @@ export interface RunApiEndpointParams {
   convexUrl: string;
   serverToken: string;
   model?: string;
+  /** Optional per-endpoint tool-set allowlist. When set, the agent only sees
+   * the intersection of this list and its own enabledToolSets for this
+   * request. When omitted, the agent inherits all of its enabled tool sets. */
+  allowedToolSets?: string[];
 }
 
 /**
@@ -34,16 +39,33 @@ export async function runApiEndpoint(
 
   const effectiveModel = params.model || agent.model || "claude-sonnet-4-6";
 
-  const tabs = (await convexClient.listTabs(params.agentId)) ?? [];
-  const customTools = (await convexClient.listCustomTools(params.agentId)) ?? [];
-  const memories = (await convexClient.listMemories(params.agentId)) ?? [];
+  // Narrow the tool-set list for this request if the endpoint specifies an
+  // allowlist. Matches the same `enabledToolSets` shape used everywhere else.
+  const effectiveToolSets = narrowToolSets(
+    agent.enabledToolSets,
+    params.allowedToolSets
+  );
+
+  // Skip DB fetches that the narrowed tool sets don't need.
+  const needsMemory = effectiveToolSets.includes("memory");
+  const needsCustomHttp = effectiveToolSets.includes("custom_http_tools");
+
+  const [tabs, customTools, memories] = await Promise.all([
+    convexClient.listTabs(params.agentId).then((r) => r ?? []),
+    needsCustomHttp
+      ? convexClient.listCustomTools(params.agentId).then((r) => r ?? [])
+      : Promise.resolve([]),
+    needsMemory
+      ? convexClient.listMemories(params.agentId).then((r) => r ?? [])
+      : Promise.resolve([]),
+  ]);
 
   const systemPrompt = buildSystemPrompt(
     {
       name: agent.name,
       systemPrompt: agent.systemPrompt,
       description: agent.description,
-      enabledToolSets: agent.enabledToolSets,
+      enabledToolSets: effectiveToolSets,
     },
     memories,
     tabs as any,
@@ -58,7 +80,7 @@ export async function runApiEndpoint(
   const { tools } = buildMcpServer({
     convexClient,
     agentId: params.agentId,
-    enabledToolSets: agent.enabledToolSets,
+    enabledToolSets: effectiveToolSets,
     tabs: tabs as any,
     customTools: customTools as any,
     googleApiKey,

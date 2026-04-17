@@ -323,6 +323,101 @@ export async function seedCustomHttpTools({ ctx, agentId }: SeedContext) {
   return { customToolIds: ids };
 }
 
+// ── Local Test Server Tools Seeder (localhost:3737) ─────────────────────
+// Used by the DevOps Test Agent to interact with the hono-http-test sandbox.
+
+export async function seedLocalTestServerTools({ ctx, agentId }: SeedContext) {
+  const tools: Array<{
+    name: string;
+    description: string;
+    endpoint: string;
+    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    inputSchema: any;
+    headers?: any;
+    auth?: any;
+    bodyType?: "json" | "form-data" | "url-encoded" | "raw";
+    queryParams?: { name: string; value: string }[];
+    fullResponse?: boolean;
+    neverError?: boolean;
+    timeoutMs?: number;
+  }> = [
+    {
+      name: "fire_webhook",
+      description:
+        "Fire a webhook event at the local test server. Triggers automation rules that update tasks in the SQLite database. Use event_type values: deploy.success, pr.overdue, bug.reported, task.created, or any custom string.",
+      endpoint: "http://localhost:3737/webhook",
+      method: "POST",
+      bodyType: "json",
+      inputSchema: {
+        source: { type: "string", description: "Who sent the event, e.g. 'github', 'ci-server', 'monitoring'" },
+        event_type: { type: "string", description: "The event name, e.g. 'deploy.success', 'pr.overdue', 'bug.reported', 'task.created'" },
+        payload: { type: "string", description: "JSON string of extra event data. For deploy.success include task_title. For bug.reported include title and severity='critical'. For pr.overdue include pr_number. For task.created include title and priority='urgent'." },
+      },
+    },
+    {
+      name: "list_tasks",
+      description: "Fetch all tasks from the local SQLite database. Returns id, title, status, priority, assigned_to, and timestamps.",
+      endpoint: "http://localhost:3737/tasks",
+      method: "GET",
+      inputSchema: {},
+    },
+    {
+      name: "create_task",
+      description: "Create a new task in the local SQLite database.",
+      endpoint: "http://localhost:3737/tasks",
+      method: "POST",
+      bodyType: "json",
+      inputSchema: {
+        title: { type: "string", description: "Task title" },
+        status: { type: "string", description: "pending, in_progress, or done" },
+        priority: { type: "string", description: "urgent, high, medium, or low" },
+        assigned_to: { type: "string", description: "Name of the person assigned" },
+      },
+    },
+    {
+      name: "update_task",
+      description: "Update the status, priority, or assignee of a task by its numeric ID.",
+      endpoint: "http://localhost:3737/tasks/{id}",
+      method: "PATCH",
+      bodyType: "json",
+      inputSchema: {
+        id: { type: "string", description: "Numeric task ID, e.g. '1'" },
+        status: { type: "string", description: "New status: pending, in_progress, or done" },
+        priority: { type: "string", description: "New priority: urgent, high, medium, or low" },
+        assigned_to: { type: "string", description: "New assignee name" },
+      },
+    },
+    {
+      name: "list_automation_logs",
+      description: "Fetch the automation run history. Shows which rules fired, what they did, and which task was affected.",
+      endpoint: "http://localhost:3737/automations/logs",
+      method: "GET",
+      inputSchema: {},
+    },
+    {
+      name: "list_automation_rules",
+      description: "List all available automation rules on the test server and which events they match.",
+      endpoint: "http://localhost:3737/automations/rules",
+      method: "GET",
+      inputSchema: {},
+    },
+    {
+      name: "reset_database",
+      description: "Reset the local test server database to its initial state. Clears all webhook events, automation logs, and resets tasks to the original 5 seeded tasks.",
+      endpoint: "http://localhost:3737/demo/reset",
+      method: "POST",
+      inputSchema: {},
+    },
+  ];
+
+  const ids = [];
+  for (const t of tools) {
+    const id = await ctx.db.insert("customTools", { agentId, ...t });
+    ids.push(id);
+  }
+  return { localToolIds: ids };
+}
+
 // ── Events Seeder ────────────────────────────────────────────────────────
 
 export async function seedEvents({ ctx, agentId }: SeedContext) {

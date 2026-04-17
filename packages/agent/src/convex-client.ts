@@ -138,10 +138,15 @@ export class AgentConvexClient {
     });
   }
 
-  async listTasks(tabId: string) {
+  async listTasks(
+    tabId: string,
+    opts: { limit?: number; offset?: number } = {}
+  ) {
     return this.client.query(api.agentApi.listTasks, {
       serverToken: this.serverToken,
       tabId: tabId as any,
+      limit: opts.limit,
+      offset: opts.offset,
     });
   }
 
@@ -152,10 +157,87 @@ export class AgentConvexClient {
     });
   }
 
-  async listSpreadsheetData(tabId: string) {
+  async listSpreadsheetData(
+    tabId: string,
+    opts: { rowLimit?: number; rowOffset?: number } = {}
+  ) {
     return this.client.query(api.agentApi.listSpreadsheetData, {
       serverToken: this.serverToken,
       tabId: tabId as any,
+      rowLimit: opts.rowLimit,
+      rowOffset: opts.rowOffset,
+    });
+  }
+
+  async getTabContent(tabId: string) {
+    return this.client.query(api.agentApi.getTabContent, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+    });
+  }
+
+  // ── API Endpoints (server-auth) ────────────────────────────────────
+  async listApiEndpoints(tabId: string) {
+    return this.client.query(api.agentApi.listApiEndpoints, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+    });
+  }
+
+  async listApiKeysForAgent(agentId: string) {
+    return this.client.query(api.agentApi.listApiKeysForAgent, {
+      serverToken: this.serverToken,
+      agentId: agentId as any,
+    });
+  }
+
+  async createApiEndpoint(
+    tabId: string,
+    agentId: string,
+    data: {
+      name: string;
+      method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      description?: string;
+      promptTemplate: string;
+      responseFormat?: "json" | "text";
+      isActive?: boolean;
+      allowedToolSets?: string[];
+      inputSchema?: any;
+    }
+  ) {
+    return this.client.mutation(api.agentApi.createApiEndpoint, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+      agentId: agentId as any,
+      ...data,
+    });
+  }
+
+  async updateApiEndpoint(
+    endpointId: string,
+    data: {
+      name?: string;
+      method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      description?: string;
+      promptTemplate?: string;
+      responseFormat?: "json" | "text";
+      isActive?: boolean;
+      allowedToolSets?: string[];
+      inputSchema?: any;
+    }
+  ) {
+    return this.client.mutation(api.agentApi.updateApiEndpoint, {
+      serverToken: this.serverToken,
+      endpointId: endpointId as any,
+      ...data,
+    });
+  }
+
+  async toggleApiEndpoint(endpointId: string, isActive: boolean) {
+    return this.client.mutation(api.agentApi.toggleApiEndpoint, {
+      serverToken: this.serverToken,
+      endpointId: endpointId as any,
+      isActive,
     });
   }
 
@@ -234,6 +316,19 @@ export class AgentConvexClient {
     });
   }
 
+  async addSpreadsheetRows(
+    tabId: string,
+    agentId: string,
+    rows: Record<string, any>[]
+  ) {
+    return this.client.mutation(api.agentApi.addSpreadsheetRows, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+      agentId: agentId as any,
+      rows,
+    });
+  }
+
   async updateSpreadsheetRow(rowId: string, data: Record<string, any>) {
     return this.client.mutation(api.agentApi.updateSpreadsheetRow, {
       serverToken: this.serverToken,
@@ -258,6 +353,19 @@ export class AgentConvexClient {
       agentId: agentId as any,
       name,
       type: type as any,
+    });
+  }
+
+  async addSpreadsheetColumns(
+    tabId: string,
+    agentId: string,
+    columns: Array<{ name: string; type: "text" | "number" | "date" | "checkbox" }>
+  ) {
+    return this.client.mutation(api.agentApi.addSpreadsheetColumns, {
+      serverToken: this.serverToken,
+      tabId: tabId as any,
+      agentId: agentId as any,
+      columns,
     });
   }
 

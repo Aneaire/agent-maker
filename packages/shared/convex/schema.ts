@@ -221,6 +221,15 @@ export default defineSchema({
     promptTemplate: v.string(), // Instruction for the agent on how to handle this endpoint
     responseFormat: v.union(v.literal("json"), v.literal("text")),
     isActive: v.boolean(),
+    // Optional per-endpoint tool-set allowlist. When set, the runtime narrows
+    // the agent's enabledToolSets to this subset for this endpoint only. When
+    // null/omitted, the endpoint inherits all of the agent's tool sets.
+    allowedToolSets: v.optional(v.array(v.string())),
+    // Optional lightweight input schema: { body?: FieldMap, query?: FieldMap }
+    // where FieldMap = { properties: Record<string, FieldSpec>, required?: string[] }
+    // FieldSpec = { type: "string"|"number"|"boolean"|"object"|"array", enum?: any[], description?: string }
+    // Validated at the agent server before the agent runs.
+    inputSchema: v.optional(v.any()),
   })
     .index("by_tab", ["tabId"])
     .index("by_agent", ["agentId"])

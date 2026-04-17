@@ -9,15 +9,16 @@
  * To add test data for a new feature, add a seeder to seed/registry.ts.
  */
 
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import {
   TOOLSET_SEEDERS,
   PAGE_SEEDERS,
   CORE_TOOL_SETS,
   seedEvents,
 } from "./seed/registry";
+import { seedLocalTestServerTools } from "./seed/toolsetSeeders";
 
 const SANDBOX_SLUG = "sandbox-test-agent";
 
@@ -499,6 +500,484 @@ export const verifyScheduleResults = internalQuery({
   },
 });
 
+/**
+ * Test: Page optimizations — exercises the new/updated agent API endpoints
+ * end-to-end:
+ *   - listTasks with pagination (limit/offset, returns {tasks, totalCount})
+ *   - listSpreadsheetData with rowLimit/rowOffset (returns {columns, rows, totalRows})
+ *   - addSpreadsheetColumns batch mutation
+ *   - addSpreadsheetRows batch mutation
+ *   - getNote query
+ *   - getTabContent query (backs read_page_content)
+ *
+ * Calls the actual api.agentApi.* functions via ctx.runQuery/runMutation using
+ * AGENT_SERVER_TOKEN so this proves the endpoint surface works, not just the
+ * underlying tables.
+ *
+ * Run: npx convex run seed:testPageOptimizations '{}'
+ */
+export const testPageOptimizations = internalAction({
+  args: {},
+  handler: async (ctx): Promise<any> => {
+    const serverToken = process.env.AGENT_SERVER_TOKEN;
+    if (!serverToken) {
+      throw new Error("AGENT_SERVER_TOKEN env var is required to run this test.");
+    }
+
+    const agent = await ctx.runQuery(internal.seed.getSandboxAgentInternal, {});
+    if (!agent) throw new Error("Sandbox agent not found. Run seed:run first.");
+
+    const tabs = await ctx.runQuery(internal.seed.getSandboxTabs, { agentId: agent._id });
+    const tasksTab = tabs.find((t: any) => t.type === "tasks");
+    const notesTab = tabs.find((t: any) => t.type === "notes");
+    const spreadsheetTab = tabs.find((t: any) => t.type === "spreadsheet");
+    const markdownTab = tabs.find((t: any) => t.type === "markdown");
+
+    const results: Record<string, any> = {};
+
+    // 1. Paginated listTasks
+    if (tasksTab) {
+      const r: any = await ctx.runQuery(api.agentApi.listTasks, {
+        serverToken,
+        tabId: tasksTab._id,
+        limit: 3,
+        offset: 0,
+      });
+      results.listTasks = {
+        pass:
+          typeof r === "object" &&
+          "tasks" in r &&
+          "totalCount" in r &&
+          r.tasks.length <= 3 &&
+          r.totalCount >= r.tasks.length,
+        returned: r.tasks.length,
+        totalCount: r.totalCount,
+        firstTitle: r.tasks[0]?.title ?? null,
+      };
+    }
+
+    // 2. getNote
+    if (notesTab) {
+      const notes: any = await ctx.runQuery(api.agentApi.listNotes, {
+        serverToken,
+        tabId: notesTab._id,
+      });
+      const first = notes?.[0];
+      if (first) {
+        const note: any = await ctx.runQuery(api.agentApi.getNote, {
+          serverToken,
+          noteId: first._id,
+        });
+        results.getNote = {
+          pass: !!note && typeof note.content === "string" && note._id === first._id,
+          noteId: note?._id ?? null,
+          title: note?.title ?? null,
+          contentLength: note?.content?.length ?? 0,
+        };
+      } else {
+        results.getNote = { pass: false, reason: "no notes seeded" };
+      }
+    }
+
+    // 3. addSpreadsheetColumns (batch) + addSpreadsheetRows (batch) + paginated listSpreadsheetData
+    if (spreadsheetTab) {
+      const before: any = await ctx.runQuery(api.agentApi.listSpreadsheetData, {
+        serverToken,
+        tabId: spreadsheetTab._id,
+      });
+      const colsAdd = [
+        { name: `Batch_${Date.now()}_a`, type: "text" as const },
+        { name: `Batch_${Date.now()}_b`, type: "number" as const },
+      ];
+      const colResult: any = await ctx.runMutation(api.agentApi.addSpreadsheetColumns, {
+        serverToken,
+        tabId: spreadsheetTab._id,
+        agentId: agent._id,
+        columns: colsAdd,
+      });
+      const rowsAdd = [
+        { [colsAdd[0].name]: "x", [colsAdd[1].name]: 1 },
+        { [colsAdd[0].name]: "y", [colsAdd[1].name]: 2 },
+        { [colsAdd[0].name]: "z", [colsAdd[1].name]: 3 },
+      ];
+      const rowResult: any = await ctx.runMutation(api.agentApi.addSpreadsheetRows, {
+        serverToken,
+        tabId: spreadsheetTab._id,
+        agentId: agent._id,
+        rows: rowsAdd,
+      });
+      const afterPaged: any = await ctx.runQuery(api.agentApi.listSpreadsheetData, {
+        serverToken,
+        tabId: spreadsheetTab._id,
+        rowLimit: 2,
+        rowOffset: 0,
+      });
+      results.spreadsheet = {
+        pass:
+          colResult.insertedIds.length === 2 &&
+          rowResult.insertedIds.length === 3 &&
+          afterPaged.rows.length === 2 &&
+          afterPaged.totalRows === before.totalRows + 3 &&
+          "totalRows" in afterPaged,
+        columnsBefore: before.columns.length,
+        columnsInserted: colResult.insertedIds.length,
+        rowsBefore: before.totalRows,
+        rowsInserted: rowResult.insertedIds.length,
+        totalRowsAfter: afterPaged.totalRows,
+        paginatedReturned: afterPaged.rows.length,
+      };
+    }
+
+    // 4. getTabContent for markdown
+    if (markdownTab) {
+      const r: any = await ctx.runQuery(api.agentApi.getTabContent, {
+        serverToken,
+        tabId: markdownTab._id,
+      });
+      results.readMarkdown = {
+        pass: !!r && typeof r.content === "string" && r.tabId === markdownTab._id,
+        label: r?.label ?? null,
+        type: r?.type ?? null,
+        contentLength: r?.content?.length ?? 0,
+        hasContent: (r?.content?.length ?? 0) > 0,
+      };
+    }
+
+    const allPass =
+      (results.listTasks?.pass ?? true) &&
+      (results.getNote?.pass ?? true) &&
+      (results.spreadsheet?.pass ?? true) &&
+      (results.readMarkdown?.pass ?? true);
+
+    return { allPass, agentId: agent._id, results };
+  },
+});
+
+export const getSandboxAgentInternal = internalQuery({
+  handler: async (ctx) => {
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_slug", (q: any) => q.eq("slug", SANDBOX_SLUG))
+      .collect();
+    return agents[0] ?? null;
+  },
+});
+
+/**
+ * Recreate the API page on the sandbox agent (tab + seeded endpoints + API key).
+ * Safe to run if the page was deleted — idempotent: will reuse an existing
+ * API tab/key if present, and re-seed missing endpoints.
+ *
+ * Run: npx convex run seed:recreateApiPage '{}'
+ */
+export const recreateApiPage = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+
+    const existingTabs = await ctx.db
+      .query("sidebarTabs")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+    let apiTab = existingTabs.find((t: any) => t.type === "api");
+
+    if (!apiTab) {
+      const slug = "agent-api";
+      const maxOrder = existingTabs.reduce(
+        (max: number, t: any) => Math.max(max, t.sortOrder),
+        -1
+      );
+      const tabId = await ctx.db.insert("sidebarTabs", {
+        agentId: agent._id,
+        label: "Agent API",
+        slug,
+        type: "api",
+        sortOrder: maxOrder + 1,
+      });
+      apiTab = (await ctx.db.get(tabId))!;
+    }
+
+    // Seed endpoints if missing
+    const existingEndpoints = await ctx.db
+      .query("tabApiEndpoints")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+    const existingOnThisTab = existingEndpoints.filter(
+      (e: any) => e.tabId === apiTab!._id
+    );
+
+    const wantedEndpoints = [
+      {
+        name: "Get Status",
+        slug: "get-status",
+        method: "GET" as const,
+        description:
+          "Returns the agent's current status, recent activity, and task summary.",
+        promptTemplate:
+          "Return the current agent status and a summary of recent activity. Include counts of tasks by status (todo, in_progress, done) and the last 3 events. Format as JSON.",
+        responseFormat: "json" as const,
+        isActive: true,
+      },
+      {
+        name: "Process Feedback",
+        slug: "process-feedback",
+        method: "POST" as const,
+        description:
+          "Accepts user feedback, creates a task if actionable, and stores as memory.",
+        promptTemplate:
+          "Process the user feedback in the request body. If the feedback is actionable, create a task for it. Always store the feedback as a memory. Return an acknowledgment with what actions were taken. Format as JSON.",
+        responseFormat: "json" as const,
+        isActive: true,
+      },
+    ];
+
+    const insertedEndpoints: any[] = [];
+    for (const ep of wantedEndpoints) {
+      const already = existingOnThisTab.find(
+        (e: any) => e.slug === ep.slug && e.method === ep.method
+      );
+      if (already) {
+        insertedEndpoints.push({ ...ep, endpointId: already._id, reused: true });
+        continue;
+      }
+      const endpointId = await ctx.db.insert("tabApiEndpoints", {
+        tabId: apiTab!._id,
+        agentId: agent._id,
+        ...ep,
+      });
+      insertedEndpoints.push({ ...ep, endpointId, reused: false });
+    }
+
+    // Ensure there's at least one API key for this agent
+    const existingKeys = await ctx.db
+      .query("agentApiKeys")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+    let apiKey: string;
+    let keyId: any;
+    let keyCreated = false;
+    if (existingKeys.length > 0) {
+      apiKey = existingKeys[0].key;
+      keyId = existingKeys[0]._id;
+    } else {
+      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      let k = "ak_";
+      for (let i = 0; i < 40; i++) {
+        k += chars[Math.floor(Math.random() * chars.length)];
+      }
+      apiKey = k;
+      keyId = await ctx.db.insert("agentApiKeys", {
+        agentId: agent._id,
+        userId: agent.userId,
+        key: apiKey,
+        label: "Sandbox test key",
+        createdAt: Date.now(),
+      });
+      keyCreated = true;
+    }
+
+    return {
+      status: "ready",
+      agentId: agent._id,
+      apiTabId: apiTab!._id,
+      tabCreated: !existingTabs.some((t: any) => t.type === "api"),
+      endpoints: insertedEndpoints.map((e) => ({
+        name: e.name,
+        slug: e.slug,
+        method: e.method,
+        endpointId: e.endpointId,
+        reused: e.reused,
+      })),
+      apiKey: { id: keyId, key: apiKey, created: keyCreated },
+    };
+  },
+});
+
+/**
+ * Verify the REST API surface for the sandbox agent works end-to-end at
+ * the backend layer:
+ *   - validateApiKey(apiKey) returns the correct agent/user
+ *   - getApiEndpoint(slug, method) returns the seeded endpoint config
+ *   - Wrong method / wrong slug correctly return null
+ *
+ * Run: npx convex run seed:testApiPageBackend '{"apiKey":"<key>"}'
+ */
+export const testApiPageBackend = internalAction({
+  args: { apiKey: v.string() },
+  handler: async (ctx, args): Promise<any> => {
+    const serverToken = process.env.AGENT_SERVER_TOKEN;
+    if (!serverToken) throw new Error("AGENT_SERVER_TOKEN env var is required.");
+
+    const agent = await ctx.runQuery(internal.seed.getSandboxAgentInternal, {});
+    if (!agent) throw new Error("Sandbox agent not found. Run seed:run first.");
+
+    // 1. validateApiKey
+    const keyInfo: any = await ctx.runQuery(api.agentApi.validateApiKey, {
+      serverToken,
+      apiKey: args.apiKey,
+    });
+    const validateCheck = {
+      pass: !!keyInfo && keyInfo.agentId === agent._id,
+      returned: !!keyInfo,
+      matchesAgent: keyInfo?.agentId === agent._id,
+    };
+
+    // 2. getApiEndpoint — correct
+    const getStatus: any = await ctx.runQuery(api.agentApi.getApiEndpoint, {
+      serverToken,
+      agentId: agent._id,
+      slug: "get-status",
+      method: "GET",
+    });
+    const processFeedback: any = await ctx.runQuery(api.agentApi.getApiEndpoint, {
+      serverToken,
+      agentId: agent._id,
+      slug: "process-feedback",
+      method: "POST",
+    });
+
+    // 3. getApiEndpoint — wrong method (should be null, endpoint is GET)
+    const wrongMethod: any = await ctx.runQuery(api.agentApi.getApiEndpoint, {
+      serverToken,
+      agentId: agent._id,
+      slug: "get-status",
+      method: "POST",
+    });
+
+    // 4. getApiEndpoint — unknown slug (should be null)
+    const unknownSlug: any = await ctx.runQuery(api.agentApi.getApiEndpoint, {
+      serverToken,
+      agentId: agent._id,
+      slug: "does-not-exist",
+      method: "GET",
+    });
+
+    const endpointCheck = {
+      pass:
+        !!getStatus &&
+        getStatus.method === "GET" &&
+        getStatus.isActive === true &&
+        !!processFeedback &&
+        processFeedback.method === "POST" &&
+        wrongMethod === null &&
+        unknownSlug === null,
+      getStatus: getStatus ? { method: getStatus.method, active: getStatus.isActive, name: getStatus.name } : null,
+      processFeedback: processFeedback
+        ? { method: processFeedback.method, active: processFeedback.isActive, name: processFeedback.name }
+        : null,
+      wrongMethodResult: wrongMethod,
+      unknownSlugResult: unknownSlug,
+    };
+
+    return {
+      allPass: validateCheck.pass && endpointCheck.pass,
+      agentId: agent._id,
+      validateApiKey: validateCheck,
+      getApiEndpoint: endpointCheck,
+      exampleCurl: {
+        GET: `curl -H "Authorization: Bearer ${args.apiKey}" ${
+          process.env.AGENT_SERVER_PUBLIC_URL ?? "http://localhost:3001"
+        }/api/${agent._id}/get-status`,
+        POST: `curl -X POST -H "Authorization: Bearer ${args.apiKey}" -H "Content-Type: application/json" -d '{"feedback":"The dashboard feels slow on load"}' ${
+          process.env.AGENT_SERVER_PUBLIC_URL ?? "http://localhost:3001"
+        }/api/${agent._id}/process-feedback`,
+      },
+    };
+  },
+});
+
+export const getSandboxTabs = internalQuery({
+  args: { agentId: v.id("agents") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("sidebarTabs")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", args.agentId))
+      .collect();
+  },
+});
+
+/**
+ * Create a test endpoint exercising the new features: template variables,
+ * inputSchema validation, and allowedToolSets narrowing.
+ *
+ * Run: npx convex run seed:setupApiFeatureTest '{}'
+ * Returns the slug + a curl command to exercise it.
+ */
+export const setupApiFeatureTest = internalMutation({
+  handler: async (ctx) => {
+    const agent = await getSandboxAgent(ctx);
+    const tabs = await ctx.db
+      .query("sidebarTabs")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+    const apiTab = tabs.find((t: any) => t.type === "api");
+    if (!apiTab) {
+      throw new Error(
+        "No API tab found on sandbox. Run seed:recreateApiPage first."
+      );
+    }
+
+    // Remove any previous version of this test endpoint (idempotent)
+    const existing = await ctx.db
+      .query("tabApiEndpoints")
+      .withIndex("by_agent_slug", (q: any) =>
+        q.eq("agentId", agent._id).eq("slug", "research-topic")
+      )
+      .collect();
+    for (const e of existing) await ctx.db.delete(e._id);
+
+    const endpointId = await ctx.db.insert("tabApiEndpoints", {
+      tabId: apiTab._id,
+      agentId: agent._id,
+      name: "Research Topic",
+      slug: "research-topic",
+      method: "POST",
+      description: "Test endpoint exercising template vars, inputSchema, and allowedToolSets.",
+      promptTemplate:
+        "The user wants a brief summary of the topic: {{body.topic}}. " +
+        "Depth: {{body.depth}}. " +
+        "Source header: {{headers.x-source}}. " +
+        "Respond with a 2-sentence summary. Do NOT call any Slack, Discord, or email tools " +
+        "(you shouldn't have access to them for this endpoint anyway). Output JSON: " +
+        '{"topic":"…","summary":"…","depth":"…","source":"…"}',
+      responseFormat: "json",
+      isActive: true,
+      // Principle of least privilege: only memory (for future logging)
+      allowedToolSets: ["memory"],
+      // Require topic + depth enum
+      inputSchema: {
+        body: {
+          properties: {
+            topic: { type: "string" },
+            depth: { type: "string", enum: ["brief", "detailed"] },
+          },
+          required: ["topic", "depth"],
+        },
+      },
+    });
+
+    // Grab the existing API key for convenience
+    const keys = await ctx.db
+      .query("agentApiKeys")
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agent._id))
+      .collect();
+    const apiKey = keys[0]?.key ?? null;
+
+    const baseUrl =
+      process.env.AGENT_SERVER_PUBLIC_URL ?? "http://localhost:4000";
+
+    return {
+      status: "ready",
+      endpointId,
+      slug: "research-topic",
+      apiKey,
+      agentId: agent._id,
+      curlValid: `curl -s -X POST -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -H "X-Source: sandbox-ui" -d '{"topic":"pagination","depth":"brief"}' ${baseUrl}/api/${agent._id}/research-topic`,
+      curlMissingField: `curl -s -X POST -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -d '{"topic":"pagination"}' ${baseUrl}/api/${agent._id}/research-topic`,
+      curlBadEnum: `curl -s -X POST -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -d '{"topic":"pagination","depth":"verbose"}' ${baseUrl}/api/${agent._id}/research-topic`,
+    };
+  },
+});
+
 // ── Main seed ────────────────────────────────────────────────────────────
 
 export const run = internalMutation({
@@ -681,6 +1160,142 @@ export const run = internalMutation({
 
     summary.status = "created";
     return summary;
+  },
+});
+
+// ── DevOps Test Agent ─────────────────────────────────────────────────────
+// Creates (or recreates) a standalone agent wired to the localhost:3737
+// test server with pre-configured custom HTTP tools and a starter conversation.
+//
+// Usage:
+//   npx convex run seed:createDevOpsAgent '{"email":"aneaire010@gmail.com"}'
+//   npx convex run seed:createDevOpsAgent '{"email":"aneaire010@gmail.com","force":true}'
+
+const DEVOPS_SLUG = "devops-test-agent";
+
+const DEVOPS_SYSTEM_PROMPT = `You are a DevOps automation assistant connected to a local sandbox server at http://localhost:3737.
+
+This server has a SQLite database with tasks, a webhook pipeline, and an automation rules engine.
+
+## What you can do
+
+**Fire webhook events** using the fire_webhook tool.
+Supported events that trigger automations:
+- deploy.success     → marks the deploy task as done (include task_title in payload)
+- pr.overdue         → escalates the PR review task to urgent + in_progress (include pr_number)
+- bug.reported       → if severity is "critical", creates a new urgent bug task (include title + severity)
+- task.created       → if priority is "urgent", auto-assigns to oncall-team (include title + priority)
+- anything else      → gets logged but no automation fires
+
+**Manage tasks** using list_tasks, create_task, and update_task.
+**Inspect automations** using list_automation_logs and list_automation_rules.
+**Reset the database** using reset_database to start fresh.
+
+## How to behave
+
+- When the user describes a scenario (deploy finished, bug found, PR stale), translate it into the right webhook event and fire it
+- After firing a webhook, always call list_tasks and list_automation_logs to report what changed
+- Be specific: tell the user which task was affected, its new status/priority, and which automation rule fired
+- If a webhook didn't trigger an automation, say so and explain why (event not matched)
+- The payload field in fire_webhook must be a JSON string, e.g. '{"task_title":"Deploy staging environment","env":"staging"}'
+- Use the dashboard at http://localhost:3737 as a visual reference`;
+
+export const createDevOpsAgent = internalMutation({
+  args: {
+    email: v.string(),
+    force: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // 1. Find user
+    const allUsers = await ctx.db.query("users").collect();
+    let user = allUsers.find((u) => u.email === args.email);
+    if (!user) user = allUsers.find((u) => u.plan === "pro") ?? allUsers[0];
+    if (!user) throw new Error("No users found. Sign in at least once first.");
+
+    // 2. Check for existing agent
+    const existing = (
+      await ctx.db
+        .query("agents")
+        .withIndex("by_slug", (q) => q.eq("slug", DEVOPS_SLUG))
+        .collect()
+    ).find((a) => a.userId === user!._id);
+
+    if (existing) {
+      if (!args.force) {
+        return {
+          status: "skipped",
+          message: "DevOps agent already exists. Use force=true to recreate.",
+          agentId: existing._id,
+        };
+      }
+      await cascadeDeleteAgent(ctx, existing._id);
+    }
+
+    // 3. Ensure pro plan
+    if (user.plan !== "pro" && user.plan !== "enterprise") {
+      await ctx.db.patch(user._id, { plan: "pro", maxAgents: 25 });
+    }
+
+    // 4. Create agent
+    const agentId = await ctx.db.insert("agents", {
+      userId: user._id,
+      name: "DevOps Test Agent",
+      slug: DEVOPS_SLUG,
+      description: "Fires webhooks and manages tasks on the localhost:3737 sandbox server.",
+      systemPrompt: DEVOPS_SYSTEM_PROMPT,
+      model: "claude-sonnet-4-6",
+      enabledToolSets: ["custom_http_tools"],
+      status: "active",
+    });
+
+    // 5. Seed the localhost:3737 custom HTTP tools
+    const { localToolIds } = await seedLocalTestServerTools({ ctx, agentId, userId: user._id });
+
+    // 6. Create a starter conversation
+    const conversationId = await ctx.db.insert("conversations", {
+      agentId,
+      userId: user._id,
+      title: "Webhook & Automation Tests",
+    });
+
+    const starterMessages = [
+      {
+        role: "user" as const,
+        content: "What automation rules are available on the test server?",
+        status: "done" as const,
+      },
+      {
+        role: "assistant" as const,
+        content:
+          "Here are the 4 automation rules configured on the test server:\n\n" +
+          "1. **Auto-assign urgent tasks** — fires on `task.created` when priority is `urgent`. Reassigns the task to `oncall-team`.\n" +
+          "2. **Mark task done on deploy** — fires on `deploy.success`. Finds the deploy task and sets its status to `done`.\n" +
+          "3. **Escalate overdue PRs** — fires on `pr.overdue` when a `pr_number` is present. Bumps the PR review task to `urgent` + `in_progress`.\n" +
+          "4. **Flag bug reports** — fires on `bug.reported` when severity is `critical`. Creates a new urgent bug task automatically.\n\n" +
+          "Try one — just describe a scenario like \"we just deployed to staging\" or \"PR #42 has been open for 3 days\".",
+        status: "done" as const,
+        suggestions: [
+          "We just deployed to staging",
+          "PR #42 has been open for 3 days, escalate it",
+          "Critical bug: payment timeout on checkout",
+          "Show me all current tasks",
+        ],
+      },
+    ];
+
+    const messageIds = [];
+    for (const msg of starterMessages) {
+      const id = await ctx.db.insert("messages", { conversationId, ...msg });
+      messageIds.push(id);
+    }
+
+    return {
+      status: "created",
+      agentId,
+      conversationId,
+      toolsCreated: localToolIds.length,
+      message: `DevOps Test Agent ready. Open the conversation in HiGantic and start testing.`,
+    };
   },
 });
 
