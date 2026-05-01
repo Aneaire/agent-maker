@@ -14,7 +14,7 @@ const openrouter = process.env.OPENROUTER_API_KEY
   ? createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
   : null;
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 /** Credential type key (matches CREDENTIAL_TYPE_REGISTRY) for each provider
  * family. Returned so callers can fetch the matching stored credential. */

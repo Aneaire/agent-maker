@@ -1,7 +1,12 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import {
-  ChevronDown, ChevronUp, Search, Eye, Brain, Check,
+  ChevronDown, ChevronUp, Search, Eye, Brain, Check, KeyRound,
 } from "lucide-react";
+import { CHAT_MODELS, getModelLabel } from "@agent-maker/shared/src/models";
+import type { ModelEntry } from "@agent-maker/shared/src/models";
+
+export type { ModelCapability, ModelEntry } from "@agent-maker/shared/src/models";
+export { CHAT_MODELS, getModelLabel } from "@agent-maker/shared/src/models";
 
 // ── Provider icons ──────────────────────────────────────────────────────
 
@@ -29,36 +34,6 @@ export function OpenAIIcon({ className }: { className?: string }) {
   );
 }
 
-// ── Model data ──────────────────────────────────────────────────────────
-
-export type ModelCapability = "vision" | "thinking";
-
-export interface ModelEntry {
-  value: string;
-  label: string;
-  description: string;
-  group: "Claude" | "Gemini" | "OpenAI";
-  tier: string;
-  capabilities: ModelCapability[];
-  type: "chat";
-}
-
-export const CHAT_MODELS: ModelEntry[] = [
-  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", description: "Balanced speed and capability", group: "Claude", tier: "$$", capabilities: ["vision", "thinking"], type: "chat" },
-  { value: "claude-opus-4-6", label: "Claude Opus 4.6", description: "Most capable Claude model", group: "Claude", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat" },
-  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", description: "Fastest and most affordable", group: "Claude", tier: "$", capabilities: ["vision"], type: "chat" },
-  { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", description: "Most capable Gemini model", group: "Gemini", tier: "$$$", capabilities: ["vision", "thinking"], type: "chat" },
-  { value: "gemini-3-flash-preview", label: "Gemini 3 Flash", description: "Lightning-fast with agentic capability", group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat" },
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Balanced Gemini model", group: "Gemini", tier: "$$", capabilities: ["vision", "thinking"], type: "chat" },
-  { value: "gpt-4o", label: "GPT-4o", description: "OpenAI flagship multimodal model", group: "OpenAI", tier: "$$$", capabilities: ["vision"], type: "chat" },
-  { value: "gpt-4o-mini", label: "GPT-4o Mini", description: "Fast and affordable OpenAI model", group: "OpenAI", tier: "$", capabilities: ["vision"], type: "chat" },
-  { value: "o4-mini", label: "o4-mini", description: "OpenAI fast reasoning model", group: "OpenAI", tier: "$$", capabilities: ["thinking"], type: "chat" },
-];
-
-export function getModelLabel(value: string) {
-  return CHAT_MODELS.find((m) => m.value === value)?.label ?? value;
-}
-
 export function getProviderIcon(group: string) {
   if (group === "Claude") return AnthropicIcon;
   if (group === "Gemini") return GoogleIcon;
@@ -74,6 +49,7 @@ export function ModelDropdown({
   disabled,
   enabledModels,
   dropDirection = "up",
+  credentialsBannerUrl,
 }: {
   model: string;
   onModelChange: (model: string) => void;
@@ -81,6 +57,8 @@ export function ModelDropdown({
   enabledModels?: string[];
   /** Which direction the panel opens. Defaults to "up" (chat input behavior). */
   dropDirection?: "up" | "down";
+  /** When set, shows a banner prompting the user to add API keys. */
+  credentialsBannerUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -194,6 +172,18 @@ export function ModelDropdown({
             </div>
 
             <div className="flex-1 overflow-y-auto py-1">
+              {credentialsBannerUrl && (
+                <a
+                  href={credentialsBannerUrl}
+                  className="flex items-center gap-2 mx-3 mt-1 mb-2 px-3 py-2.5 rounded-lg bg-accent/5 border border-accent/15 text-xs text-ink-muted hover:text-ink hover:bg-accent/10 transition-colors"
+                >
+                  <KeyRound className="h-3.5 w-3.5 text-accent shrink-0" strokeWidth={1.5} />
+                  <span>
+                    <span className="font-medium text-ink">Add an API key</span>{" "}
+                    to unlock Claude &amp; OpenAI models
+                  </span>
+                </a>
+              )}
               {groups.map(([group, models]) => (
                 <div key={group}>
                   <div className="eyebrow px-4 py-2">{group}</div>

@@ -187,6 +187,8 @@ export function ChatInput({
     return base.filter((v) => credentialFilteredModels.includes(v));
   }, [enabledModels, credentialFilteredModels]);
 
+  const hasNoCredentials = aiProviders !== undefined && aiProviders.length === 0;
+
   async function uploadFile(file: File): Promise<PendingAttachment | null> {
     if (!ACCEPTED_TYPES.includes(file.type)) {
       console.warn(`Unsupported file type: ${file.type}`);
@@ -409,6 +411,7 @@ export function ChatInput({
                   onModelChange={onModelChange}
                   disabled={lockModelDuringProcessing ? isProcessing : false}
                   enabledModels={effectiveEnabledModels}
+                  credentialsBannerUrl={hasNoCredentials ? "/credentials" : undefined}
                 />
               ) : (
                 <div />

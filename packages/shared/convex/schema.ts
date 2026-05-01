@@ -221,6 +221,8 @@ export default defineSchema({
     promptTemplate: v.string(), // Instruction for the agent on how to handle this endpoint
     responseFormat: v.union(v.literal("json"), v.literal("text")),
     isActive: v.boolean(),
+    allowedToolSets: v.optional(v.array(v.string())),
+    inputSchema: v.optional(v.any()),
   })
     .index("by_tab", ["tabId"])
     .index("by_agent", ["agentId"])
@@ -637,6 +639,19 @@ export default defineSchema({
     .index("by_agent", ["agentId"])
     .index("by_credential", ["credentialId"])
     .index("by_agent_toolset", ["agentId", "toolSetName"]),
+
+  // ── Platform Config (Admin) ──────────────────────────────────────────
+
+  platformConfig: defineTable({
+    providerDefaults: v.object({
+      anthropic: v.string(),
+      google_ai: v.string(),
+      openai: v.string(),
+    }),
+    fallbackModel: v.string(),
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }),
 
   oauthStates: defineTable({
     userId: v.id("users"),

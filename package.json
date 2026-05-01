@@ -4,11 +4,12 @@
   "type": "module",
   "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "bun run --filter @agent-maker/shared dev & bun run --filter @agent-maker/web dev & bun run --filter @agent-maker/agent dev",
-    "dev:all": "bun run --filter @agent-maker/shared dev & bun run --filter @agent-maker/web dev & bun run --filter @agent-maker/agent dev",
+    "dev": "bun run --filter @agent-maker/shared dev & bun run --filter @agent-maker/web dev & bun run --filter @agent-maker/agent dev & bun run --filter @agent-maker/admin dev",
+    "dev:all": "bun run --filter @agent-maker/shared dev & bun run --filter @agent-maker/web dev & bun run --filter @agent-maker/agent dev & bun run --filter @agent-maker/admin dev",
     "dev:web": "bun run --filter @agent-maker/web dev",
     "dev:convex": "bun run --filter @agent-maker/shared dev",
     "dev:agent": "bun run --filter @agent-maker/agent dev",
+    "dev:admin": "bun run --filter @agent-maker/admin dev",
     "build": "bun --filter @agent-maker/web build",
     "typecheck": "bun --filter '*' typecheck"
   }

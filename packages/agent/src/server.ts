@@ -473,7 +473,7 @@ User's request: ${instruction}
 
 Return the system prompt.`;
 
-    const result = await generateOnce("gemini-2.5-flash", systemPrompt, userMessage);
+    const result = await generateOnce("gemini-3-flash-preview", systemPrompt, userMessage);
 
     return c.json({ prompt: result.trim() });
   } catch (err: any) {

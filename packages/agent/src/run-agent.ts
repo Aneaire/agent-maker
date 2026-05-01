@@ -500,12 +500,12 @@ You have conversation history from this channel. Reference it naturally when the
     }
 
     console.log(
-      `[agent] Starting run for agent="${agent.name}" model="${effectiveModel || "gemini-2.5-flash"}" conversation=${params.conversationId}`
+      `[agent] Starting run for agent="${agent.name}" model="${effectiveModel || "gemini-3-flash-preview"}" conversation=${params.conversationId}`
     );
 
     // Resolve the BYOK API key for the selected model's provider. Falls back to
     // the agent server's env var when the user has no credential stored.
-    const modelIdForRun = effectiveModel || "gemini-2.5-flash";
+    const modelIdForRun = effectiveModel || "gemini-3-flash-preview";
     const providerType = providerTypeForModel(modelIdForRun);
     const byokApiKey = providerType
       ? await convexClient.getAiProviderApiKey(params.agentId, providerType)

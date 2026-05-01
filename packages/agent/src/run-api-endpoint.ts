@@ -32,7 +32,7 @@ export async function runApiEndpoint(
   const agent = await convexClient.getAgent(params.agentId);
   if (!agent) throw new Error("Agent not found");
 
-  const effectiveModel = params.model || agent.model || "gemini-2.5-flash";
+  const effectiveModel = params.model || agent.model || "gemini-3-flash-preview";
 
   const tabs = (await convexClient.listTabs(params.agentId)) ?? [];
   const customTools = (await convexClient.listCustomTools(params.agentId)) ?? [];

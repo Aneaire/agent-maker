@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adminAuth from "../adminAuth.js";
 import type * as agentApi from "../agentApi.js";
 import type * as agentDatabases from "../agentDatabases.js";
 import type * as agentEvents from "../agentEvents.js";
@@ -35,6 +36,7 @@ import type * as memories from "../memories.js";
 import type * as memoriesInternal from "../memoriesInternal.js";
 import type * as messages from "../messages.js";
 import type * as modelDefaults from "../modelDefaults.js";
+import type * as platformConfig from "../platformConfig.js";
 import type * as processAutomation from "../processAutomation.js";
 import type * as scheduledActions from "../scheduledActions.js";
 import type * as seed from "../seed.js";
@@ -59,6 +61,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminAuth: typeof adminAuth;
   agentApi: typeof agentApi;
   agentDatabases: typeof agentDatabases;
   agentEvents: typeof agentEvents;
@@ -86,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   memoriesInternal: typeof memoriesInternal;
   messages: typeof messages;
   modelDefaults: typeof modelDefaults;
+  platformConfig: typeof platformConfig;
   processAutomation: typeof processAutomation;
   scheduledActions: typeof scheduledActions;
   seed: typeof seed;

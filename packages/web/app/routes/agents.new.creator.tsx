@@ -88,7 +88,7 @@ function CreatorView({
   const setCreatorModel = useMutation(api.creatorSessions.setCreatorModel);
   const aiProviders = useQuery(api.credentials.listAiProviders);
 
-  const creatorModel = (session as any)?.creatorModel ?? "gemini-2.5-flash";
+  const creatorModel = (session as any)?.creatorModel ?? "gemini-3-flash-preview";
   const enabledModels =
     aiProviders && aiProviders.length > 0
       ? CHAT_MODELS.filter((m) => {

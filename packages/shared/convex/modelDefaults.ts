@@ -5,30 +5,30 @@ import type { Id } from "./_generated/dataModel";
 /** AI provider credential types in priority order. */
 const AI_PROVIDER_TYPES = ["anthropic", "google_ai", "openai"] as const;
 
-/** Maps AI provider credential types to their best default model. */
-const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
+/** Hardcoded defaults — used when no platformConfig document exists yet. */
+const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
-  google_ai: "gemini-2.5-flash",
+  google_ai: "gemini-3-flash-preview",
   openai: "gpt-4o-mini",
 };
 
-/**
- * Default model when the user has no AI provider credentials (BYOK).
- * The server has GEMINI_API_KEY set as a platform-level key, so Gemini
- * models work for all users without needing their own credentials.
- */
-const FALLBACK_MODEL = "gemini-2.5-flash";
+const DEFAULT_FALLBACK = "gemini-3-flash-preview";
 
 /**
  * Picks the best default model for a user based on which AI provider
- * credentials they have configured. Returns the first available provider's
- * default model, preferring anthropic > google_ai > openai.
- * Falls back to gemini-2.5-flash (platform-provided Gemini key).
+ * credentials they have configured. Reads admin-configured defaults from
+ * the platformConfig table if available, otherwise uses hardcoded defaults.
+ * Falls back to gemini-3-flash-preview (platform-provided Gemini key).
  */
 export async function getDefaultModelForUser(
   ctx: GenericQueryCtx<DataModel>,
   userId: Id<"users">
 ): Promise<string> {
+  // Read admin-configured defaults (single-document table)
+  const config = await ctx.db.query("platformConfig").first();
+  const providerDefaults = config?.providerDefaults as Record<string, string> | undefined;
+  const fallbackModel = (config?.fallbackModel as string) ?? DEFAULT_FALLBACK;
+
   const creds = await ctx.db
     .query("credentials")
     .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -36,9 +36,13 @@ export async function getDefaultModelForUser(
 
   for (const provider of AI_PROVIDER_TYPES) {
     if (creds.some((c) => c.type === provider)) {
-      return PROVIDER_DEFAULT_MODEL[provider] ?? FALLBACK_MODEL;
+      return (
+        providerDefaults?.[provider] ??
+        DEFAULT_PROVIDER_MODELS[provider] ??
+        fallbackModel
+      );
     }
   }
 
-  return FALLBACK_MODEL;
+  return fallbackModel;
 }

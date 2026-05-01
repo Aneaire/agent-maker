@@ -272,7 +272,7 @@ export async function runCreator(params: RunCreatorParams) {
       conversationHistorySection;
 
     // Use the model the user selected for this session, defaulting to Sonnet.
-    const creatorModelId = sessionInfo.creatorModel ?? "gemini-2.5-flash";
+    const creatorModelId = sessionInfo.creatorModel ?? "gemini-3-flash-preview";
     const providerType = providerTypeForModel(creatorModelId);
     const byokApiKey = providerType
       ? await convexClient.getAiProviderApiKey(params.agentId, providerType)
