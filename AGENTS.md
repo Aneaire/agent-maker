@@ -296,3 +296,4 @@ Detailed documentation lives in `docs/`. Refer to these when you need deeper con
 - **`docs/advanced/rest-api.md`** — REST API endpoint system
 - **`docs/advanced/deployment.md`** — Production deployment guide (agent server, Convex, web UI, env vars)
 - **`docs/advanced/adding-features.md`** — Checklists for adding automation actions, event types, etc.
+- **`docs/infras.md`** — Production infrastructure: domain (higantic.com), hosting platforms, DNS
